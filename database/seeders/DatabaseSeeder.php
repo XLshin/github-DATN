@@ -26,6 +26,10 @@ class DatabaseSeeder extends Seeder
             BannerSeeder::class,
 
             ProductVariantSeeder::class,
+
+            OrderSeeder::class,
+
+            WarrantyTestSeeder::class,
         ]);
     }
 }
