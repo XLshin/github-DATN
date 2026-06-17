@@ -242,6 +242,12 @@
                     <span>Ghi nhớ đăng nhập</span>
                 </label>
 
+                <div style="text-align: right; margin-bottom: 18px;">
+                    <a href="{{ route('password.request') }}" style="color: #2563eb; font-size: 14px; font-weight: 600; text-decoration: none;">
+                        Quên mật khẩu?
+                    </a>
+                </div>
+
                 <button type="submit" class="btn-primary">
                     Đăng nhập
                 </button>

@@ -206,6 +206,10 @@
                         Cập nhật thông tin
                     </a>
 
+                    <a href="{{ route('password.change') }}" class="btn btn-secondary">
+                        Đổi mật khẩu
+                    </a>
+
                     <a href="{{ route('dashboard') }}" class="btn btn-secondary">
                         Về dashboard
                     </a>
