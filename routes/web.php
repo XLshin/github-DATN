@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\ProfileController;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
@@ -26,5 +27,9 @@ Route::middleware('auth')->group(function () {
         return view('auth.dashboard');
     })->name('dashboard');
 
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });
