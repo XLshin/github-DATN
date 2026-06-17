@@ -19,38 +19,48 @@ class User extends Authenticatable
      */
     protected $fillable = [
 
-    'name',
+        'name',
 
-    'email',
+        'email',
 
-    'password',
+        'password',
 
-    'phone',
+        'phone',
 
-    'address',
+        'address',
 
-    'role',
+        'role',
 
-    'total_spent',
+        'total_spent',
 
-    'membership_level'
+        'membership_level'
 
-];
+    ];
 
-public function reviews()
-{
-    return $this->hasMany(Review::class);
-}
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
 
-public function cart()
-{
-    return $this->hasOne(Cart::class);
-}
+    public function cart()
+    {
+        return $this->hasOne(Cart::class);
+    }
 
-public function orders()
-{
-    return $this->hasMany(Order::class);
-}
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function passwordResetTokens()
+    {
+        return $this->hasMany(PasswordResetToken::class);
+    }
 
     /**
      * The attributes that should be hidden for serialization.

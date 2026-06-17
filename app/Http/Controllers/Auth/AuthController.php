@@ -37,7 +37,7 @@ class AuthController extends Controller
             'name' => $validated['name'],
             'email' => strtolower($validated['email']),
             'phone' => $validated['phone'] ?? null,
-            'password' => Hash::make($validated['password']),
+            'password' => $validated['password'],
             'role' => 'customer',
             'total_spent' => 0,
             'membership_level' => 'bronze',
