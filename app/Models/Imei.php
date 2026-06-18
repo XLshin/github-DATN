@@ -23,4 +23,12 @@ class IMEI extends Model
     {
         return $this->hasMany(Warranty::class);
     }
+
+    public function currentWarranty()
+    {
+        return $this->hasOne(Warranty::class)
+            ->whereIn('status', ['active', 'claimed'])
+            ->latestOfMany();
+    }
+    
 }
