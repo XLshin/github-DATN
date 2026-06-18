@@ -30,7 +30,9 @@ class ImeiController extends Controller
             $query->where('status', $request->status);
         }
 
-        $imeis = $query->paginate(10);
+        $imeis = $query
+            ->with('productVariant.product')
+            ->paginate(10);
 
         return view(
             'admin.imeis.index',

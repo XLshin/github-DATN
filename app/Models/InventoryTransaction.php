@@ -12,4 +12,9 @@ class InventoryTransaction extends Model
         'quantity',
         'note'
     ];
+
+        public function productVariant()
+    {
+        return $this->belongsTo(ProductVariant::class);
+    }
 }

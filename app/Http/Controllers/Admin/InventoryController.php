@@ -12,14 +12,34 @@ class InventoryController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $transactions = InventoryTransaction::latest()->get();
+        $query = InventoryTransaction::with(
+            'productVariant.product'
+        );
+
+        if ($request->keyword) {
+            $query->where(
+                'product_variant_id',
+                $request->keyword
+            );
+        }
+
+        if ($request->transaction_type) {
+            $query->where(
+                'type',
+                $request->transaction_type
+            );
+        }
+
+        $transactions = $query
+            ->latest()
+            ->paginate(10);
 
         return view(
             'admin.inventory.index',
             compact('transactions')
-    );
+        );
     }
 
     /**
@@ -35,7 +55,12 @@ class InventoryController extends Controller
      */
     public function store(Request $request)
     {
-         InventoryTransaction::create([
+        $request->validate([
+            'product_variant_id' => 'required',
+            'quantity' => 'required|integer|min:1'
+        ]);
+
+        InventoryTransaction::create([
             'product_variant_id' => $request->product_variant_id,
             'type' => 'import',
             'quantity' => $request->quantity,
@@ -71,6 +96,11 @@ class InventoryController extends Controller
      */
     public function update(Request $request, string $id)
     {
+
+            $request->validate([
+                'quantity' => 'required|integer|min:1'
+            ]);
+            
         $transaction =
                 InventoryTransaction::findOrFail($id);
 
@@ -90,19 +120,31 @@ class InventoryController extends Controller
         //
     }
 
-    public function stock()
-        {
-            $stocks = Imei::selectRaw(
-                'product_variant_id,
-                count(*) as total'
-            )
-            ->where('status','available')
-            ->groupBy('product_variant_id')
-            ->get();
+    public function stock(Request $request)
+    {
+        $query = Imei::with(
+            'productVariant.product'
+        )
+        ->selectRaw(
+            'product_variant_id,
+            count(*) as total'
+        )
+        ->where('status', 'available')
+        ->groupBy('product_variant_id');
 
-            return view(
-                'admin.inventory.stocks',
-                compact('stocks')
+        if($request->variant_id)
+        {
+            $query->where(
+                'product_variant_id',
+                $request->variant_id
             );
         }
+
+        $stocks = $query->get();
+
+        return view(
+            'admin.inventory.stocks',
+            compact('stocks')
+        );
+    }
 }

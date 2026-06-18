@@ -11,4 +11,9 @@ class Imei extends Model
         'imei',
         'status'
     ];
+
+        public function productVariant()
+        {
+            return $this->belongsTo(ProductVariant::class);
+        }
 }

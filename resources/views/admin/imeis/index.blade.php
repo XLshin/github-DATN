@@ -44,6 +44,9 @@
 
     <tr>
         <th>ID</th>
+        <th>Sản phẩm</th>
+        <th>Màu sắc</th>
+        <th>Dung lượng</th>
         <th>IMEI</th>
         <th>Trạng thái</th>
         <th>Thao tác</th>
@@ -54,9 +57,26 @@
         <tr>
             <td>{{ $imei->id }}</td>
 
-            <td>{{ $imei->imei }}</td>
+            <td>
+                {{ $imei->productVariant->product->name ?? 'N/A' }}
+            </td>
 
-            <td>{{ $imei->status }}</td>
+            <td>
+                {{ $imei->productVariant->color ?? 'N/A' }}
+            </td>
+
+            <td>
+                {{ $imei->productVariant->storage ?? 'N/A' }}
+            </td>
+
+            <td>
+                {{ $imei->imei }}
+            </td>
+
+            <td>
+                {{ $imei->status }}
+            </td>
+
 
             <td>
 
