@@ -35,7 +35,6 @@
 @stack('scripts')
 </body>
 
-//của hiếu
 </html>
     <title>Admin Test</title>
 </head>
