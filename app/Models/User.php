@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Models\PointHistory;
 
 class User extends Authenticatable
 {
@@ -33,7 +34,9 @@ class User extends Authenticatable
 
         'total_spent',
 
-        'membership_level'
+    'points',
+
+    'membership_level'
 
     ];
 
@@ -62,10 +65,7 @@ class User extends Authenticatable
         return $this->hasMany(PasswordResetToken::class);
     }
 
-public function pointHistories()
-{
-    return $this->hasMany(PointHistory::class);
-}
+
 
     /**
      * The attributes that should be hidden for serialization.

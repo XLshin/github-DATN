@@ -47,7 +47,7 @@ class Product extends Model
     {
         return $this->hasMany(Review::class);
     }
-    
+
     public function cartItems()
 {
     return $this->hasMany(CartItem::class);
@@ -62,4 +62,5 @@ public function variants()
 {
     return $this->hasMany(ProductVariant::class);
 }
+
 }
