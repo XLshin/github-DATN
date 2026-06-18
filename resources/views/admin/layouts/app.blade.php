@@ -34,4 +34,21 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 @stack('scripts')
 </body>
+
+//của hiếu
+</html>
+    <title>Admin Test</title>
+</head>
+<body>
+    <nav>
+        <a href="{{ route('admin.shipments.index') }}">Vận chuyển</a> |
+        <a href="{{ route('admin.shipments.lookup') }}">Tra cứu vận đơn</a> |
+        <a href="{{ route('admin.warranties.index') }}">Bảo hành</a> |
+        <a href="{{ route('admin.warranties.lookupImei') }}">Tra cứu IMEI</a>
+    </nav>
+
+    <hr>
+
+    @yield('content')
+</body>
 </html>
