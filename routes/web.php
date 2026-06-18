@@ -11,6 +11,8 @@ use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\BrandController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -77,4 +79,9 @@ Route::get('admin', fn() => redirect()->route('admin.products.index'));
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::resource('products', ProductController::class);
     Route::delete('products/{image}/image', [ProductController::class, 'destroyImage'])->name('products.image.destroy');
+});
+
+Route::prefix('admin')->group(function () {
+    Route::resource('categories', CategoryController::class);
+    Route::resource('brands', BrandController::class);
 });
