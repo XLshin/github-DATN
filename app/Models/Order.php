@@ -38,4 +38,19 @@ public function items()
 {
     return $this->hasMany(OrderItem::class);
 }
+
+public function payments()
+{
+    return $this->hasMany(Payment::class);
+}
+
+public function shipments()
+{
+    return $this->hasMany(Shipment::class);
+}
+
+public function warranties()
+{
+    return $this->hasMany(Warranty::class);
+}
 }

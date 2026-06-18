@@ -9,14 +9,16 @@ use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\BrandController;
 
-Route::get('/', function () {
-    return redirect()->route('login');
-});
 
 Route::middleware('guest')->group(function () {
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
@@ -84,4 +86,27 @@ Route::prefix('admin')->name('admin.')->group(function () {
 Route::prefix('admin')->group(function () {
     Route::resource('categories', CategoryController::class);
     Route::resource('brands', BrandController::class);
+});
+Route::get('/', [HomeController::class, 'index']);
+
+// Cart
+Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+Route::post('/cart/remove', [CartController::class, 'remove'])->name('cart.remove');
+
+// Checkout (require auth)
+Route::middleware('auth')->group(function () {
+	Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
+	Route::post('/checkout', [CheckoutController::class, 'process'])->name('checkout.process');
+	Route::get('/checkout/success/{order}', [CheckoutController::class, 'success'])->name('checkout.success');
+
+	// User orders
+	Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
+	Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+});
+
+// Admin order management (requires auth; controller checks role)
+Route::prefix('admin')->middleware('auth')->group(function () {
+	Route::get('orders', [AdminOrderController::class, 'index'])->name('admin.orders.index');
+	Route::get('orders/{order}', [AdminOrderController::class, 'show'])->name('admin.orders.show');
 });

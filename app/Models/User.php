@@ -62,6 +62,11 @@ class User extends Authenticatable
         return $this->hasMany(PasswordResetToken::class);
     }
 
+public function pointHistories()
+{
+    return $this->hasMany(PointHistory::class);
+}
+
     /**
      * The attributes that should be hidden for serialization.
      *

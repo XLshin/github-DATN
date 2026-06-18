@@ -37,4 +37,13 @@ public function orderItems()
     return $this->hasMany(OrderItem::class);
 }
 
+public function imeis()
+{
+    return $this->hasMany(IMEI::class);
+}
+
+public function inventoryTransactions()
+{
+    return $this->hasMany(InventoryTransaction::class);
+}
 }

@@ -16,17 +16,16 @@ class DatabaseSeeder extends Seeder
         $this->call([
             UserSeeder::class,
 
-            CategorySeeder::class,
+            // // existing seeders (if any) will run first
+            // CategorySeeder::class,
+            // BrandSeeder::class,
+            // ProductSeeder::class,
+            // CouponSeeder::class,
+            // BannerSeeder::class,
+            // ProductVariantSeeder::class,
 
-            BrandSeeder::class,
-
-            ProductSeeder::class,
-
-            CouponSeeder::class,
-
-            BannerSeeder::class,
-
-            ProductVariantSeeder::class,
+            // // our sample data for testing
+            // SampleDataSeeder::class,
         ]);
     }
 }
