@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\Review;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ReviewController extends Controller
 {
@@ -16,7 +17,8 @@ class ReviewController extends Controller
         ]);
 
         Review::create([
-            'user_id' => auth()->id(),
+            // 'user_id' => auth()->id(),
+            'user_id' => Auth::id(),
             'product_id' => $product->id,
             'rating' => $request->rating,
             'comment' => $request->comment,
@@ -25,17 +27,17 @@ class ReviewController extends Controller
         return back()->with('success', 'Đánh giá thành công!');
     }
 
-    public function hide(Review $review)
-{
-    $review->update([
-        'status' => false
-    ]);
+//     public function hide(Review $review)
+// {
+//     $review->update([
+//         'status' => false
+//     ]);
 
-    return back()->with(
-        'success',
-        'Đã ẩn đánh giá'
-    );
-}
+//     return back()->with(
+//         'success',
+//         'Đã ẩn đánh giá'
+//     );
+// }
 
 public function destroy(Review $review)
 {
@@ -58,5 +60,15 @@ public function index()
         'admin.reviews.index',
         compact('reviews')
     );
+}
+
+public function hide($id)
+{
+    $review = Review::findOrFail($id);
+    // Đảo ngược trạng thái: nếu là 1 biến thành 0, nếu là 0 biến thành 1
+    $review->status = $review->status == 1 ? 0 : 1;
+    $review->save();
+
+    return redirect()->back()->with('success', 'Cập nhật trạng thái đánh giá thành công!');
 }
 }

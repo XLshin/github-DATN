@@ -1,157 +1,39 @@
-@extends('layouts.app')
+@extends('layouts.client')
 
 @section('content')
-
-<div class="container">
-
-    {{-- Thông tin sản phẩm --}}
-    <div class="card mb-4">
-        <div class="card-body">
-
-            <h2>{{ $product->name }}</h2>
-
-            <p>
-                <strong>Giá:</strong>
-                {{ number_format($product->price, 0, ',', '.') }} VNĐ
-            </p>
-
-            @if(isset($product->description))
-                <p>
-                    <strong>Mô tả:</strong>
-                    {{ $product->description }}
-                </p>
-            @endif
-
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow-sm p-4">
+            <h2 class="text-primary">iPhone 15 Pro Max</h2>
+            <p class="text-danger fw-bold fs-4">29.990.000 đ</p>
+            <p>Mô tả: Điện thoại iPhone thế hệ mới vỏ Titan siêu bền.</p>
         </div>
     </div>
 
-    {{-- Thông báo thành công --}}
-    @if(session('success'))
-        <div class="alert alert-success">
-            {{ session('success') }}
-        </div>
-    @endif
+    <div class="col-md-6">
+        <div class="card shadow-sm p-4">
+            <h4>Gửi đánh giá của bạn</h4>
 
-    {{-- Hiển thị lỗi --}}
-    @if($errors->any())
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
-    {{-- Form đánh giá --}}
-    @auth
-
-    <div class="card mb-4">
-        <div class="card-header">
-            <h4>Viết đánh giá</h4>
-        </div>
-
-        <div class="card-body">
-
-            <form action="{{ route('reviews.store', $product->id) }}" method="POST">
-
+            <form action="{{ route('reviews.store', ['product' => 1]) }}" method="POST">
                 @csrf
 
                 <div class="mb-3">
-                    <label class="form-label">
-                        Đánh giá sao
-                    </label>
-
-                    <select name="rating" class="form-control">
-
-                        <option value="5">5 ⭐</option>
-
-                        <option value="4">4 ⭐</option>
-
-                        <option value="3">3 ⭐</option>
-
-                        <option value="2">2 ⭐</option>
-
-                        <option value="1">1 ⭐</option>
-
+                    <label class="form-label">Chọn số sao (Rating):</label>
+                    <select name="rating" class="form-select">
+                        <option value="5">⭐⭐⭐⭐⭐ 5 Sao</option>
+                        <option value="4">⭐⭐⭐⭐ 4 Sao</option>
+                        <option value="3">⭐⭐⭐ 3 Sao</option>
                     </select>
                 </div>
 
                 <div class="mb-3">
-
-                    <label class="form-label">
-                        Nhận xét
-                    </label>
-
-                    <textarea
-                        name="comment"
-                        rows="4"
-                        class="form-control"
-                    ></textarea>
-
+                    <label class="form-label">Nội dung đánh giá:</label>
+                    <textarea name="comment" class="form-control" rows="3" placeholder="Nhập cảm nhận của bạn..."></textarea>
                 </div>
 
-                <button
-                    type="submit"
-                    class="btn btn-primary"
-                >
-                    Gửi đánh giá
-                </button>
-
+                <button type="submit" class="btn btn-warning w-100 fw-bold">Gửi đánh giá ngay</button>
             </form>
-
         </div>
     </div>
-
-    @else
-
-    <div class="alert alert-warning">
-        Vui lòng đăng nhập để đánh giá sản phẩm.
-    </div>
-
-    @endauth
-
-    {{-- Danh sách đánh giá --}}
-    <h3 class="mb-3">
-        Danh sách đánh giá
-    </h3>
-
-    @forelse($product->reviews as $review)
-
-        <div class="card mb-3">
-
-            <div class="card-body">
-
-                <h6>
-                    {{ $review->user->name }}
-                </h6>
-
-                <p class="mb-1">
-                    <strong>
-                        {{ $review->rating }}/5 ⭐
-                    </strong>
-                </p>
-
-                <p>
-                    {{ $review->comment }}
-                </p>
-
-                <small class="text-muted">
-                    {{ $review->created_at->format('d/m/Y H:i') }}
-                </small>
-
-            </div>
-
-        </div>
-
-    @empty
-
-        <div class="alert alert-info">
-            Chưa có đánh giá nào.
-        </div>
-
-    @endforelse
-
 </div>
-
 @endsection

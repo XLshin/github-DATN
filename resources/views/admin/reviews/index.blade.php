@@ -41,37 +41,26 @@
                 </td>
 
                 <td>
+    <div class="d-flex gap-2">
+        {{-- Nếu đánh giá đang HIỂN THỊ (status = 1 hoặc true) -> Hiện nút ẨN --}}
+        @if($review->status)
+            <form action="{{ route('reviews.hide', $review->id) }}" method="POST">
+                @csrf
+                @method('PATCH')
+                <button type="submit" class="btn btn-warning btn-sm fw-semibold text-white">Ẩn</button>
+            </form>
+        {{-- Nếu đánh giá đang ẨN (status = 0 hoặc false) -> Hiện nút HIỂN THỊ --}}
+        @else
+            <form action="{{ route('reviews.hide', $review->id) }}" method="POST">
+                @csrf
+                @method('PATCH')
+                <button type="submit" class="btn btn-success btn-sm fw-semibold">Hiển thị</button>
+            </form>
+        @endif
 
-                    @if($review->status)
-
-                    <form
-                        action="{{ route('reviews.hide', $review->id) }}"
-                        method="POST"
-                    >
-                        @csrf
-                        @method('PATCH')
-
-                        <button class="btn btn-warning btn-sm">
-                            Ẩn
-                        </button>
-                    </form>
-
-                    @endif
-
-                    <form
-                        action="{{ route('reviews.destroy', $review->id) }}"
-                        method="POST"
-                        class="mt-1"
-                    >
-                        @csrf
-                        @method('DELETE')
-
-                        <button class="btn btn-danger btn-sm">
-                            Xóa
-                        </button>
-                    </form>
-
-                </td>
+        
+    </div>
+</td>
 
             </tr>
 
