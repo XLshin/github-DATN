@@ -27,4 +27,20 @@ class Coupon extends Model
         'status'
 
     ];
+
+    protected $casts = [
+        'start_date' => 'datetime',
+        'end_date' => 'datetime',
+        'status' => 'boolean',
+    ];
+
+    /**
+     * Kiểm tra voucher còn hiệu lực không
+     */
+    public function isValid()
+    {
+        return $this->status
+            && now()->between($this->start_date, $this->end_date)
+            && $this->used_count < $this->usage_limit;
+    }
 }
