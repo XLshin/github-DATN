@@ -39,14 +39,9 @@ public function items()
     return $this->hasMany(OrderItem::class);
 }
 
-public function payments()
+public function shipment()
 {
-    return $this->hasMany(Payment::class);
-}
-
-public function shipments()
-{
-    return $this->hasMany(Shipment::class);
+    return $this->hasOne(Shipment::class);
 }
 
 public function warranties()

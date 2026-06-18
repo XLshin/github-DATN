@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            UserSeeder::class,
+            // UserSeeder::class,
 
             // // existing seeders (if any) will run first
             // CategorySeeder::class,
@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
 
             // // our sample data for testing
             // SampleDataSeeder::class,
+            OrderSeeder::class,
         ]);
     }
 }
