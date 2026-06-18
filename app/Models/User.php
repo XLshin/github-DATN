@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use App\Models\PointHistory;
 
 class User extends Authenticatable
 {
@@ -33,6 +34,8 @@ class User extends Authenticatable
 
     'total_spent',
 
+    'points',
+
     'membership_level'
 
 ];
@@ -45,6 +48,11 @@ public function reviews()
 public function cart()
 {
     return $this->hasOne(Cart::class);
+}
+
+public function pointHistories()
+{
+    return $this->hasMany(PointHistory::class);
 }
 
 public function orders()
