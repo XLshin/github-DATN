@@ -6,19 +6,13 @@ class PointController extends Controller
 {
     public function index()
     {
-        return view('points.index');
+        return view('client.points.index');
     }
 
     public function history()
-{
-    $histories = auth()->user()
-                       ->pointHistories()
-                       ->latest()
-                       ->get();
+    {
+        $histories = auth()->user()->pointHistories()->latest()->get();
 
-    return view(
-        'points.history',
-        compact('histories')
-    );
-}
+        return view('client.points.history', compact('histories'));
+    }
 }

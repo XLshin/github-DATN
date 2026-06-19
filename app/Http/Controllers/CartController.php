@@ -3,61 +3,42 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Services\CartService;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
+    public function __construct(
+        private readonly CartService $cartService,
+    ) {}
+
     public function index()
     {
-        $cart = session()->get('cart', []);
+        $items = $this->cartService->getItems(auth()->user());
+        $total = $this->cartService->calculateTotal($items);
 
-        $total = 0;
-        foreach ($cart as $item) {
-            $total += $item['price'] * $item['quantity'];
-        }
-
-        return view('cart', compact('cart', 'total'));
+        return view('client.cart.index', compact('items', 'total'));
     }
 
     public function add(Request $request)
     {
         $request->validate([
-            'product_id' => 'required|integer',
-            'quantity' => 'nullable|integer|min:1'
+            'product_id' => ['required', 'integer', 'exists:products,id'],
+            'quantity' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $product = Product::findOrFail($request->product_id);
-        $qty = $request->input('quantity', 1);
+        $product = Product::query()->findOrFail($request->product_id);
+        $this->cartService->addItem(auth()->user(), $product, (int) $request->input('quantity', 1));
 
-        $cart = session()->get('cart', []);
-
-        if (isset($cart[$product->id])) {
-            $cart[$product->id]['quantity'] += $qty;
-        } else {
-            $cart[$product->id] = [
-                'id' => $product->id,
-                'name' => $product->name,
-                'price' => $product->price,
-                'quantity' => $qty,
-            ];
-        }
-
-        session()->put('cart', $cart);
-
-        return redirect()->back()->with('success', 'Added to cart');
+        return redirect()->back()->with('success', 'Đã thêm vào giỏ hàng.');
     }
 
     public function remove(Request $request)
     {
-        $request->validate(['product_id' => 'required|integer']);
+        $request->validate(['product_id' => ['required', 'integer']]);
 
-        $cart = session()->get('cart', []);
+        $this->cartService->removeItem(auth()->user(), (int) $request->product_id);
 
-        if (isset($cart[$request->product_id])) {
-            unset($cart[$request->product_id]);
-            session()->put('cart', $cart);
-        }
-
-        return redirect()->route('cart.index')->with('success', 'Removed from cart');
+        return redirect()->route('cart.index')->with('success', 'Đã xóa khỏi giỏ hàng.');
     }
 }

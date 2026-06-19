@@ -21,7 +21,7 @@ class Warranty extends Model
 
     public function imei()
     {
-        return $this->belongsTo(IMEI::class);
+        return $this->belongsTo(Imei::class);
     }
 
     public function order()

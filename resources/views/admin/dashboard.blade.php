@@ -1,176 +1,179 @@
-@extends('layouts.app')
+@extends('layouts.admin')
+
+@section('title', 'Dashboard')
+@section('page_icon', 'bi-speedometer2')
+@section('page_eyebrow', 'Tổng quan hệ thống')
+@section('page_title', 'Dashboard ByteZone')
+@section('page_subtitle', 'Theo dõi doanh thu, đơn hàng, khách hàng, sản phẩm bán chạy và tồn kho thấp.')
+
+@section('heading_actions')
+<a href="{{ route('admin.orders.index') }}" class="btn btn-light btn-sm">
+    <i class="bi bi-receipt"></i> Đơn hàng
+</a>
+
+<a href="{{ route('admin.products.index') }}" class="btn btn-light btn-sm">
+    <i class="bi bi-box-seam"></i> Sản phẩm
+</a>
+
+<a href="{{ route('stocks') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-boxes"></i> Tồn kho
+</a>
+@endsection
 
 @section('content')
 
-<div class="container mt-4">
-
-    <h2 class="mb-4">
-        Dashboard ByteZone
-    </h2>
-
-    <div class="row">
-
-        <!-- Tổng doanh thu -->
-        <div class="col-md-4">
-            <div class="card mb-3">
-
-                <div class="card-body">
-
-                    <h5>Tổng doanh thu</h5>
-
-                    <h3>
-                        {{ number_format($totalRevenue) }} VNĐ
-                    </h3>
-
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <section class="panel p-3 h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="text-muted small">Tổng doanh thu</div>
+                    <div class="fs-4 fw-semibold mt-1">
+                        {{ number_format($totalRevenue, 0, ',', '.') }} đ
+                    </div>
                 </div>
 
+                <div class="fs-3 text-muted">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
             </div>
-        </div>
+        </section>
+    </div>
 
-        <!-- Tổng đơn hàng -->
-        <div class="col-md-4">
-            <div class="card mb-3">
-
-                <div class="card-body">
-
-                    <h5>Tổng đơn hàng</h5>
-
-                    <h3>
-                        {{ $totalOrders }}
-                    </h3>
-
+    <div class="col-md-4">
+        <section class="panel p-3 h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="text-muted small">Tổng đơn hàng</div>
+                    <div class="fs-4 fw-semibold mt-1">
+                        {{ number_format($totalOrders, 0, ',', '.') }}
+                    </div>
                 </div>
 
+                <div class="fs-3 text-muted">
+                    <i class="bi bi-cart-check"></i>
+                </div>
             </div>
-        </div>
+        </section>
+    </div>
 
-        <!-- Tổng khách hàng -->
-        <div class="col-md-4">
-            <div class="card mb-3">
-
-                <div class="card-body">
-
-                    <h5>Tổng khách hàng</h5>
-
-                    <h3>
-                        {{ $totalCustomers }}
-                    </h3>
-
+    <div class="col-md-4">
+        <section class="panel p-3 h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="text-muted small">Tổng khách hàng</div>
+                    <div class="fs-4 fw-semibold mt-1">
+                        {{ number_format($totalCustomers, 0, ',', '.') }}
+                    </div>
                 </div>
 
+                <div class="fs-3 text-muted">
+                    <i class="bi bi-people"></i>
+                </div>
             </div>
-        </div>
+        </section>
+    </div>
+</div>
 
+<div class="row g-3">
+    <div class="col-lg-6">
+        <section class="panel h-100">
+            <div class="panel-header">
+                <div>
+                    <h5 class="mb-1">Top 5 sản phẩm bán chạy</h5>
+                    <div class="text-muted small">
+                        Danh sách sản phẩm có số lượng bán cao nhất.
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Sản phẩm</th>
+                            <th class="text-end">Số lượng bán</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @forelse($bestSellingProducts as $product)
+                        <tr>
+                            <td class="fw-semibold">
+                                {{ $product->name }}
+                            </td>
+
+                            <td class="text-end">
+                                <span class="badge text-bg-success">
+                                    {{ number_format($product->sold_quantity, 0, ',', '.') }}
+                                </span>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="2" class="text-center text-muted py-4">
+                                Chưa có dữ liệu bán hàng.
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
 
-    <!-- Top sản phẩm bán chạy -->
+    <div class="col-lg-6">
+        <section class="panel h-100">
+            <div class="panel-header">
+                <div>
+                    <h5 class="mb-1">Sản phẩm sắp hết hàng</h5>
+                    <div class="text-muted small">
+                        Các sản phẩm cần kiểm tra và bổ sung tồn kho.
+                    </div>
+                </div>
+            </div>
 
-    <div class="card mt-4">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Sản phẩm</th>
+                            <th class="text-end">Tồn kho</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
 
-        <div class="card-header">
-            Top 5 sản phẩm bán chạy
-        </div>
+                    <tbody>
+                        @forelse($lowStockProducts as $product)
+                        <tr>
+                            <td class="fw-semibold">
+                                {{ $product->name }}
+                            </td>
 
-        <div class="card-body">
+                            <td class="text-end">
+                                {{ number_format($product->stock_quantity, 0, ',', '.') }}
+                            </td>
 
-            <table class="table table-bordered">
-
-                <thead>
-                    <tr>
-                        <th>Tên sản phẩm</th>
-                        <th>Số lượng bán</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-
-                    @forelse($bestSellingProducts as $product)
-
-                    <tr>
-
-                        <td>
-                            {{ $product->name }}
-                        </td>
-
-                        <td>
-                            {{ $product->sold_quantity }}
-                        </td>
-
-                    </tr>
-
-                    @empty
-
-                    <tr>
-                        <td colspan="2">
-                            Chưa có dữ liệu
-                        </td>
-                    </tr>
-
-                    @endforelse
-
-                </tbody>
-
-            </table>
-
-        </div>
-
+                            <td>
+                                @if($product->stock_quantity <= 0)
+                                    <span class="badge text-bg-danger">Hết hàng</span>
+                                    @else
+                                    <span class="badge text-bg-warning">Sắp hết</span>
+                                    @endif
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-4">
+                                Không có sản phẩm nào sắp hết hàng.
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
-
-    <!-- Tồn kho thấp -->
-
-    <div class="card mt-4">
-
-        <div class="card-header">
-            Sản phẩm sắp hết hàng
-        </div>
-
-        <div class="card-body">
-
-            <table class="table table-bordered">
-
-                <thead>
-                    <tr>
-                        <th>Tên sản phẩm</th>
-                        <th>Tồn kho</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-
-                    @forelse($lowStockProducts as $product)
-
-                    <tr>
-
-                        <td>
-                            {{ $product->name }}
-                        </td>
-
-                        <td>
-                            {{ $product->stock_quantity }}
-                        </td>
-
-                    </tr>
-
-                    @empty
-
-                    <tr>
-
-                        <td colspan="2">
-                            Không có sản phẩm nào sắp hết hàng
-                        </td>
-
-                    </tr>
-
-                    @endforelse
-
-                </tbody>
-
-            </table>
-
-        </div>
-
-    </div>
-
 </div>
 
 @endsection
