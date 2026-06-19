@@ -26,7 +26,7 @@ class PasswordController extends Controller
      */
     public function showChangePassword()
     {
-        return view('auth.change-password');
+        return view('client.profile.change-password');
     }
 
     /**
