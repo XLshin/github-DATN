@@ -7,7 +7,7 @@
 @section('page_subtitle', 'Quản lý mã IMEI thiết bị.')
 
 @section('heading_actions')
-    <a href="{{ route('imeis.create') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Thêm IMEI</a>
+    <a href="{{ route('admin.imeis.create') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Thêm IMEI</a>
 @endsection
 
 @section('content')
@@ -26,7 +26,7 @@
                 </div>
                 <div class="col-md-3 d-flex gap-2">
                     <button class="btn btn-outline-primary btn-sm">Tìm</button>
-                    <a href="{{ route('imeis.index') }}" class="btn btn-light btn-sm">Làm mới</a>
+                    <a href="{{ route('admin.imeis.index') }}" class="btn btn-light btn-sm">Làm mới</a>
                 </div>
             </form>
         </div>
@@ -47,8 +47,8 @@
                             <td class="fw-semibold">{{ $imei->imei }}</td>
                             <td><span class="badge text-bg-secondary">{{ $imei->status }}</span></td>
                             <td class="text-end">
-                                <a href="{{ route('imeis.edit', $imei->id) }}" class="btn btn-light btn-sm">Sửa</a>
-                                <form action="{{ route('imeis.destroy', $imei->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa IMEI?')">
+                                <a href="{{ route('admin.imeis.edit', $imei->id) }}" class="btn btn-light btn-sm">Sửa</a>
+                                <form action="{{ route('admin.imeis.destroy', $imei->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa IMEI?')">
                                     @csrf @method('DELETE')
                                     <button class="btn btn-outline-danger btn-sm">Xóa</button>
                                 </form>
