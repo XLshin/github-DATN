@@ -39,7 +39,7 @@ public function orderItems()
 
 public function imeis()
 {
-    return $this->hasMany(IMEI::class);
+    return $this->hasMany(Imei::class);
 }
 
 public function inventoryTransactions()
