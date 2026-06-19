@@ -7,11 +7,11 @@
 @section('page_subtitle', 'Theo dõi lịch sử nhập kho, xuất kho và điều chỉnh tồn kho.')
 
 @section('heading_actions')
-<a href="{{ route('inventory.create') }}" class="btn btn-primary btn-sm">
+<a href="{{ route('admin.inventory.create') }}" class="btn btn-primary btn-sm">
     <i class="bi bi-plus-lg"></i> Nhập kho
 </a>
 
-<a href="{{ route('stocks') }}" class="btn btn-light btn-sm">
+<a href="{{ route('admin.stocks') }}" class="btn btn-light btn-sm">
     <i class="bi bi-box-seam"></i> Kiểm kho
 </a>
 @endsection
@@ -53,7 +53,7 @@
                     Tìm kiếm
                 </button>
 
-                <a href="{{ route('inventory.index') }}" class="btn btn-light btn-sm">
+                <a href="{{ route('admin.inventory.index') }}" class="btn btn-light btn-sm">
                     Làm mới
                 </a>
             </div>
@@ -119,7 +119,7 @@
                     </td>
 
                     <td class="text-end">
-                        <a href="{{ route('inventory.edit', $item->id) }}" class="btn btn-light btn-sm">
+                        <a href="{{ route('admin.inventory.edit', $item->id) }}" class="btn btn-light btn-sm">
                             Sửa
                         </a>
                     </td>

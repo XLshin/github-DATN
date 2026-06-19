@@ -7,7 +7,7 @@
 @section('page_subtitle', 'Thêm mã IMEI mới cho biến thể sản phẩm.')
 
 @section('heading_actions')
-<a href="{{ route('imeis.index') }}" class="btn btn-light btn-sm">
+<a href="{{ route('admin.imeis.index') }}" class="btn btn-light btn-sm">
     <i class="bi bi-arrow-left"></i> Quay lại
 </a>
 @endsection
@@ -34,7 +34,7 @@
         </div>
         @endif
 
-        <form action="{{ route('imeis.store') }}" method="POST" style="max-width: 700px;">
+        <form action="{{ route('admin.imeis.store') }}" method="POST" style="max-width: 700px;">
             @csrf
 
             <div class="mb-3">
@@ -80,7 +80,7 @@
                     <i class="bi bi-check-lg"></i> Lưu IMEI
                 </button>
 
-                <a href="{{ route('imeis.index') }}" class="btn btn-light btn-sm">
+                <a href="{{ route('admin.imeis.index') }}" class="btn btn-light btn-sm">
                     Hủy
                 </a>
             </div>

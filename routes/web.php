@@ -111,6 +111,10 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('warranties/lookup-imei', [WarrantyController::class, 'lookupImei'])->name('warranties.lookupImei');
         Route::patch('warranties/{warranty}/status', [WarrantyController::class, 'updateStatus'])->name('warranties.updateStatus');
         Route::resource('warranties', WarrantyController::class)->except(['destroy']);
+
+        Route::resource('imeis', ImeiController::class);
+        Route::resource('inventory', InventoryController::class);
+        Route::get('/stocks', [InventoryController::class, 'stock'])->name('stocks');
     });
 
     Route::prefix('admin')->group(function () {
@@ -122,7 +126,5 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::delete('reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
     });
 
-    Route::resource('imeis', ImeiController::class);
-    Route::resource('inventory', InventoryController::class);
-    Route::get('/stocks', [InventoryController::class, 'stock'])->name('stocks');
+
 });

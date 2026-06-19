@@ -7,7 +7,7 @@
 @section('page_subtitle', 'Cập nhật biến thể sản phẩm, mã IMEI và trạng thái thiết bị.')
 
 @section('heading_actions')
-<a href="{{ route('imeis.index') }}" class="btn btn-light btn-sm">
+<a href="{{ route('admin.imeis.index') }}" class="btn btn-light btn-sm">
     <i class="bi bi-arrow-left"></i> Quay lại
 </a>
 @endsection
@@ -34,7 +34,7 @@
         </div>
         @endif
 
-        <form action="{{ route('imeis.update', $imei->id) }}" method="POST" style="max-width: 700px;">
+        <form action="{{ route('admin.imeis.update', $imei->id) }}" method="POST" style="max-width: 700px;">
             @csrf
             @method('PUT')
 
@@ -107,7 +107,7 @@
                     <i class="bi bi-check-lg"></i> Cập nhật
                 </button>
 
-                <a href="{{ route('imeis.index') }}" class="btn btn-light btn-sm">
+                <a href="{{ route('admin.imeis.index') }}" class="btn btn-light btn-sm">
                     Hủy
                 </a>
             </div>
