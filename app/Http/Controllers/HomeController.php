@@ -3,14 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
-use Illuminate\Http\Request;
 
 class HomeController extends Controller
 {
     public function index()
     {
-        $products = Product::latest()->take(20)->get();
+        $products = Product::query()->latest()->paginate(12);
 
-        return view('home', compact('products'));
+        return view('client.home', compact('products'));
     }
 }

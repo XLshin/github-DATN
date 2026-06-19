@@ -1,77 +1,126 @@
-@extends('admin.layouts.app')
+@extends('layouts.admin')
 
-@section('title', 'Quản lý sản phẩm')
+@section('title', 'Sản phẩm')
+@section('page_icon', 'bi-box-seam')
+@section('page_eyebrow', 'Quản lý sản phẩm')
+@section('page_title', 'Danh sách sản phẩm')
+@section('page_subtitle', 'Quản lý sản phẩm, danh mục, thương hiệu, giá bán và tồn kho.')
+
+@section('heading_actions')
+<a href="{{ route('admin.products.create') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg"></i> Thêm sản phẩm
+</a>
+@endsection
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h4><i class="bi bi-box-seam"></i> Danh sách sản phẩm</h4>
-    <a href="{{ route('admin.products.create') }}" class="btn btn-primary">
-        <i class="bi bi-plus-lg"></i> Thêm sản phẩm
-    </a>
-</div>
-
-<div class="card shadow-sm">
-    <div class="card-body p-0">
-        <table class="table table-hover mb-0">
-            <thead class="table-dark">
+<section class="panel">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
                 <tr>
-                    <th>#</th>
+                    <th>ID</th>
                     <th>Ảnh</th>
                     <th>Tên sản phẩm</th>
                     <th>Danh mục</th>
                     <th>Thương hiệu</th>
-                    <th>Giá</th>
-                    <th>Tồn kho</th>
+                    <th class="text-end">Giá</th>
+                    <th class="text-end">Tồn kho</th>
                     <th>Trạng thái</th>
-                    <th>Thao tác</th>
+                    <th class="text-end">Thao tác</th>
                 </tr>
             </thead>
+
             <tbody>
                 @forelse($products as $product)
                 <tr>
                     <td>{{ $product->id }}</td>
+
                     <td>
                         @if($product->thumbnail)
-                            <img src="{{ Storage::url($product->thumbnail) }}" width="50" height="50" style="object-fit:cover" class="rounded">
+                        <img
+                            src="{{ Storage::url($product->thumbnail) }}"
+                            alt="{{ $product->name }}"
+                            width="52"
+                            height="52"
+                            class="rounded"
+                            style="object-fit: cover;">
                         @else
-                            <span class="text-muted">-</span>
+                        <span class="text-muted">Không có ảnh</span>
                         @endif
                     </td>
-                    <td>{{ $product->name }}</td>
-                    <td>{{ $product->category->name ?? '-' }}</td>
-                    <td>{{ $product->brand->name ?? '-' }}</td>
-                    <td>{{ number_format($product->price) }}đ</td>
-                    <td>{{ $product->stock_quantity }}</td>
-                    <td>
-                        <span class="badge bg-{{ $product->status ? 'success' : 'secondary' }}">
-                            {{ $product->status ? 'Đang bán' : 'Ẩn' }}
-                        </span>
+
+                    <td class="fw-semibold">
+                        {{ $product->name }}
                     </td>
+
                     <td>
-                        <a href="{{ route('admin.products.show', $product) }}" class="btn btn-sm btn-info text-white">
-                            <i class="bi bi-eye"></i>
-                        </a>
-                        <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-sm btn-warning">
-                            <i class="bi bi-pencil"></i>
-                        </a>
-                        <form action="{{ route('admin.products.destroy', $product) }}" method="POST" class="d-inline"
-                              onsubmit="return confirm('Xóa sản phẩm này?')">
-                            @csrf @method('DELETE')
-                            <button class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></button>
-                        </form>
+                        {{ $product->category->name ?? '-' }}
+                    </td>
+
+                    <td>
+                        {{ $product->brand->name ?? '-' }}
+                    </td>
+
+                    <td class="text-end fw-semibold">
+                        {{ number_format($product->price, 0, ',', '.') }} đ
+                    </td>
+
+                    <td class="text-end">
+                        {{ $product->stock_quantity }}
+                    </td>
+
+                    <td>
+                        @if($product->status)
+                        <span class="badge text-bg-success">
+                            Đang bán
+                        </span>
+                        @else
+                        <span class="badge text-bg-secondary">
+                            Ẩn
+                        </span>
+                        @endif
+                    </td>
+
+                    <td class="text-end">
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{{ route('admin.products.show', $product) }}" class="btn btn-light btn-sm">
+                                <i class="bi bi-eye"></i>
+                            </a>
+
+                            <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-light btn-sm">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+
+                            <form
+                                action="{{ route('admin.products.destroy', $product) }}"
+                                method="POST"
+                                class="d-inline"
+                                onsubmit="return confirm('Xóa sản phẩm này?')">
+                                @csrf
+                                @method('DELETE')
+
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="9" class="text-center py-4 text-muted">Chưa có sản phẩm nào.</td>
+                    <td colspan="9" class="text-center text-muted py-4">
+                        Chưa có sản phẩm nào.
+                    </td>
                 </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
-</div>
 
-<div class="mt-3">
-    {{ $products->links() }}
-</div>
+    @if($products->hasPages())
+    <div class="p-3">
+        {{ $products->withQueryString()->links() }}
+    </div>
+    @endif
+</section>
 @endsection
