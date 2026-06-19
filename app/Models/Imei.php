@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class IMEI extends Model
+class Imei extends Model
 {
     protected $table = 'imeis';
 
