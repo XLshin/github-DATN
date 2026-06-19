@@ -15,7 +15,7 @@
     <i class="bi bi-box-seam"></i> Sản phẩm
 </a>
 
-<a href="{{ route('stocks') }}" class="btn btn-primary btn-sm">
+<a href="{{ route('admin.stocks') }}" class="btn btn-primary btn-sm">
     <i class="bi bi-boxes"></i> Tồn kho
 </a>
 @endsection
