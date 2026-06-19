@@ -7,7 +7,7 @@
 @section('page_subtitle', 'Theo dõi số lượng tồn kho theo từng biến thể sản phẩm.')
 
 @section('heading_actions')
-<a href="{{ route('inventory.index') }}" class="btn btn-light btn-sm">
+<a href="{{ route('admin.inventory.index') }}" class="btn btn-light btn-sm">
     <i class="bi bi-arrow-left"></i> Quay lại lịch sử kho
 </a>
 @endsection
@@ -30,7 +30,7 @@
                     Tìm kiếm
                 </button>
 
-                <a href="{{ route('stocks') }}" class="btn btn-light btn-sm">
+                <a href="{{ route('admin.stocks') }}" class="btn btn-light btn-sm">
                     Làm mới
                 </a>
             </div>

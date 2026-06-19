@@ -28,11 +28,11 @@
             <span class="nav-text">Thương hiệu</span>
         </a>
 
-        <a class="nav-link {{ request()->routeIs('inventory.*', 'stocks') ? 'active' : '' }}" href="{{ route('inventory.index') }}">
+        <a class="nav-link {{ request()->routeIs('admin.inventory.*', 'admin.stocks') ? 'active' : '' }}" href="{{ route('admin.inventory.index') }}">
             <span class="nav-icon"><i class="bi bi-boxes"></i></span>
             <span class="nav-text">Kho hàng</span>
         </a>
-        <a class="nav-link {{ request()->routeIs('imeis.*') ? 'active' : '' }}" href="{{ route('imeis.index') }}">
+        <a class="nav-link {{ request()->routeIs('admin.imeis.*') ? 'active' : '' }}" href="{{ route('admin.imeis.index') }}">
             <span class="nav-icon"><i class="bi bi-upc-scan"></i></span>
             <span class="nav-text">IMEI</span>
         </a>
