@@ -1,204 +1,188 @@
-<!DOCTYPE html>
-<html lang="vi">
+@extends('layouts.admin')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sửa người dùng</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            font-family: Arial, Helvetica, sans-serif;
-        }
+@section('title', 'Sửa người dùng')
+@section('page_icon', 'bi-person-gear')
+@section('page_eyebrow', 'Quản lý người dùng')
+@section('page_title', 'Sửa người dùng')
+@section('page_subtitle', 'Cập nhật thông tin tài khoản, vai trò và mật khẩu người dùng.')
 
-        body {
-            margin: 0;
-            min-height: 100vh;
-            background: #f1f5f9;
-            color: #0f172a;
-            padding: 40px 20px;
-        }
+@section('heading_actions')
+<a href="{{ route('admin.users.index') }}" class="btn btn-light btn-sm">
+    <i class="bi bi-arrow-left"></i> Quay lại
+</a>
+@endsection
 
-        .container {
-            max-width: 760px;
-            margin: 0 auto;
-        }
-
-        .card {
-            background: #fff;
-            border-radius: 20px;
-            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
-            overflow: hidden;
-        }
-
-        .card-header {
-            background: linear-gradient(135deg, #1e3a8a, #2563eb);
-            color: #fff;
-            padding: 32px;
-        }
-
-        .card-header h1 {
-            margin: 0 0 8px;
-            font-size: 30px;
-        }
-
-        .card-header p {
-            margin: 0;
-            color: #dbeafe;
-        }
-
-        .card-body {
-            padding: 32px;
-        }
-
-        .form-group {
-            margin-bottom: 18px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #334155;
-            font-weight: 700;
-            font-size: 14px;
-        }
-
-        .form-control {
-            width: 100%;
-            min-height: 46px;
-            border: 1px solid #cbd5e1;
-            border-radius: 12px;
-            padding: 0 14px;
-            font-size: 15px;
-            outline: none;
-        }
-
-        textarea.form-control {
-            padding-top: 12px;
-            min-height: 100px;
-            resize: vertical;
-        }
-
-        .form-control:focus {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
-        }
-
-        .form-control.is-invalid {
-            border-color: #dc2626;
-        }
-
-        .error-message {
-            margin-top: 6px;
-            color: #dc2626;
-            font-size: 13px;
-        }
-
-        .hint {
-            margin-top: 6px;
-            color: #64748b;
-            font-size: 13px;
-        }
-
-        .actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 28px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            height: 44px;
-            padding: 0 18px;
-            border-radius: 12px;
-            text-decoration: none;
-            border: none;
-            cursor: pointer;
-            font-weight: 700;
-            font-size: 14px;
-        }
-
-        .btn-primary {
-            background: #2563eb;
-            color: #fff;
-        }
-
-        .btn-secondary {
-            background: #e2e8f0;
-            color: #0f172a;
-        }
-    </style>
-</head>
-
-<body>
-    <div class="container">
-        <div class="card">
-            <div class="card-header">
-                <h1>Sửa người dùng</h1>
-                <p>Cập nhật thông tin tài khoản: {{ $user->name }}</p>
-            </div>
-
-            <div class="card-body">
-                <form method="POST" action="{{ route('admin.users.update', $user) }}">
-                    @csrf
-                    @method('PUT')
-
-                    <div class="form-group">
-                        <label for="name">Họ và tên</label>
-                        <input id="name" type="text" name="name" value="{{ old('name', $user->name) }}" class="form-control @error('name') is-invalid @enderror" required>
-                        @error('name')<div class="error-message">{{ $message }}</div>@enderror
-                    </div>
-
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input id="email" type="email" name="email" value="{{ old('email', $user->email) }}" class="form-control @error('email') is-invalid @enderror" required>
-                        @error('email')<div class="error-message">{{ $message }}</div>@enderror
-                    </div>
-
-                    <div class="form-group">
-                        <label for="phone">Số điện thoại</label>
-                        <input id="phone" type="text" name="phone" value="{{ old('phone', $user->phone) }}" class="form-control @error('phone') is-invalid @enderror">
-                        @error('phone')<div class="error-message">{{ $message }}</div>@enderror
-                    </div>
-
-                    <div class="form-group">
-                        <label for="address">Địa chỉ</label>
-                        <textarea id="address" name="address" class="form-control @error('address') is-invalid @enderror">{{ old('address', $user->address) }}</textarea>
-                        @error('address')<div class="error-message">{{ $message }}</div>@enderror
-                    </div>
-
-                    <div class="form-group">
-                        <label for="role">Vai trò</label>
-                        <select id="role" name="role" class="form-control @error('role') is-invalid @enderror" required>
-                            <option value="customer" {{ old('role', $user->role) === 'customer' ? 'selected' : '' }}>Customer</option>
-                            <option value="admin" {{ old('role', $user->role) === 'admin' ? 'selected' : '' }}>Admin</option>
-                        </select>
-                        @error('role')<div class="error-message">{{ $message }}</div>@enderror
-                    </div>
-
-                    <div class="form-group">
-                        <label for="password">Mật khẩu mới</label>
-                        <input id="password" type="password" name="password" class="form-control @error('password') is-invalid @enderror">
-                        <div class="hint">Để trống nếu không muốn đổi mật khẩu.</div>
-                        @error('password')<div class="error-message">{{ $message }}</div>@enderror
-                    </div>
-
-                    <div class="form-group">
-                        <label for="password_confirmation">Xác nhận mật khẩu mới</label>
-                        <input id="password_confirmation" type="password" name="password_confirmation" class="form-control">
-                    </div>
-
-                    <div class="actions">
-                        <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
-                        <a href="{{ route('admin.users.index') }}" class="btn btn-secondary">Hủy</a>
-                    </div>
-                </form>
+@section('content')
+<section class="panel">
+    <div class="panel-header">
+        <div>
+            <h5 class="mb-1">Thông tin người dùng</h5>
+            <div class="text-muted small">
+                Đang chỉnh sửa tài khoản: <strong>{{ $user->name }}</strong>
             </div>
         </div>
     </div>
-</body>
 
-</html>
+    <div class="p-3">
+        <form method="POST" action="{{ route('admin.users.update', $user) }}" style="max-width: 900px;">
+            @csrf
+            @method('PUT')
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="name" class="form-label">
+                        Họ và tên <span class="text-danger">*</span>
+                    </label>
+
+                    <input
+                        id="name"
+                        type="text"
+                        name="name"
+                        value="{{ old('name', $user->name) }}"
+                        class="form-control @error('name') is-invalid @enderror"
+                        placeholder="Nhập họ và tên"
+                        required>
+
+                    @error('name')
+                    <div class="invalid-feedback">
+                        {{ $message }}
+                    </div>
+                    @enderror
+                </div>
+
+                <div class="col-md-6">
+                    <label for="email" class="form-label">
+                        Email <span class="text-danger">*</span>
+                    </label>
+
+                    <input
+                        id="email"
+                        type="email"
+                        name="email"
+                        value="{{ old('email', $user->email) }}"
+                        class="form-control @error('email') is-invalid @enderror"
+                        placeholder="Nhập email"
+                        required>
+
+                    @error('email')
+                    <div class="invalid-feedback">
+                        {{ $message }}
+                    </div>
+                    @enderror
+                </div>
+
+                <div class="col-md-6">
+                    <label for="phone" class="form-label">
+                        Số điện thoại
+                    </label>
+
+                    <input
+                        id="phone"
+                        type="text"
+                        name="phone"
+                        value="{{ old('phone', $user->phone) }}"
+                        class="form-control @error('phone') is-invalid @enderror"
+                        placeholder="Nhập số điện thoại">
+
+                    @error('phone')
+                    <div class="invalid-feedback">
+                        {{ $message }}
+                    </div>
+                    @enderror
+                </div>
+
+                <div class="col-md-6">
+                    <label for="role" class="form-label">
+                        Vai trò <span class="text-danger">*</span>
+                    </label>
+
+                    <select
+                        id="role"
+                        name="role"
+                        class="form-select @error('role') is-invalid @enderror"
+                        required>
+                        <option value="customer" @selected(old('role', $user->role) === 'customer')>
+                            Khách hàng
+                        </option>
+
+                        <option value="admin" @selected(old('role', $user->role) === 'admin')>
+                            Quản trị viên
+                        </option>
+                    </select>
+
+                    @error('role')
+                    <div class="invalid-feedback">
+                        {{ $message }}
+                    </div>
+                    @enderror
+                </div>
+
+                <div class="col-12">
+                    <label for="address" class="form-label">
+                        Địa chỉ
+                    </label>
+
+                    <textarea
+                        id="address"
+                        name="address"
+                        rows="3"
+                        class="form-control @error('address') is-invalid @enderror"
+                        placeholder="Nhập địa chỉ">{{ old('address', $user->address) }}</textarea>
+
+                    @error('address')
+                    <div class="invalid-feedback">
+                        {{ $message }}
+                    </div>
+                    @enderror
+                </div>
+
+                <div class="col-md-6">
+                    <label for="password" class="form-label">
+                        Mật khẩu mới
+                    </label>
+
+                    <input
+                        id="password"
+                        type="password"
+                        name="password"
+                        class="form-control @error('password') is-invalid @enderror"
+                        placeholder="Để trống nếu không đổi">
+
+                    @error('password')
+                    <div class="invalid-feedback">
+                        {{ $message }}
+                    </div>
+                    @enderror
+
+                    <div class="form-text">
+                        Chỉ nhập nếu muốn thay đổi mật khẩu.
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label for="password_confirmation" class="form-label">
+                        Xác nhận mật khẩu mới
+                    </label>
+
+                    <input
+                        id="password_confirmation"
+                        type="password"
+                        name="password_confirmation"
+                        class="form-control"
+                        placeholder="Nhập lại mật khẩu mới">
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-check-lg"></i> Lưu thay đổi
+                </button>
+
+                <a href="{{ route('admin.users.index') }}" class="btn btn-light btn-sm">
+                    Hủy
+                </a>
+            </div>
+        </form>
+    </div>
+</section>
+@endsection

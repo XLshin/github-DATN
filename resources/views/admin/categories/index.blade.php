@@ -1,57 +1,46 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <title>Danh sách danh mục</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Danh sách danh mục</h2>
-        <a href="{{ route('categories.create') }}" class="btn btn-primary">+ Thêm danh mục</a>
-    </div>
+@extends('layouts.admin')
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
+@section('title', 'Danh mục')
+@section('page_icon', 'bi-tags')
+@section('page_eyebrow', 'Sản phẩm')
+@section('page_title', 'Danh sách danh mục')
+@section('page_subtitle', 'Quản lý danh mục sản phẩm.')
 
-    <form method="GET" action="{{ route('categories.index') }}" class="mb-3 d-flex gap-2">
-        <input type="text" name="search" class="form-control w-25" placeholder="Tìm kiếm..." value="{{ request('search') }}">
-        <button class="btn btn-outline-secondary">Tìm</button>
-    </form>
+@section('heading_actions')
+    <a href="{{ route('categories.create') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Thêm danh mục</a>
+@endsection
 
-    <table class="table table-bordered table-hover">
-        <thead class="table-dark">
-            <tr>
-                <th>#</th>
-                <th>Tên danh mục</th>
-                <th>Mô tả</th>
-                <th>Hành động</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($categories as $category)
-            <tr>
-                <td>{{ $category->id }}</td>
-                <td>{{ $category->name }}</td>
-                <td>{{ $category->description }}</td>
-                <td>
-                    <a href="{{ route('categories.edit', $category) }}" class="btn btn-sm btn-warning">Sửa</a>
-                    <form action="{{ route('categories.destroy', $category) }}" method="POST" class="d-inline"
-                          onsubmit="return confirm('Xóa danh mục này?')">
-                        @csrf @method('DELETE')
-                        <button class="btn btn-sm btn-danger">Xóa</button>
-                    </form>
-                </td>
-            </tr>
-            @empty
-            <tr><td colspan="4" class="text-center">Chưa có danh mục nào</td></tr>
-            @endforelse
-        </tbody>
-    </table>
-
-    {{ $categories->links() }}
-</div>
-</body>
-</html>
+@section('content')
+    <section class="panel">
+        <div class="panel-header">
+            <form method="GET" action="{{ route('categories.index') }}" class="d-flex gap-2 flex-grow-1">
+                <input type="text" name="search" class="form-control form-control-sm table-search" placeholder="Tìm kiếm..." value="{{ request('search') }}">
+                <button class="btn btn-outline-secondary btn-sm">Tìm</button>
+            </form>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead><tr><th>#</th><th>Tên</th><th>Mô tả</th><th class="text-end">Thao tác</th></tr></thead>
+                <tbody>
+                    @forelse($categories as $category)
+                        <tr>
+                            <td>{{ $category->id }}</td>
+                            <td class="fw-semibold">{{ $category->name }}</td>
+                            <td>{{ Str::limit($category->description, 60) }}</td>
+                            <td class="text-end">
+                                <a href="{{ route('categories.edit', $category) }}" class="btn btn-light btn-sm">Sửa</a>
+                                <form action="{{ route('categories.destroy', $category) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa danh mục?')">
+                                    @csrf @method('DELETE')
+                                    <button class="btn btn-outline-danger btn-sm">Xóa</button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="4" class="text-center text-muted py-4">Chưa có danh mục</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        @if($categories->hasPages())<div class="p-3">{{ $categories->links() }}</div>@endif
+    </section>
+@endsection

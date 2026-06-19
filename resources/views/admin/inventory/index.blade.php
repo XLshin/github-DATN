@@ -1,157 +1,144 @@
-<h1>Lịch sử kho</h1>
+@extends('layouts.admin')
 
-<div style="margin-bottom:20px">
+@section('title', 'Lịch sử kho')
+@section('page_icon', 'bi-clock-history')
+@section('page_eyebrow', 'Kho hàng')
+@section('page_title', 'Lịch sử kho')
+@section('page_subtitle', 'Theo dõi lịch sử nhập kho, xuất kho và điều chỉnh tồn kho.')
 
-    <a href="{{ route('inventory.create') }}">
-        Nhập kho
-    </a>
+@section('heading_actions')
+<a href="{{ route('inventory.create') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg"></i> Nhập kho
+</a>
 
-    |
+<a href="{{ route('stocks') }}" class="btn btn-light btn-sm">
+    <i class="bi bi-box-seam"></i> Kiểm kho
+</a>
+@endsection
 
-    <a href="{{ route('stocks') }}">
-        Kiểm kho
-    </a>
+@section('content')
+<section class="panel">
+    <div class="panel-header">
+        <form method="GET" class="row g-2 flex-grow-1">
 
-</div>
+            <div class="col-md-5">
+                <input
+                    type="text"
+                    name="keyword"
+                    value="{{ request('keyword') }}"
+                    class="form-control form-control-sm"
+                    placeholder="Nhập Variant ID">
+            </div>
 
-<hr>
+            <div class="col-md-4">
+                <select name="transaction_type" class="form-select form-select-sm">
+                    <option value="">Tất cả giao dịch</option>
 
-<form method="GET">
+                    <option value="import" @selected(request('transaction_type')==='import' )>
+                        Nhập kho
+                    </option>
 
-    <input
-        type="text"
-        name="keyword"
-        value="{{ request('keyword') }}"
-        placeholder="Nhập Variant ID">
+                    <option value="export" @selected(request('transaction_type')==='export' )>
+                        Xuất kho
+                    </option>
 
-    <select name="transaction_type">
+                    <option value="adjustment" @selected(request('transaction_type')==='adjustment' )>
+                        Điều chỉnh
+                    </option>
+                </select>
+            </div>
 
-        <option value="">
-            Tất cả giao dịch
-        </option>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-outline-primary btn-sm">
+                    Tìm kiếm
+                </button>
 
-        <option
-            value="import"
-            {{ request('transaction_type') == 'import' ? 'selected' : '' }}>
-            Nhập kho
-        </option>
-
-        <option
-            value="export"
-            {{ request('transaction_type') == 'export' ? 'selected' : '' }}>
-            Xuất kho
-        </option>
-
-        <option
-            value="adjustment"
-            {{ request('transaction_type') == 'adjustment' ? 'selected' : '' }}>
-            Điều chỉnh
-        </option>
-
-    </select>
-
-    <button type="submit">
-        Tìm kiếm
-    </button>
-
-    <a href="{{ route('inventory.index') }}">
-        Làm mới
-    </a>
-
-</form>
-
-<hr>
-
-<table border="1" cellpadding="10">
-
-    <tr>
-        <th>ID</th>
-        <th>Sản phẩm</th>
-        <th>Màu</th>
-        <th>Dung lượng</th>
-        <th>Loại giao dịch</th>
-        <th>Số lượng</th>
-        <th>Ghi chú</th>
-        <th>Thời gian</th>
-        <th>Hành động</th>
-    </tr>
-
-    @forelse($transactions as $item)
-
-        <tr>
-
-            <td>{{ $item->id }}</td>
-
-            <td>
-                {{ $item->productVariant?->product?->name ?? 'N/A' }}
-            </td>
-
-            <td>
-                {{ $item->productVariant?->color ?? 'N/A' }}
-            </td>
-
-            <td>
-                {{ $item->productVariant?->storage ?? 'N/A' }}
-            </td>
-
-            <td>
-
-                @if($item->type == 'import')
-
-                    Nhập kho
-
-                @elseif($item->type == 'export')
-
-                    Xuất kho
-
-                @elseif($item->type == 'adjustment')
-
-                    Điều chỉnh
-
-                @else
-
-                    Không xác định
-
-                @endif
-
-            </td>
-
-            <td>
-                {{ $item->quantity }}
-            </td>
-
-            <td>
-                {{ $item->note }}
-            </td>
-
-            <td>
-                {{ $item->created_at?->format('d/m/Y H:i') ?? 'N/A' }}
-            </td>
-
-            <td>
-
-                <a href="{{ route('inventory.edit', $item->id) }}">
-                    Sửa
+                <a href="{{ route('inventory.index') }}" class="btn btn-light btn-sm">
+                    Làm mới
                 </a>
+            </div>
 
-            </td>
+        </form>
+    </div>
 
-        </tr>
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Sản phẩm</th>
+                    <th>Màu</th>
+                    <th>Dung lượng</th>
+                    <th>Loại giao dịch</th>
+                    <th class="text-end">Số lượng</th>
+                    <th>Ghi chú</th>
+                    <th>Thời gian</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+            </thead>
 
-    @empty
+            <tbody>
+                @forelse($transactions as $item)
+                <tr>
+                    <td>{{ $item->id }}</td>
 
-        <tr>
+                    <td>
+                        {{ $item->productVariant?->product?->name ?? 'N/A' }}
+                    </td>
 
-            <td colspan="9">
-                Không có dữ liệu
-            </td>
+                    <td>
+                        {{ $item->productVariant?->color ?? 'N/A' }}
+                    </td>
 
-        </tr>
+                    <td>
+                        {{ $item->productVariant?->storage ?? 'N/A' }}
+                    </td>
 
-    @endforelse
+                    <td>
+                        @if($item->type === 'import')
+                        <span class="badge text-bg-success">Nhập kho</span>
+                        @elseif($item->type === 'export')
+                        <span class="badge text-bg-danger">Xuất kho</span>
+                        @elseif($item->type === 'adjustment')
+                        <span class="badge text-bg-warning">Điều chỉnh</span>
+                        @else
+                        <span class="badge text-bg-secondary">Không xác định</span>
+                        @endif
+                    </td>
 
-</table>
+                    <td class="text-end fw-semibold">
+                        {{ $item->quantity }}
+                    </td>
 
-<br>
+                    <td>
+                        {{ $item->note ?? 'N/A' }}
+                    </td>
 
-{{ $transactions->withQueryString()->links() }}
+                    <td>
+                        {{ $item->created_at?->format('d/m/Y H:i') ?? 'N/A' }}
+                    </td>
+
+                    <td class="text-end">
+                        <a href="{{ route('inventory.edit', $item->id) }}" class="btn btn-light btn-sm">
+                            Sửa
+                        </a>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-4">
+                        Không có dữ liệu
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    @if($transactions->hasPages())
+    <div class="p-3">
+        {{ $transactions->withQueryString()->links() }}
+    </div>
+    @endif
+</section>
+@endsection
