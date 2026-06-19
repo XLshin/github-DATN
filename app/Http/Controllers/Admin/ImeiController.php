@@ -63,7 +63,7 @@ class ImeiController extends Controller
             'status' => 'available'
         ]);
 
-        return redirect()->route('imeis.index');
+        return redirect()->route('admin.imeis.index');
     }
 
     /**
@@ -103,7 +103,7 @@ class ImeiController extends Controller
             'status' => $request->status
         ]);
 
-        return redirect()->route('imeis.index');
+        return redirect()->route('admin.imeis.index');
     }
 
     /**
@@ -113,6 +113,6 @@ class ImeiController extends Controller
     {
         Imei::findOrFail($id)->delete();
 
-        return redirect()->route('imeis.index');
+        return redirect()->route('admin.imeis.index');
     }
 }
