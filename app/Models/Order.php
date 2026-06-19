@@ -48,4 +48,9 @@ public function warranties()
 {
     return $this->hasMany(Warranty::class);
 }
+
+public function payment()
+{
+    return $this->hasOne(Payment::class);
+}
 }
