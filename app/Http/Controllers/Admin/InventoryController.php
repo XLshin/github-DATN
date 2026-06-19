@@ -67,7 +67,7 @@ class InventoryController extends Controller
             'note' => $request->note
         ]);
 
-        return redirect()->route('inventory.index');
+        return redirect()->route('admin.inventory.index');
     }
 
     /**
@@ -109,7 +109,7 @@ class InventoryController extends Controller
                 'note' => $request->note
             ]);
 
-            return redirect()->route('inventory.index');
+            return redirect()->route('admin.inventory.index');
     }
 
     /**
