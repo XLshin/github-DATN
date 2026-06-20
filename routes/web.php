@@ -97,7 +97,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
         Route::resource('users', AdminUserController::class);
         Route::resource('products', AdminProductController::class);
-        Route::delete('products/{image}/image', [AdminProductController::class, 'destroyImage'])->name('products.image.destroy');
+        Route::delete('product-images/{image}', [AdminProductController::class, 'destroyImage'])->name('products.image.destroy');
 
         Route::get('orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::get('orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
