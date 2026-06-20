@@ -54,16 +54,20 @@ class ImeiController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'imei' => 'required|digits:15|unique:imeis,imei'
+            'product_variant_id' => 'required|exists:product_variants,id',
+
+            'imei' => 'required|digits:15|unique:imeis,imei',
         ]);
 
         Imei::create([
             'product_variant_id' => $request->product_variant_id,
             'imei' => $request->imei,
-            'status' => 'available'
+            'status' => 'available',
         ]);
 
-        return redirect()->route('admin.imeis.index');
+        return redirect()
+            ->route('admin.imeis.index')
+            ->with('success', 'Thêm IMEI thành công');
     }
 
     /**
@@ -89,21 +93,32 @@ class ImeiController extends Controller
      */
     public function update(Request $request, string $id)
     {
-            $imei = Imei::findOrFail($id);
+        $imei = Imei::findOrFail($id);
 
         $request->validate([
+            'product_variant_id' => 'required|exists:product_variants,id',
+
             'imei' => [
                 'required',
-                Rule::unique('imeis')->ignore($id)
-            ]
+                'digits:15',
+                Rule::unique('imeis', 'imei')->ignore($id),
+            ],
+
+            'status' => [
+                'required',
+                Rule::in(['available', 'sold', 'warranty']),
+            ],
         ]);
 
         $imei->update([
+            'product_variant_id' => $request->product_variant_id,
             'imei' => $request->imei,
-            'status' => $request->status
+            'status' => $request->status,
         ]);
 
-        return redirect()->route('admin.imeis.index');
+        return redirect()
+            ->route('admin.imeis.index')
+            ->with('success', 'Cập nhật IMEI thành công');
     }
 
     /**
