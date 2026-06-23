@@ -7,16 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 class Review extends Model
 {
     protected $fillable = [
+    'user_id',
+    'product_id',
+    'rating',
+    'comment',
+    'status'
+];
 
-        'user_id',
-
-        'product_id',
-
-        'rating',
-
-        'comment'
-
-    ];
+protected $casts = [
+    'status' => 'boolean'
+];
 
     public function user()
     {
