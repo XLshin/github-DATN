@@ -14,6 +14,7 @@ class CheckoutService
 {
     public function __construct(
         private readonly CartService $cartService,
+        private readonly \App\Services\ImeiReservationService $imeiReservationService,
     ) {}
 
     public function process(User $user, array $data): Order
@@ -63,6 +64,15 @@ class CheckoutService
                 'transaction_code' => null,
                 'paid_at' => null,
             ]);
+
+            // Reserve IMEIs for order items; rollback if not enough stock
+            $reserved = $this->imeiReservationService->reserve($order);
+
+            if (! $reserved) {
+                throw ValidationException::withMessages([
+                    'inventory' => 'Không đủ IMEI cho một hoặc nhiều sản phẩm trong đơn hàng.',
+                ]);
+            }
 
             $this->cartService->clear($user);
 
