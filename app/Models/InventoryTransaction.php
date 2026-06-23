@@ -8,12 +8,12 @@ class InventoryTransaction extends Model
 {
     protected $fillable = [
         'product_variant_id',
-        'quantity',
         'type',
+        'quantity',
         'note'
     ];
 
-    public function productVariant()
+        public function productVariant()
     {
         return $this->belongsTo(ProductVariant::class);
     }
