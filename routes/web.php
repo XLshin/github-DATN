@@ -21,12 +21,15 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReviewController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\CarrierWebhookController;
 
 /*
 |--------------------------------------------------------------------------
 | Public routes
 |--------------------------------------------------------------------------
 */
+
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
 
@@ -35,6 +38,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
     Route::post('/cart/remove', [CartController::class, 'remove'])->name('cart.remove');
 });
+
+// Webhook endpoints
+Route::post('/webhook/payment', [WebhookController::class, 'paymentCallback']);
+Route::post('/webhook/carrier/{code}', [CarrierWebhookController::class, 'handle']);
 
 /*
 |--------------------------------------------------------------------------
@@ -60,7 +67,7 @@ Route::middleware('guest')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', fn () => view('client.profile.dashboard'))->name('dashboard');
+    Route::get('/dashboard', fn() => view('client.profile.dashboard'))->name('dashboard');
 
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -113,6 +120,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::resource('warranties', WarrantyController::class)->except(['destroy']);
 
         Route::resource('imeis', ImeiController::class);
+        Route::resource('shipments', ShipmentController::class)->only(['index', 'show', 'create', 'store']);
         Route::resource('inventory', InventoryController::class);
         Route::get('/stocks', [InventoryController::class, 'stock'])->name('stocks');
     });
@@ -125,6 +133,4 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::patch('reviews/{review}/hide', [ReviewController::class, 'hide'])->name('reviews.hide');
         Route::delete('reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
     });
-
-
 });

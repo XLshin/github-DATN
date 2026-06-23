@@ -35,6 +35,19 @@
                     <p><strong>Người nhận:</strong> {{ $order->customer_name }}</p>
                     <p><strong>SĐT:</strong> {{ $order->customer_phone }}</p>
                     <p><strong>Địa chỉ:</strong> {{ $order->shipping_address }}</p>
+                    @if($order->shipment)
+                    <hr>
+                    <h6 class="mb-2">Vận đơn</h6>
+                    <p class="mb-1"><strong>Đơn vị:</strong> {{ $order->shipment->shipping_unit ?? 'N/A' }}</p>
+                    <p class="mb-1"><strong>Mã vận đơn:</strong>
+                        @if($order->shipment->tracking_code)
+                            <a href="{{ $order->shipment->tracking_url ?? '#' }}" target="_blank">{{ $order->shipment->tracking_code }}</a>
+                        @else
+                            Chưa có
+                        @endif
+                    </p>
+                    <p class="mb-0"><strong>Trạng thái giao:</strong> {{ $order->shipment->shipping_status ?? 'Chưa có' }}</p>
+                    @endif
                     <hr>
                     <p class="fs-5 fw-bold text-primary mb-0">Tổng: {{ number_format($order->total_amount, 0, ',', '.') }} đ</p>
                 </div>
