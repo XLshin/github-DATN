@@ -2,47 +2,71 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Category;
 use App\Models\Brand;
+use App\Models\Category;
 use App\Models\Product;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class SampleDataSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
-        // create 3 categories
+        /*
+        |--------------------------------------------------------------------------
+        | 1. Tạo danh mục mẫu
+        |--------------------------------------------------------------------------
+        */
         $categories = [];
+
         for ($i = 1; $i <= 3; $i++) {
-            $categories[] = Category::create([
-                'name' => 'Category '.$i,
-                'description' => 'Sample category '.$i
-            ]);
+            $categories[] = Category::updateOrCreate(
+                ['name' => 'Category ' . $i],
+                [
+                    'description' => 'Sample category ' . $i,
+                ]
+            );
         }
 
-        // create 3 brands
+        /*
+        |--------------------------------------------------------------------------
+        | 2. Tạo thương hiệu mẫu
+        |--------------------------------------------------------------------------
+        */
         $brands = [];
+
         for ($i = 1; $i <= 3; $i++) {
-            $brands[] = Brand::create([
-                'name' => 'Brand '.$i,
-                'logo' => null,
-                'description' => 'Sample brand '.$i
-            ]);
+            $brands[] = Brand::updateOrCreate(
+                ['name' => 'Brand ' . $i],
+                [
+                    'logo' => null,
+                    'description' => 'Sample brand ' . $i,
+                ]
+            );
         }
 
-        // create products
+        /*
+        |--------------------------------------------------------------------------
+        | 3. Tạo sản phẩm mẫu
+        |--------------------------------------------------------------------------
+        */
         for ($i = 1; $i <= 12; $i++) {
-            Product::create([
-                'category_id' => $categories[array_rand($categories)]->id,
-                'brand_id' => $brands[array_rand($brands)]->id,
-                'name' => 'Sample Product '.$i,
-                'slug' => 'sample-product-'.$i,
-                'description' => 'This is the description for sample product '.$i,
-                'price' => rand(100000, 2000000),
-                'stock_quantity' => rand(1, 50),
-                'thumbnail' => null,
-                'status' => true,
-            ]);
+            $name = 'Sample Product ' . $i;
+            $slug = Str::slug($name);
+
+            Product::updateOrCreate(
+                ['slug' => $slug],
+                [
+                    'category_id' => $categories[array_rand($categories)]->id,
+                    'brand_id' => $brands[array_rand($brands)]->id,
+                    'name' => $name,
+                    'description' => 'This is the description for sample product ' . $i,
+                    'price' => rand(100000, 2000000),
+                    'stock_quantity' => rand(1, 50),
+                    'thumbnail' => null,
+                    'status' => true,
+                ]
+            );
         }
     }
 }

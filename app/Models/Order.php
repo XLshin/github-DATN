@@ -8,49 +8,58 @@ class Order extends Model
 {
     protected $fillable = [
 
-    'user_id',
+        'user_id',
 
-    'order_code',
+        'order_code',
 
-    'customer_name',
+        'customer_name',
 
-    'customer_phone',
+        'customer_phone',
 
-    'shipping_address',
+        'shipping_address',
 
-    'subtotal',
+        'subtotal',
 
-    'membership_discount',
+        'membership_discount',
 
-    'coupon_discount',
+        'coupon_discount',
 
-    'total_amount',
+        'total_amount',
 
-    'status'
-];
+        'status'
+    ];
 
-public function user()
-{
-    return $this->belongsTo(User::class);
-}
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
-public function items()
-{
-    return $this->hasMany(OrderItem::class);
-}
+    public function items()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
 
-public function payments()
-{
-    return $this->hasMany(Payment::class);
-}
+    public function shipment()
+    {
+        return $this->hasOne(Shipment::class);
+    }
 
-public function shipments()
-{
-    return $this->hasMany(Shipment::class);
-}
+    public function warranties()
+    {
+        return $this->hasMany(Warranty::class);
+    }
 
-public function warranties()
-{
-    return $this->hasMany(Warranty::class);
-}
+    public function payment()
+    {
+        return $this->hasOne(Payment::class);
+    }
+
+    /**
+     * Whether the order is editable by admin.
+     * Orders in 'shipping' state should not be editable until delivery result.
+     */
+    public function isEditable(): bool
+    {
+        return $this->status !== 'shipping';
+    }
 }
