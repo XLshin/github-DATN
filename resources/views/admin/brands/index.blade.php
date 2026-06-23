@@ -64,7 +64,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="text-center text-muted py-4">Chưa có thương hiệu</td></tr>
+                        <tr><td colspan="5" class="text-center text-muted py-4">Chưa có thương hiệu</td></tr>
                     @endforelse
                 </tbody>
             </table>

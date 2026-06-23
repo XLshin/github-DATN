@@ -17,18 +17,19 @@ class DatabaseSeeder extends Seeder
             ProductSeeder::class,
             ProductVariantSeeder::class,
             ProductImageSeeder::class,
-
             CouponSeeder::class,
             BannerSeeder::class,
 
             ImeiSeeder::class,
 
             OrderSeeder::class,
-
             ReviewSeeder::class,
             PointHistorySeeder::class,
 
             // Bảo hành cần order + imei trước
+            OrderSeeder::class,
+
+            // Nếu có seeder bảo hành thì để sau OrderSeeder
             WarrantyTestSeeder::class,
         ]);
     }
