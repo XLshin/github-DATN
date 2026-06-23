@@ -34,21 +34,6 @@
             @method('PUT')
 
             <div class="mb-3">
-                <label class="form-label">Danh mục</label>
-                <select name="category_ids[]" multiple
-                        class="form-select @error('category_ids') is-invalid @enderror" size="4">
-                    @foreach($categories as $category)
-                        <option value="{{ $category->id }}"
-                            {{ in_array($category->id, old('category_ids', $selectedCategoryIds)) ? 'selected' : '' }}>
-                            {{ $category->name }}
-                        </option>
-                    @endforeach
-                </select>
-                <div class="form-text">Giữ Ctrl (Windows) hoặc Cmd (Mac) để chọn nhiều danh mục.</div>
-                @error('category_ids')<div class="invalid-feedback">{{ $message }}</div>@enderror
-            </div>
-
-            <div class="mb-3">
                 <label class="form-label">
                     Tên thương hiệu <span class="text-danger">*</span>
                 </label>
