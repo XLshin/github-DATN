@@ -55,6 +55,8 @@
                 <span class="badge text-bg-success">Hoàn thành</span>
                 @elseif($order->status === 'cancelled')
                 <span class="badge text-bg-danger">Đã hủy</span>
+                @elseif($order->status === 'shipping')
+                <span class="badge text-bg-warning">Đang vận chuyển — không thể chỉnh sửa</span>
                 @else
                 <span class="badge text-bg-light">
                     {{ $order->status }}
