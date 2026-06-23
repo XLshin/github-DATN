@@ -7,40 +7,42 @@ use App\Models\Order;
 use App\Models\Shipment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\Imei;
+use App\Models\ProductVariant;
 use Illuminate\Validation\Rule;
 
 class ShipmentController extends Controller
 {
     public function index(Request $request)
-{
-    $shipments = Shipment::with('order')
-        ->when($request->filled('keyword'), function ($query) use ($request) {
-            $keyword = $request->keyword;
+    {
+        $shipments = Shipment::with('order')
+            ->when($request->filled('keyword'), function ($query) use ($request) {
+                $keyword = $request->keyword;
 
-            $query->where('tracking_code', 'like', "%{$keyword}%")
-                ->orWhereHas('order', function ($q) use ($keyword) {
-                    $q->where('order_code', 'like', "%{$keyword}%")
-                        ->orWhere('customer_name', 'like', "%{$keyword}%")
-                        ->orWhere('customer_phone', 'like', "%{$keyword}%");
-                });
-        })
-        ->when($request->filled('status'), function ($query) use ($request) {
-            $query->where('shipping_status', $request->status);
-        })
-        ->latest()
-        ->paginate(10);
+                $query->where('tracking_code', 'like', "%{$keyword}%")
+                    ->orWhereHas('order', function ($q) use ($keyword) {
+                        $q->where('order_code', 'like', "%{$keyword}%")
+                            ->orWhere('customer_name', 'like', "%{$keyword}%")
+                            ->orWhere('customer_phone', 'like', "%{$keyword}%");
+                    });
+            })
+            ->when($request->filled('status'), function ($query) use ($request) {
+                $query->where('shipping_status', $request->status);
+            })
+            ->latest()
+            ->paginate(10);
 
-    $ordersCanCreateShipment = Order::where('status', 'processing')
-        ->whereDoesntHave('shipment')
-        ->latest()
-        ->get();
+        $ordersCanCreateShipment = Order::where('status', 'processing')
+            ->whereDoesntHave('shipment')
+            ->latest()
+            ->get();
 
-    return view('admin.shipments.index', compact('shipments', 'ordersCanCreateShipment'));
-}
+        return view('admin.shipments.index', compact('shipments', 'ordersCanCreateShipment'));
+    }
 
     public function createFromOrder(Order $order)
     {
-        if ($order->status === 'completed' || $order->status === 'cancelled') {
+        if (in_array($order->status, ['completed', 'cancelled', 'shipping'])) {
             return back()->with('error', 'Không thể tạo vận đơn cho đơn đã hoàn tất hoặc đã hủy.');
         }
 
@@ -58,8 +60,8 @@ class ShipmentController extends Controller
             'tracking_code' => ['nullable', 'string', 'max:255'],
         ]);
 
-        if ($order->status === 'completed' || $order->status === 'cancelled') {
-            return back()->with('error', 'Không thể tạo vận đơn cho đơn đã hoàn tất hoặc đã hủy.');
+        if (in_array($order->status, ['completed', 'cancelled', 'shipping'])) {
+            return back()->with('error', 'Không thể tạo vận đơn cho đơn đã hoàn tất, đang vận chuyển hoặc đã hủy.');
         }
 
         if (Shipment::where('order_id', $order->id)->exists()) {
@@ -111,6 +113,18 @@ class ShipmentController extends Controller
 
             if ($status === 'shipping' && is_null($shipment->shipped_at)) {
                 $data['shipped_at'] = now();
+
+                // decrement stock safely for each order item
+                foreach ($shipment->order->items as $item) {
+                    $variant = $item->variant()->lockForUpdate()->first();
+                    if ($variant) {
+                        if ($variant->stock_quantity < $item->quantity) {
+                            throw new \RuntimeException('Không đủ tồn kho để chuyển đơn hàng.');
+                        }
+                        $variant->stock_quantity -= $item->quantity;
+                        $variant->save();
+                    }
+                }
             }
 
             if ($status === 'delivered') {
@@ -123,6 +137,36 @@ class ShipmentController extends Controller
             if ($status === 'delivered') {
                 $shipment->order->update([
                     'status' => 'completed',
+                ]);
+            } elseif ($status === 'failed') {
+                // Rollback stock and IMEIs (idempotent): if order_item has imei_id, return it to available and increment stock.
+                foreach ($shipment->order->items as $item) {
+                    if ($item->imei_id) {
+                        // revert IMEI
+                        $imei = Imei::lockForUpdate()->find($item->imei_id);
+                        if ($imei) {
+                            $imei->status = 'available';
+                            $imei->reserved_by_order_item_id = null;
+                            $imei->reserved_at = null;
+                            $imei->save();
+                        }
+
+                        // increment variant stock
+                        $variant = ProductVariant::lockForUpdate()->find($item->product_variant_id);
+                        if ($variant) {
+                            $variant->stock_quantity += $item->quantity;
+                            $variant->save();
+                        }
+
+                        // detach imei from order item
+                        $item->imei_id = null;
+                        $item->save();
+                    }
+                }
+
+                // mark order as returned so admin can handle restocking/notifications
+                $shipment->order->update([
+                    'status' => 'returned',
                 ]);
             } else {
                 $shipment->order->update([
