@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\InventoryTransaction;
 use App\Models\Imei;
+use App\Models\ProductVariant;
 
 class InventoryController extends Controller
 {
@@ -47,7 +48,10 @@ class InventoryController extends Controller
      */
     public function create()
     {
-        return view('admin.inventory.create');
+        $variants = ProductVariant::with('product')
+            ->where('status', true)
+            ->get();
+        return view('admin.inventory.create', compact('variants'));
     }
 
     /**
@@ -56,7 +60,7 @@ class InventoryController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'product_variant_id' => 'required',
+            'product_variant_id' => 'required|exists:product_variants,id',
             'quantity' => 'required|integer|min:1'
         ]);
 
