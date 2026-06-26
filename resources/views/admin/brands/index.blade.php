@@ -25,6 +25,7 @@
                         <th>#</th>
                         <th>Logo</th>
                         <th>Tên</th>
+                        <th>Danh mục</th>
                         <th>Mô tả</th>
                         <th class="text-end">Thao tác</th>
                     </tr>
@@ -41,8 +42,20 @@
                                 @endif
                             </td>
                             <td class="fw-semibold">{{ $brand->name }}</td>
+                            <td>
+                                @if($brand->categories->isNotEmpty())
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @foreach($brand->categories as $cat)
+                                            <span class="badge bg-light text-dark border">{{ $cat->name }}</span>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
                             <td>{{ Str::limit($brand->description, 60) }}</td>
                             <td class="text-end">
+                                <a href="{{ route('brands.show', $brand) }}" class="btn btn-light btn-sm"><i class="bi bi-eye"></i> Xem</a>
                                 <a href="{{ route('brands.edit', $brand) }}" class="btn btn-light btn-sm">Sửa</a>
                                 <form action="{{ route('brands.destroy', $brand) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa thương hiệu này?')">
                                     @csrf @method('DELETE')
