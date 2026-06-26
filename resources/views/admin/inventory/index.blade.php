@@ -7,9 +7,6 @@
 @section('page_subtitle', 'Theo dõi lịch sử nhập kho, xuất kho và điều chỉnh tồn kho.')
 
 @section('heading_actions')
-<a href="{{ route('admin.inventory.create') }}" class="btn btn-primary btn-sm">
-    <i class="bi bi-plus-lg"></i> Nhập kho
-</a>
 
 <a href="{{ route('admin.stocks') }}" class="btn btn-light btn-sm">
     <i class="bi bi-box-seam"></i> Kiểm kho
@@ -27,7 +24,7 @@
                     name="keyword"
                     value="{{ request('keyword') }}"
                     class="form-control form-control-sm"
-                    placeholder="Nhập Variant ID">
+                    placeholder="Nhập tên sản phẩm hoặc ID biến thể">
             </div>
 
             <div class="col-md-4">
@@ -73,7 +70,7 @@
                     <th class="text-end">Số lượng</th>
                     <th>Ghi chú</th>
                     <th>Thời gian</th>
-                    <th class="text-end">Thao tác</th>
+                    {{-- <th class="text-end">Thao tác</th> --}}
                 </tr>
             </thead>
 
@@ -118,11 +115,11 @@
                         {{ $item->created_at?->format('d/m/Y H:i') ?? 'N/A' }}
                     </td>
 
-                    <td class="text-end">
+                    {{-- <td class="text-end">
                         <a href="{{ route('admin.inventory.edit', $item->id) }}" class="btn btn-light btn-sm">
                             Sửa
                         </a>
-                    </td>
+                    </td> --}}
                 </tr>
                 @empty
                 <tr>

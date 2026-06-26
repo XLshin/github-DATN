@@ -155,7 +155,7 @@
                             </td>
 
                             <td>
-                                @if($product->stock_quantity <= 0)
+                                @if($product->stock_quantity == 0)
                                     <span class="badge text-bg-danger">Hết hàng</span>
                                     @else
                                     <span class="badge text-bg-warning">Sắp hết</span>
