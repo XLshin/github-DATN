@@ -24,7 +24,7 @@
                     <div>
                         <h5 class="mb-1">Thông tin sản phẩm</h5>
                         <div class="text-muted small">
-                            Cập nhật tên, danh mục, thương hiệu, mô tả, giá và tồn kho.
+                            Cập nhật tên, danh mục, thương hiệu và mô tả.
                         </div>
                     </div>
                 </div>
@@ -235,6 +235,14 @@
                                 Đang bán
                             </label>
                         </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Loại sản phẩm</label>
+                        <select name="product_type" class="form-select">
+                            <option value="quantity" {{ old('product_type', $product->product_type) == 'quantity' ? 'selected' : '' }}>Theo số lượng</option>
+                            <option value="imei/serial" {{ old('product_type', $product->product_type) == 'imei/serial' ? 'selected' : '' }}>Theo IMEI/Serial</option>
+                        </select>
                     </div>
 
                     <div class="d-grid gap-2">
