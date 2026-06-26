@@ -6,6 +6,8 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\User;
+use App\Models\Imei;
+use App\Models\InventoryTransaction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -53,6 +55,37 @@ class CheckoutService
                     'quantity' => $item->quantity,
                     'total' => $price * $item->quantity,
                 ]);
+
+                // Cập nhật kho dựa trên loại sản phẩm
+                $variant = $item->productVariant;
+                $hasImei = $variant->imeis()->exists();
+
+                if ($hasImei) {
+                    // Điện thoại: cập nhật IMEI status thành 'sold'
+                    Imei::where('product_variant_id', $item->product_variant_id)
+                        ->where('status', 'available')
+                        ->limit($item->quantity)
+                        ->update(['status' => 'sold']);
+
+                    // Tạo transaction
+                    InventoryTransaction::create([
+                        'product_variant_id' => $item->product_variant_id,
+                        'type' => 'export',
+                        'quantity' => $item->quantity,
+                        'note' => 'Bán hàng - Đơn: ' . $order->order_code,
+                    ]);
+                } else {
+                    // Phụ kiện: giảm stock_quantity
+                    $variant->decrement('stock_quantity', $item->quantity);
+
+                    // Tạo transaction
+                    InventoryTransaction::create([
+                        'product_variant_id' => $item->product_variant_id,
+                        'type' => 'export',
+                        'quantity' => $item->quantity,
+                        'note' => 'Bán hàng - Đơn: ' . $order->order_code,
+                    ]);
+                }
             }
 
             Payment::query()->create([
