@@ -4,7 +4,7 @@
 @section('page_icon', 'bi-shield-check')
 @section('page_eyebrow', 'Dịch vụ sau bán')
 @section('page_title', 'Chi tiết bảo hành')
-@section('page_subtitle', 'Xem thông tin phiếu bảo hành, cập nhật trạng thái và theo dõi lịch sử bảo hành.')
+@section('page_subtitle', 'Xem thông tin phiếu bảo hành, lỗi khách báo, cập nhật trạng thái và theo dõi lịch sử.')
 
 @section('heading_actions')
 <a href="{{ route('admin.warranties.index') }}" class="btn btn-light btn-sm">
@@ -24,6 +24,12 @@
 </div>
 @endif
 
+@if (session('error'))
+<div class="alert alert-danger">
+    {{ session('error') }}
+</div>
+@endif
+
 <div class="row g-3 mb-3">
     <div class="col-lg-7">
         <section class="panel h-100">
@@ -31,7 +37,7 @@
                 <div>
                     <h5 class="mb-1">Thông tin phiếu</h5>
                     <div class="text-muted small">
-                        Thông tin IMEI, đơn hàng và thời hạn bảo hành.
+                        Thông tin IMEI, sản phẩm, đơn hàng, thời hạn bảo hành và lỗi khách báo.
                     </div>
                 </div>
             </div>
@@ -39,60 +45,104 @@
             <div class="p-3">
                 <div class="row g-3">
                     <div class="col-md-6">
+                        <div class="text-muted small">Mã phiếu</div>
+                        <div class="fw-semibold">
+                            {{ $warranty->warranty_code }}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
                         <div class="text-muted small">IMEI</div>
                         <div class="fw-semibold">
-                            {{ $warranty->imei->imei ?? 'Không có' }}
+                            {{ $warranty->imei->imei ?? $warrantyDetail->imei ?? 'Không có' }}
                         </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="text-muted small">Sản phẩm</div>
+
+                        @if($warrantyDetail)
+                            <div class="fw-semibold">
+                                {{ $warrantyDetail->product_name }}
+                            </div>
+                            <div class="text-muted small">
+                                {{ $warrantyDetail->color }} - {{ $warrantyDetail->storage }}
+                            </div>
+                        @else
+                            <div class="fw-semibold">Không có</div>
+                        @endif
                     </div>
 
                     <div class="col-md-6">
                         <div class="text-muted small">Mã đơn</div>
                         <div class="fw-semibold">
-                            {{ $warranty->order->order_code ?? 'Không có' }}
+                            {{ $warranty->order->order_code ?? $warrantyDetail->order_code ?? 'Không có' }}
                         </div>
                     </div>
 
                     <div class="col-md-6">
                         <div class="text-muted small">Khách hàng</div>
                         <div class="fw-semibold">
-                            {{ $warranty->order->customer_name ?? 'Không có' }}
+                            {{ $warranty->order->customer_name ?? $warrantyDetail->customer_name ?? 'Không có' }}
                         </div>
                     </div>
 
                     <div class="col-md-6">
                         <div class="text-muted small">SĐT</div>
                         <div class="fw-semibold">
-                            {{ $warranty->order->customer_phone ?? 'Không có' }}
+                            {{ $warranty->order->customer_phone ?? $warrantyDetail->customer_phone ?? 'Không có' }}
                         </div>
                     </div>
 
                     <div class="col-md-6">
-                        <div class="text-muted small">Ngày bắt đầu</div>
+                        <div class="text-muted small">Ngày bắt đầu bảo hành</div>
                         <div class="fw-semibold">
-                            {{ $warranty->warranty_start }}
+                            {{ $warranty->warranty_start ? $warranty->warranty_start->format('d/m/Y') : 'N/A' }}
                         </div>
                     </div>
 
                     <div class="col-md-6">
-                        <div class="text-muted small">Ngày kết thúc</div>
+                        <div class="text-muted small">Ngày hết hạn bảo hành</div>
                         <div class="fw-semibold">
-                            {{ $warranty->warranty_end }}
+                            {{ $warranty->warranty_end ? $warranty->warranty_end->format('d/m/Y') : 'N/A' }}
                         </div>
+
+                        @if($warranty->warranty_end && now()->startOfDay()->gt($warranty->warranty_end->copy()->startOfDay()))
+                            <div class="text-danger small">
+                                IMEI đã quá hạn bảo hành
+                            </div>
+                        @elseif($warranty->warranty_end)
+                            <div class="text-success small">
+                                IMEI còn hạn bảo hành
+                            </div>
+                        @endif
                     </div>
 
                     <div class="col-md-6">
-                        <div class="text-muted small">Trạng thái</div>
-
-                        @if($warranty->status === 'active')
-                        <span class="badge text-bg-success">Còn bảo hành</span>
-                        @elseif($warranty->status === 'expired')
-                        <span class="badge text-bg-secondary">Hết hạn</span>
-                        @elseif($warranty->status === 'claimed')
-                        <span class="badge text-bg-warning">Đang bảo hành</span>
-                        @else
-                        <span class="badge text-bg-light">
-                            {{ $warranty->status }}
+                        <div class="text-muted small">Trạng thái phiếu</div>
+                        <span class="badge text-bg-{{ $warranty->status_badge }}">
+                            {{ $warranty->status_label }}
                         </span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="text-muted small">Trạng thái IMEI</div>
+                        <div class="fw-semibold">
+                            {{ $warrantyDetail->imei_status ?? $warranty->imei->status ?? 'Không có' }}
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="text-muted small mb-1">Lỗi khách báo / ghi chú tiếp nhận</div>
+
+                        @if($warranty->customer_note)
+                            <div class="border rounded p-3 bg-light">
+                                {!! nl2br(e($warranty->customer_note)) !!}
+                            </div>
+                        @else
+                            <div class="text-muted">
+                                Chưa có ghi chú.
+                            </div>
                         @endif
                     </div>
                 </div>
@@ -106,7 +156,7 @@
                 <div>
                     <h5 class="mb-1">Cập nhật trạng thái</h5>
                     <div class="text-muted small">
-                        Thay đổi trạng thái hiện tại của phiếu bảo hành.
+                        Chỉ cập nhật trạng thái xử lý phiếu bảo hành.
                     </div>
                 </div>
             </div>
@@ -118,20 +168,16 @@
 
                     <div class="mb-3">
                         <label class="form-label">
-                            Trạng thái bảo hành
+                            Trạng thái xử lý
                         </label>
 
                         <select name="status" class="form-select form-select-sm">
-                            <option value="active" @selected($warranty->status === 'active')>
-                                Còn bảo hành
-                            </option>
-
-                            <option value="expired" @selected($warranty->status === 'expired')>
-                                Hết hạn
-                            </option>
-
                             <option value="claimed" @selected($warranty->status === 'claimed')>
-                                Đang bảo hành
+                                Đang xử lý bảo hành
+                            </option>
+
+                            <option value="active" @selected(in_array($warranty->status, ['active', 'expired'], true))>
+                                Hoàn tất xử lý
                             </option>
                         </select>
                     </div>
@@ -140,6 +186,12 @@
                         <i class="bi bi-check-lg"></i> Cập nhật
                     </button>
                 </form>
+
+                <div class="alert alert-info mt-3 mb-0">
+                    <strong>Đang xử lý bảo hành</strong>: IMEI sẽ ở trạng thái <strong>warranty</strong> và chưa được tạo phiếu mới.<br>
+                    <strong>Hoàn tất xử lý</strong>: IMEI chuyển về <strong>sold</strong>, sau này vẫn có thể tạo phiếu mới nếu còn thời hạn bảo hành thật sự.<br>
+                    <strong>Hết hạn bảo hành</strong>: hệ thống tự kiểm tra theo ngày mua + 12 tháng, admin không cần chọn thủ công.
+                </div>
             </div>
         </section>
     </div>
