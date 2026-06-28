@@ -26,10 +26,7 @@ class DatabaseSeeder extends Seeder
             ReviewSeeder::class,
             PointHistorySeeder::class,
 
-            // Bảo hành cần order + imei trước
-            OrderSeeder::class,
-
-            // Nếu có seeder bảo hành thì để sau OrderSeeder
+            // Bảo hành cần có product_variants, imeis, orders, order_items trước
             WarrantyTestSeeder::class,
         ]);
     }
