@@ -21,9 +21,9 @@ class Imei extends Model
         return $this->belongsTo(ProductVariant::class);
     }
 
-    public function warranties()
+    public function warranty()
     {
-        return $this->hasMany(Warranty::class);
+        return $this->hasOne(Warranty::class);
     }
 
     public function reservedByOrderItem()
