@@ -39,15 +39,19 @@
 
             <div class="mb-3">
                 <label class="form-label">
-                    Product Variant ID <span class="text-danger">*</span>
+                    Biến thể sản phẩm <span class="text-danger">*</span>
                 </label>
 
-                <input
-                    type="number"
+                <select
                     name="product_variant_id"
-                    value="{{ old('product_variant_id', 1) }}"
-                    class="form-control @error('product_variant_id') is-invalid @enderror"
-                    placeholder="Nhập ID biến thể sản phẩm">
+                    class="form-select @error('product_variant_id') is-invalid @enderror">
+                    <option value="">-- Chọn biến thể --</option>
+                    @foreach($variants as $variant)
+                    <option value="{{ $variant->id }}" {{ old('product_variant_id') == $variant->id ? 'selected' : '' }}>
+                        [ID: {{ $variant->id }}] {{ $variant->product->name ?? '?' }} — {{ $variant->color }} / {{ $variant->storage }}
+                    </option>
+                    @endforeach
+                </select>
 
                 @error('product_variant_id')
                 <div class="invalid-feedback">

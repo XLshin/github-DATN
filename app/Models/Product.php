@@ -26,7 +26,9 @@ class Product extends Model
 
         'thumbnail',
 
-        'status'
+        'status',
+
+        'product_type'
 
     ];
 

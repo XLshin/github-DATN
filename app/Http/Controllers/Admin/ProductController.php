@@ -16,7 +16,10 @@ class ProductController extends Controller
 {
     public function index()
     {
-        $products = Product::with(['category', 'brand'])->latest()->paginate(15);
+        $products = Product::with(['category', 'brand', 'variants'])
+            ->withCount('variants')
+            ->latest()
+            ->paginate(15);
         return view('admin.products.index', compact('products'));
     }
 
@@ -30,19 +33,25 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'           => 'required|string|max:255',
-            'category_id'    => 'required|exists:categories,id',
-            'brand_id'       => 'required|exists:brands,id',
-            'description'    => 'required|string',
-            'price'          => 'required|numeric|min:0',
-            'stock_quantity' => 'required|integer|min:0',
-            'thumbnail'      => 'nullable|image|max:2048',
-            'status'         => 'boolean',
-            'images.*'       => 'nullable|image|max:2048',
+            'name'         => 'required|string|max:255',
+            'category_id'  => 'required|exists:categories,id',
+            'brand_id'     => 'required|exists:brands,id',
+            'description'  => 'required|string',
+            'thumbnail'    => 'nullable|image|max:2048',
+            'status'       => 'boolean',
+            'images.*'     => 'nullable|image|max:2048',
+            'product_type' => 'required|in:quantity,imei/serial',
+            'variants'     => 'required|array|min:1',
+            'variants.*.color'   => 'required|string|max:100',
+            'variants.*.storage' => 'nullable|string|max:100',
+            'variants.*.stock_quantity'   => 'nullable|integer|min:0',
+            'variants.*.additional_price' => 'nullable|numeric|min:0',
         ]);
 
-        $validated['slug'] = Str::slug($request->name);
-        $validated['status'] = $request->boolean('status', true);
+        $validated['slug']           = Str::slug($request->name);
+        $validated['status']         = $request->boolean('status', true);
+        $validated['price']          = 0;
+        $validated['stock_quantity'] = 0;
 
         if ($request->hasFile('thumbnail')) {
             $validated['thumbnail'] = $request->file('thumbnail')->store('products/thumbnails', 'public');
@@ -57,23 +66,19 @@ class ProductController extends Controller
             }
         }
 
-        // Tạo variants nếu có
-        if ($request->has('variants')) {
-            foreach ($request->variants as $variant) {
-                if (!empty($variant['color']) || !empty($variant['storage'])) {
-                    ProductVariant::create([
-                        'product_id'       => $product->id,
-                        'color'            => $variant['color'] ?? null,
-                        'storage'          => $variant['storage'] ?? null,
-                        'stock_quantity'   => $variant['stock_quantity'] ?? 0,
-                        'additional_price' => $variant['additional_price'] ?? 0,
-                        'status'           => true,
-                    ]);
-                }
-            }
+        foreach ($request->variants as $variant) {
+            ProductVariant::create([
+                'product_id'       => $product->id,
+                'color'            => $variant['color'],
+                'storage'          => $variant['storage'] ?? '',
+                'stock_quantity'   => $variant['stock_quantity'] ?? 0,
+                'additional_price' => $variant['additional_price'] ?? 0,
+                'status'           => true,
+            ]);
         }
 
-        return redirect()->route('admin.products.index')->with('success', 'Thêm sản phẩm thành công!');
+        return redirect()->route('admin.products.show', $product)
+            ->with('success', 'Thêm sản phẩm thành công!');
     }
 
     public function show(Product $product)
@@ -93,18 +98,17 @@ class ProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $validated = $request->validate([
-            'name'           => 'required|string|max:255',
-            'category_id'    => 'required|exists:categories,id',
-            'brand_id'       => 'required|exists:brands,id',
-            'description'    => 'required|string',
-            'price'          => 'required|numeric|min:0',
-            'stock_quantity' => 'required|integer|min:0',
-            'thumbnail'      => 'nullable|image|max:2048',
-            'status'         => 'boolean',
-            'images.*'       => 'nullable|image|max:2048',
+            'name'         => 'required|string|max:255',
+            'category_id'  => 'required|exists:categories,id',
+            'brand_id'     => 'required|exists:brands,id',
+            'description'  => 'required|string',
+            'thumbnail'    => 'nullable|image|max:2048',
+            'status'       => 'boolean',
+            'images.*'     => 'nullable|image|max:2048',
+            'product_type' => 'required|in:quantity,imei/serial',
         ]);
 
-        $validated['slug'] = Str::slug($request->name);
+        $validated['slug']   = Str::slug($request->name);
         $validated['status'] = $request->boolean('status', true);
 
         if ($request->hasFile('thumbnail')) {
@@ -123,7 +127,8 @@ class ProductController extends Controller
             }
         }
 
-        return redirect()->route('admin.products.index')->with('success', 'Cập nhật sản phẩm thành công!');
+        return redirect()->route('admin.products.show', $product)
+            ->with('success', 'Cập nhật sản phẩm thành công!');
     }
 
     public function destroy(Product $product)
@@ -136,7 +141,8 @@ class ProductController extends Controller
         }
         $product->delete();
 
-        return redirect()->route('admin.products.index')->with('success', 'Xóa sản phẩm thành công!');
+        return redirect()->route('admin.products.index')
+            ->with('success', 'Xóa sản phẩm thành công!');
     }
 
     public function destroyImage(ProductImage $image)
@@ -144,5 +150,31 @@ class ProductController extends Controller
         Storage::disk('public')->delete($image->image_path);
         $image->delete();
         return back()->with('success', 'Đã xóa ảnh.');
+    }
+
+    public function showVariant(ProductVariant $variant)
+    {
+        $variant->load(['product.category', 'product.brand']);
+        return view('admin.products.variant-show', compact('variant'));
+    }
+
+    public function updateVariant(Request $request, ProductVariant $variant)
+    {
+        $validated = $request->validate([
+            'color'            => 'required|string|max:100',
+            'storage'          => 'required|string|max:100',
+            'stock_quantity'   => 'nullable|integer|min:0',
+            'additional_price' => 'nullable|numeric|min:0',
+            'status'           => 'boolean',
+        ]);
+
+        $validated['status']         = $request->boolean('status', false);
+        $validated['stock_quantity'] = $validated['stock_quantity'] ?? 0;
+        $validated['additional_price'] = $validated['additional_price'] ?? 0;
+
+        $variant->update($validated);
+
+        return redirect()->route('admin.products.show', $variant->product_id)
+            ->with('success', 'Cập nhật biến thể thành công!');
     }
 }
