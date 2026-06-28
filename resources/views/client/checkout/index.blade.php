@@ -1,5 +1,41 @@
 @extends('layouts.app')
 
+@section('content')
+<div class="container">
+    <h2>Checkout</h2>
+
+    <form method="post" action="{{ route('checkout.process') }}">
+        @csrf
+        <div class="form-group">
+            <label>Tên</label>
+            <input name="customer_name" class="form-control" value="{{ old('customer_name', auth()->user()->name ?? '') }}">
+        </div>
+        <div class="form-group">
+            <label>Điện thoại</label>
+            <input name="customer_phone" class="form-control" value="{{ old('customer_phone', auth()->user()->phone ?? '') }}">
+        </div>
+        <div class="form-group">
+            <label>Địa chỉ</label>
+            <textarea name="shipping_address" class="form-control">{{ old('shipping_address', auth()->user()->address ?? '') }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Phương thức thanh toán</label>
+            <select name="payment_method" class="form-control">
+                <option value="cod">COD</option>
+                <option value="card">Thẻ (giả lập)</option>
+                <option value="bank_transfer">Chuyển khoản</option>
+                <option value="momo">Momo (giả lập)</option>
+                <option value="vnpay">VNPAY (giả lập)</option>
+            </select>
+        </div>
+
+        <button class="btn btn-primary">Thanh toán</button>
+    </form>
+</div>
+@endsection
+@extends('layouts.app')
+
 @section('title', 'Thanh toán')
 
 @section('header')
