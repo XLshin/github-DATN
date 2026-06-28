@@ -28,7 +28,7 @@ class CheckoutController extends Controller
             'customer_name' => ['required', 'string', 'max:255'],
             'customer_phone' => ['required', 'string', 'max:20'],
             'shipping_address' => ['required', 'string', 'max:500'],
-            'payment_method' => ['required', 'string', 'in:cod'],
+            'payment_method' => ['required', 'string', 'in:cod,card,bank_transfer,momo,vnpay'],
         ]);
 
         if ($this->cartService->isEmpty(auth()->user())) {
@@ -36,6 +36,11 @@ class CheckoutController extends Controller
         }
 
         $order = $this->checkoutService->process(auth()->user(), $validated);
+
+        // For simulated gateways, show a gateway page for redirection
+        if (in_array($validated['payment_method'], ['card', 'momo', 'vnpay'])) {
+            return view('client.checkout.gateway', ['order' => $order, 'method' => $validated['payment_method']]);
+        }
 
         return redirect()->route('checkout.success', $order->id);
     }
