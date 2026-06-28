@@ -18,16 +18,11 @@ return new class extends Migration
                 ->constrained()
                 ->cascadeOnDelete();
 
-            $table->string('shipping_unit');
+            $table->string('shipping_unit')->nullable();
 
             $table->string('tracking_code')->nullable();
 
-            $table->enum('shipping_status', [
-                'pending',
-                'shipping',
-                'delivered',
-                'failed'
-            ])->default('pending');
+            $table->string('shipping_status', 20)->default('pending');
 
             $table->timestamp('shipped_at')->nullable();
 

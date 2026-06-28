@@ -7,6 +7,8 @@ use App\Models\OrderItem;
 use App\Models\Imei;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Services\InventoryService;
+use Illuminate\Support\Facades\Log;
 
 class ImeiReservationService
 {
@@ -15,26 +17,45 @@ class ImeiReservationService
      */
     public function reserve(Order $order): bool
     {
-        return DB::transaction(function () use ($order) {
+        $inventory = app(InventoryService::class);
+
+        return DB::transaction(function () use ($order, $inventory) {
             foreach ($order->items as $item) {
                 $qty = $item->quantity;
 
-                $imeis = Imei::where('product_variant_id', $item->product_variant_id)
-                    ->where('status', 'available')
-                    ->lockForUpdate()
-                    ->limit($qty)
-                    ->get();
+                if ($item->product_variant_id) {
+                    // reserve variant
+                    $reserved = $inventory->reserveVariant($item->product_variant_id, $qty, 'order_item', $item->id, $order->user_id ?? null);
+                    if (! $reserved) {
+                        Log::warning('Inventory reserve failed for variant', ['variant_id' => $item->product_variant_id, 'qty' => $qty, 'order_item' => $item->id]);
+                        return false;
+                    }
 
-                if ($imeis->count() < $qty) {
-                    // Not enough IMEIs, rollback
-                    return false;
-                }
+                    $imeis = Imei::where('product_variant_id', $item->product_variant_id)
+                        ->where('status', 'available')
+                        ->lockForUpdate()
+                        ->limit($qty)
+                        ->get();
 
-                foreach ($imeis as $imei) {
-                    $imei->status = 'reserved';
-                    $imei->reserved_at = Carbon::now();
-                    $imei->reserved_by_order_item_id = $item->id;
-                    $imei->save();
+                    if ($imeis->count() < $qty) {
+                        Log::warning('Not enough IMEIs', ['variant_id' => $item->product_variant_id, 'requested' => $qty, 'found' => $imeis->count(), 'order_item' => $item->id]);
+                        $inventory->releaseVariant($item->product_variant_id, $qty, 'order_item', $item->id, $order->user_id ?? null);
+                        return false;
+                    }
+
+                    foreach ($imeis as $imei) {
+                        $imei->status = 'reserved';
+                        $imei->reserved_at = Carbon::now();
+                        $imei->reserved_by_order_item_id = $item->id;
+                        $imei->save();
+                    }
+                } else {
+                    // reserve at product level
+                    $reserved = $inventory->reserveProduct($item->product_id, $qty, 'order_item', $item->id, $order->user_id ?? null);
+                    if (! $reserved) {
+                        Log::warning('Inventory reserve failed for product', ['product_id' => $item->product_id, 'qty' => $qty, 'order_item' => $item->id]);
+                        return false;
+                    }
                 }
             }
 
@@ -47,7 +68,9 @@ class ImeiReservationService
      */
     public function finalize(Order $order): void
     {
-        DB::transaction(function () use ($order) {
+        $inventory = app(InventoryService::class);
+
+        DB::transaction(function () use ($order, $inventory) {
             foreach ($order->items as $item) {
                 $reservedImeis = Imei::where('reserved_by_order_item_id', $item->id)
                     ->where('status', 'reserved')
@@ -66,6 +89,12 @@ class ImeiReservationService
                         $item->save();
                     }
                 }
+
+                if ($item->product_variant_id) {
+                    $inventory->commitVariant($item->product_variant_id, $item->quantity, 'order_item', $item->id, $order->user_id ?? null);
+                } else {
+                    $inventory->commitProduct($item->product_id, $item->quantity, 'order_item', $item->id, $order->user_id ?? null);
+                }
             }
         });
     }
@@ -75,8 +104,12 @@ class ImeiReservationService
      */
     public function release(Order $order): void
     {
-        DB::transaction(function () use ($order) {
+        $inventory = app(InventoryService::class);
+
+        DB::transaction(function () use ($order, $inventory) {
             foreach ($order->items as $item) {
+                $qty = $item->quantity;
+
                 Imei::where('reserved_by_order_item_id', $item->id)
                     ->where('status', 'reserved')
                     ->lockForUpdate()
@@ -87,6 +120,13 @@ class ImeiReservationService
                         $imei->reserved_at = null;
                         $imei->save();
                     });
+
+                // release reserved quantity
+                if ($item->product_variant_id) {
+                    $inventory->releaseVariant($item->product_variant_id, $qty, 'order_item', $item->id, $order->user_id ?? null);
+                } else {
+                    $inventory->releaseProduct($item->product_id, $qty, 'order_item', $item->id, $order->user_id ?? null);
+                }
             }
         });
     }

@@ -15,17 +15,13 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('product_variant_id')
+                ->nullable()
                 ->constrained()
-                ->cascadeOnDelete();
+                ->nullOnDelete();
 
             $table->integer('quantity');
 
-            $table->enum('type', [
-                'import',
-                'export',
-                'return',
-                'adjustment'
-            ]);
+            $table->string('type', 50);
 
             $table->text('note')->nullable();
 

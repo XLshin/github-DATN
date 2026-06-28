@@ -20,12 +20,7 @@ return new class extends Migration
 
             $table->string('imei', 20)->unique();
 
-            $table->enum('status', [
-                'available',
-                'sold',
-                'warranty',
-                'returned'
-            ])->default('available');
+            $table->string('status', 20)->default('available');
 
             $table->timestamps();
         });

@@ -10,47 +10,41 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-{
-    Schema::create('orders', function (Blueprint $table) {
+    {
+        Schema::create('orders', function (Blueprint $table) {
 
-        $table->id();
+            $table->id();
 
-        $table->foreignId('user_id')
-              ->constrained()
-              ->cascadeOnDelete();
+            $table->foreignId('user_id')
+                ->constrained()
+                ->cascadeOnDelete();
 
-        $table->string('order_code')
-              ->unique();
+            $table->string('order_code')
+                ->unique();
 
-        $table->string('customer_name');
+            $table->string('customer_name');
 
-        $table->string('customer_phone');
+            $table->string('customer_phone');
 
-        $table->text('shipping_address');
+            $table->text('shipping_address');
 
-        $table->decimal('subtotal', 15, 2)
-              ->default(0);
+            $table->decimal('subtotal', 15, 2)
+                ->default(0);
 
-        $table->decimal('membership_discount', 15, 2)
-              ->default(0);
+            $table->decimal('membership_discount', 15, 2)
+                ->default(0);
 
-        $table->decimal('coupon_discount', 15, 2)
-              ->default(0);
+            $table->decimal('coupon_discount', 15, 2)
+                ->default(0);
 
-        $table->decimal('total_amount', 15, 2)
-              ->default(0);
+            $table->decimal('total_amount', 15, 2)
+                ->default(0);
 
-        $table->enum('status', [
-            'pending',
-            'processing',
-            'shipping',
-            'completed',
-            'cancelled'
-        ])->default('pending');
+            $table->string('status', 20)->default('pending');
 
-        $table->timestamps();
-    });
-}
+            $table->timestamps();
+        });
+    }
 
     /**
      * Reverse the migrations.

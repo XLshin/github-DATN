@@ -20,17 +20,22 @@ class DatabaseSeeder extends Seeder
             CouponSeeder::class,
             BannerSeeder::class,
 
+            CarrierSeeder::class,
+
             ImeiSeeder::class,
 
-            OrderSeeder::class,
-            ReviewSeeder::class,
-            PointHistorySeeder::class,
-
-            // Bảo hành cần order + imei trước
-            OrderSeeder::class,
-
-            // Nếu có seeder bảo hành thì để sau OrderSeeder
-            WarrantyTestSeeder::class,
+            // Skip OrderSeeder in testing to avoid sqlite migration/seed edge-cases
+            // OrderSeeder prepares sample orders and may run complex SQL incompatible with sqlite.
         ]);
+
+        if (! app()->environment('testing')) {
+            $this->call([
+                OrderSeeder::class,
+                ReviewSeeder::class,
+                PointHistorySeeder::class,
+                // Warranty depends on orders & imeis
+                WarrantyTestSeeder::class,
+            ]);
+        }
     }
 }

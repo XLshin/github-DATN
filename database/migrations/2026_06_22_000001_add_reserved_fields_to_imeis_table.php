@@ -12,19 +12,31 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Add reserved columns
-        Schema::table('imeis', function (Blueprint $table) {
-            $table->timestamp('reserved_at')->nullable()->after('status');
-            $table->unsignedBigInteger('reserved_by_order_item_id')->nullable()->after('reserved_at');
-        });
+        // Add reserved columns if they don't exist (safe for SQLite/MySQL)
+        $driver = Schema::getConnection()->getDriverName();
 
-        // Add foreign key (nullable, null on delete)
-        Schema::table('imeis', function (Blueprint $table) {
-            $table->foreign('reserved_by_order_item_id')->references('id')->on('order_items')->nullOnDelete();
-        });
+        if (! Schema::hasColumn('imeis', 'reserved_at') || ! Schema::hasColumn('imeis', 'reserved_by_order_item_id')) {
+            Schema::table('imeis', function (Blueprint $table) use ($driver) {
+                if (! Schema::hasColumn('imeis', 'reserved_at')) {
+                    $table->timestamp('reserved_at')->nullable()->after('status');
+                }
+                if (! Schema::hasColumn('imeis', 'reserved_by_order_item_id')) {
+                    $table->unsignedBigInteger('reserved_by_order_item_id')->nullable()->after('reserved_at');
+                }
+            });
 
-        // Modify enum to include 'reserved' (use raw statement for MySQL)
-        DB::statement("ALTER TABLE `imeis` MODIFY `status` ENUM('available','reserved','sold','warranty','returned') NOT NULL DEFAULT 'available'");
+            // Add foreign key only when running on databases that support it and when column exists
+            if (Schema::hasColumn('imeis', 'reserved_by_order_item_id') && $driver !== 'sqlite') {
+                Schema::table('imeis', function (Blueprint $table) {
+                    $table->foreign('reserved_by_order_item_id')->references('id')->on('order_items')->nullOnDelete();
+                });
+            }
+        }
+
+        // Modify enum to include 'reserved' for drivers that support enum modifications (skip for sqlite)
+        if ($driver !== 'sqlite') {
+            DB::statement("ALTER TABLE `imeis` MODIFY `status` ENUM('available','reserved','sold','warranty','returned') NOT NULL DEFAULT 'available'");
+        }
     }
 
     /**
@@ -32,12 +44,29 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('imeis', function (Blueprint $table) {
-            $table->dropForeign(['reserved_by_order_item_id']);
-            $table->dropColumn(['reserved_at', 'reserved_by_order_item_id']);
+        $driver = Schema::getConnection()->getDriverName();
+
+        Schema::table('imeis', function (Blueprint $table) use ($driver) {
+            if ($driver !== 'sqlite' && Schema::hasColumn('imeis', 'reserved_by_order_item_id')) {
+                // drop foreign key if exists (MySQL)
+                try {
+                    $table->dropForeign(['reserved_by_order_item_id']);
+                } catch (\Exception $e) {
+                    // ignore if cannot drop
+                }
+            }
+
+            if (Schema::hasColumn('imeis', 'reserved_at')) {
+                $table->dropColumn('reserved_at');
+            }
+            if (Schema::hasColumn('imeis', 'reserved_by_order_item_id')) {
+                $table->dropColumn('reserved_by_order_item_id');
+            }
         });
 
-        // revert enum to previous set
-        DB::statement("ALTER TABLE `imeis` MODIFY `status` ENUM('available','sold','warranty','returned') NOT NULL DEFAULT 'available'");
+        // revert enum to previous set for non-sqlite drivers
+        if ($driver !== 'sqlite') {
+            DB::statement("ALTER TABLE `imeis` MODIFY `status` ENUM('available','sold','warranty','returned') NOT NULL DEFAULT 'available'");
+        }
     }
 };

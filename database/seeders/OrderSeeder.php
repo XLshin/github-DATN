@@ -29,7 +29,7 @@ class OrderSeeder extends Seeder
                     'total_spent' => 0,
                     'membership_level' => 'bronze',
                     'updated_at' => $now,
-                    'created_at' => DB::raw('COALESCE(created_at, NOW())'),
+                    'created_at' => $now,
                 ]
             );
 
@@ -93,7 +93,7 @@ class OrderSeeder extends Seeder
                     'total_amount' => $totalAmount,
                     'status' => 'processing',
                     'updated_at' => $now,
-                    'created_at' => DB::raw('COALESCE(created_at, NOW())'),
+                    'created_at' => $now,
                 ]
             );
 

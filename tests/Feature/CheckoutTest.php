@@ -16,7 +16,7 @@ class CheckoutTest extends TestCase
     public function test_authenticated_user_can_checkout_with_db_cart(): void
     {
         $user = User::factory()->create(['role' => 'customer']);
-        $product = Product::factory()->create(['price' => 1000000]);
+        $product = Product::factory()->create(['price' => 1000000, 'stock_quantity' => 10]);
 
         app(CartService::class)->addItem($user, $product, 2);
 

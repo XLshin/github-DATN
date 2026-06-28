@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
 
 class CheckoutService
 {
@@ -28,6 +29,7 @@ class CheckoutService
         }
 
         return DB::transaction(function () use ($user, $data, $items) {
+            Log::info('CheckoutService.process starting', ['user_id' => $user->id, 'items' => $items->map(fn($i) => ['product_id' => $i->product_id, 'variant' => $i->product_variant_id, 'qty' => $i->quantity])->toArray()]);
             $subtotal = $this->cartService->calculateTotal($items);
 
             $order = Order::query()->create([
@@ -65,8 +67,12 @@ class CheckoutService
                 'paid_at' => null,
             ]);
 
+            Log::info('CheckoutService created order, attempting IMEI reservation', ['order_id' => $order->id]);
+
             // Reserve IMEIs for order items; rollback if not enough stock
             $reserved = $this->imeiReservationService->reserve($order);
+
+            Log::info('ImeiReservationService.reserve returned', ['order_id' => $order->id, 'reserved' => $reserved]);
 
             if (! $reserved) {
                 throw ValidationException::withMessages([
