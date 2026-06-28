@@ -36,6 +36,7 @@ Route::get('/products/{product}', [ProductController::class, 'show'])->name('pro
 Route::middleware('auth')->group(function () {
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+    Route::post('/cart/update', [CartController::class, 'update'])->name('cart.update');
     Route::post('/cart/remove', [CartController::class, 'remove'])->name('cart.remove');
 });
 
@@ -122,7 +123,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::resource('imeis', ImeiController::class);
         Route::resource('shipments', ShipmentController::class)->only(['index', 'show', 'create', 'store']);
         Route::resource('inventory', InventoryController::class);
-        Route::get('/stocks', [InventoryController::class, 'stock'])->name('stocks');
+        Route::get('/stocks', [ImeiController::class, 'stock'])->name('stocks');
+        Route::get('/stocks/accessories', [ImeiController::class, 'accessoryStock'])->name('stocks.accessories');
     });
 
     Route::prefix('admin')->group(function () {
