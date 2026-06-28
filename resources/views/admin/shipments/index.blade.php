@@ -14,12 +14,22 @@
 </div>
 @endif
 
+@if ($errors->any())
+<div class="alert alert-danger">
+    <ul class="mb-0">
+        @foreach ($errors->all() as $error)
+            <li>{{ $error }}</li>
+        @endforeach
+    </ul>
+</div>
+@endif
+
 <section class="panel mb-4">
     <div class="panel-header">
         <div>
-            <h5 class="mb-1">Đơn hàng có thể tạo vận đơn</h5>
+            <h5 class="mb-1">Đơn hàng có thể tạo hoặc tái tạo vận đơn</h5>
             <div class="text-muted small">
-                Danh sách đơn hàng đang chờ tạo vận đơn.
+                Danh sách đơn hàng đang chờ tạo vận đơn hoặc returned với vận đơn thất bại.
             </div>
         </div>
     </div>
@@ -82,7 +92,7 @@
 
 <section class="panel">
     <div class="panel-header">
-        <form method="GET" action="{{ route('admin.shipments.index') }}" class="row g-2 flex-grow-1">
+        <form method="GET" action="{{ route('admin.shipments.index') }}" class="row g-2 grow">
 
             <div class="col-md-6">
                 <input
@@ -173,21 +183,56 @@
                                 Chi tiết
                             </a>
 
-                            <form method="POST" action="{{ route('admin.shipments.updateStatus', $shipment) }}" class="d-flex gap-2">
-                                @csrf
-                                @method('PATCH')
-
-                                <select name="shipping_status" class="form-select form-select-sm">
-                                    <option value="pending" @selected($shipment->shipping_status === 'pending')>Chờ giao</option>
-                                    <option value="shipping" @selected($shipment->shipping_status === 'shipping')>Đang giao</option>
-                                    <option value="delivered" @selected($shipment->shipping_status === 'delivered')>Đã giao</option>
-                                    <option value="failed" @selected($shipment->shipping_status === 'failed')>Giao thất bại</option>
-                                </select>
-
-                                <button type="submit" class="btn btn-outline-primary btn-sm">
+                            @if(in_array($shipment->shipping_status, ['delivered', 'failed']))
+                                <span class="badge text-bg-light text-truncate" title="Trạng thái cuối không thể cập nhật">
+                                    Trạng thái cuối
+                                </span>
+                            @else
+                                <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#updateStatusModal{{ $shipment->id }}">
                                     Cập nhật
                                 </button>
-                            </form>
+                                
+                                <!-- Modal Update Status -->
+                                <div class="modal fade" id="updateStatusModal{{ $shipment->id }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <form method="POST" action="{{ route('admin.shipments.updateStatus', $shipment) }}" enctype="multipart/form-data">
+                                            @csrf
+                                            @method('PATCH')
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Cập nhật trạng thái giao hàng</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="mb-3">
+                                                        <label class="form-label">Trạng thái</label>
+                                                        <select name="shipping_status" class="form-select status-select" data-shipment-id="{{ $shipment->id }}">
+                                                            <option value="pending" @selected($shipment->shipping_status === 'pending')>Chờ giao</option>
+                                                            <option value="shipping" @selected($shipment->shipping_status === 'shipping')>Đang giao</option>
+                                                            <option value="delivered" @selected($shipment->shipping_status === 'delivered')>Đã giao</option>
+                                                            <option value="failed" @selected($shipment->shipping_status === 'failed')>Giao thất bại</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="mb-3 shipped-image-group-{{ $shipment->id }} d-none">
+                                                        <label class="form-label">Hình ảnh xuất kho <span class="text-danger">*</span></label>
+                                                        <input type="file" name="shipped_image" accept="image/*" class="form-control" required>
+                                                        <small class="text-muted">Yêu cầu: Định dạng JPEG, PNG, GIF (tối đa 5MB)</small>
+                                                    </div>
+                                                    <div class="mb-3 delivered-image-group-{{ $shipment->id }} d-none">
+                                                        <label class="form-label">Hình ảnh giao hàng thành công <span class="text-danger">*</span></label>
+                                                        <input type="file" name="delivered_image" accept="image/*" class="form-control" required>
+                                                        <small class="text-muted">Yêu cầu: Định dạng JPEG, PNG, GIF (tối đa 5MB)</small>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                                    <button type="submit" class="btn btn-primary">Cập nhật</button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </td>
                 </tr>
@@ -208,5 +253,29 @@
     </div>
     @endif
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.status-select').forEach(select => {
+        select.addEventListener('change', function() {
+            const shipmentId = this.dataset.shipmentId;
+            const status = this.value;
+            
+            const shippedGroup = document.querySelector('.shipped-image-group-' + shipmentId);
+            const deliveredGroup = document.querySelector('.delivered-image-group-' + shipmentId);
+            
+            if (shippedGroup) {
+                shippedGroup.classList.toggle('d-none', status !== 'shipping');
+                shippedGroup.querySelector('input').required = status === 'shipping';
+            }
+            
+            if (deliveredGroup) {
+                deliveredGroup.classList.toggle('d-none', status !== 'delivered');
+                deliveredGroup.querySelector('input').required = status === 'delivered';
+            }
+        });
+    });
+});
+</script>
 
 @endsection
