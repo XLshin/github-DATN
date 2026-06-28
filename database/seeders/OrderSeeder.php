@@ -18,20 +18,24 @@ class OrderSeeder extends Seeder
             | 1. Tạo customer test nếu chưa có
             |--------------------------------------------------------------------------
             */
-            DB::table('users')->updateOrInsert(
-                ['email' => 'customer.test@gmail.com'],
-                [
-                    'name' => 'Khách hàng test',
-                    'phone' => '0987654321',
-                    'address' => 'Số 1 Cầu Giấy, Hà Nội',
-                    'password' => Hash::make('12345678'),
-                    'role' => 'customer',
-                    'total_spent' => 0,
-                    'membership_level' => 'bronze',
-                    'updated_at' => $now,
-                    'created_at' => DB::raw('COALESCE(created_at, NOW())'),
-                ]
-            );
+            $userData = [
+                'name' => 'Khách hàng test',
+                'phone' => '0987654321',
+                'address' => 'Số 1 Cầu Giấy, Hà Nội',
+                'password' => Hash::make('12345678'),
+                'role' => 'customer',
+                'total_spent' => 0,
+                'membership_level' => 'bronze',
+                'updated_at' => $now,
+            ];
+
+            if (DB::table('users')->where('email', 'customer.test@gmail.com')->exists()) {
+                DB::table('users')->where('email', 'customer.test@gmail.com')->update($userData);
+            } else {
+                $userData['email'] = 'customer.test@gmail.com';
+                $userData['created_at'] = $now;
+                DB::table('users')->insert($userData);
+            }
 
             $user = DB::table('users')
                 ->where('email', 'customer.test@gmail.com')
@@ -80,22 +84,26 @@ class OrderSeeder extends Seeder
             | 4. Tạo hoặc cập nhật đơn hàng test
             |--------------------------------------------------------------------------
             */
-            DB::table('orders')->updateOrInsert(
-                ['order_code' => 'ORD_TEST_SHIPMENT_001'],
-                [
-                    'user_id' => $user->id,
-                    'customer_name' => 'Khách hàng test',
-                    'customer_phone' => '0987654321',
-                    'shipping_address' => 'Số 1 Cầu Giấy, Hà Nội',
-                    'subtotal' => $subtotal,
-                    'membership_discount' => $membershipDiscount,
-                    'coupon_discount' => $couponDiscount,
-                    'total_amount' => $totalAmount,
-                    'status' => 'processing',
-                    'updated_at' => $now,
-                    'created_at' => DB::raw('COALESCE(created_at, NOW())'),
-                ]
-            );
+            $orderData = [
+                'user_id' => $user->id,
+                'customer_name' => 'Khách hàng test',
+                'customer_phone' => '0987654321',
+                'shipping_address' => 'Số 1 Cầu Giấy, Hà Nội',
+                'subtotal' => $subtotal,
+                'membership_discount' => $membershipDiscount,
+                'coupon_discount' => $couponDiscount,
+                'total_amount' => $totalAmount,
+                'status' => 'processing',
+                'updated_at' => $now,
+            ];
+
+            if (DB::table('orders')->where('order_code', 'ORD_TEST_SHIPMENT_001')->exists()) {
+                DB::table('orders')->where('order_code', 'ORD_TEST_SHIPMENT_001')->update($orderData);
+            } else {
+                $orderData['order_code'] = 'ORD_TEST_SHIPMENT_001';
+                $orderData['created_at'] = $now;
+                DB::table('orders')->insert($orderData);
+            }
 
             $order = DB::table('orders')
                 ->where('order_code', 'ORD_TEST_SHIPMENT_001')
