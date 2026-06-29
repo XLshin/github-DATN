@@ -57,6 +57,7 @@
                             </td>
                             <td class="text-end">
                                 <div class="d-flex justify-content-end gap-2">
+                                    <a href="{{ route('coupons.assign-users-edit', $coupon) }}" class="btn btn-info btn-sm">Gán user</a>
                                     <a href="{{ route('coupons.edit', $coupon) }}" class="btn btn-light btn-sm">Sửa</a>
                                     <form action="{{ route('coupons.destroy', $coupon) }}" method="POST" onsubmit="return confirm('Xóa voucher này?')">
                                         @csrf

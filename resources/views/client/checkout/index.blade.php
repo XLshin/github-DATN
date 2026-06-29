@@ -30,9 +30,24 @@
                                 <textarea name="shipping_address" class="form-control" rows="3" required>{{ old('shipping_address', auth()->user()->address ?? '') }}</textarea>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Mã voucher</label>
-                                <input type="text" name="coupon_code" class="form-control" value="{{ old('coupon_code') }}" placeholder="Nhập mã voucher nếu có">
-                                @error('coupon_code')
+                                <label class="form-label">Voucher</label>
+                                <select name="coupon_id" class="form-select">
+                                    <option value="">-- Không chọn voucher --</option>
+                                    @forelse($availableCoupons ?? [] as $coupon)
+                                        <option value="{{ $coupon->id }}" {{ old('coupon_id') == $coupon->id ? 'selected' : '' }}>
+                                            {{ $coupon->code }} -
+                                            @if($coupon->discount_type === 'percent')
+                                                {{ $coupon->discount_value }}%
+                                            @else
+                                                {{ number_format($coupon->discount_value, 0, ',', '.') }} đ
+                                            @endif
+                                            (Tối thiểu: {{ number_format($coupon->min_order_amount, 0, ',', '.') }} đ)
+                                        </option>
+                                    @empty
+                                        <option value="" disabled>Không có voucher nào</option>
+                                    @endforelse
+                                </select>
+                                @error('coupon_id')
                                     <div class="text-danger small mt-1">{{ $message }}</div>
                                 @enderror
                             </div>
@@ -102,7 +117,7 @@
     @push('scripts')
     <script>
     (function(){
-        const couponInput = document.querySelector('input[name="coupon_code"]');
+        const couponSelect = document.querySelector('select[name="coupon_id"]');
         const pointsInput = document.querySelector('input[name="points_to_use"]');
         const couponRow = document.getElementById('coupon-row');
         const pointsRow = document.getElementById('points-row');
@@ -120,7 +135,7 @@
             const tokenMeta = document.querySelector('meta[name="csrf-token"]');
             const token = tokenMeta ? tokenMeta.getAttribute('content') : null;
             const payload = new URLSearchParams();
-            payload.append('coupon_code', couponInput ? couponInput.value : '');
+            payload.append('coupon_id', couponSelect ? couponSelect.value : '');
             payload.append('points_to_use', pointsInput ? pointsInput.value : 0);
 
             fetch('{{ route('checkout.preview') }}', {
@@ -135,7 +150,7 @@
                 const data = await r.json();
 
                 if (!r.ok) {
-                    showPreviewError(data?.errors?.coupon_code?.[0] || data?.message || 'Mã voucher không hợp lệ.');
+                    showPreviewError(data?.errors?.coupon_id?.[0] || data?.message || 'Voucher không hợp lệ.');
                     resetTotals();
                     return;
                 }
@@ -190,7 +205,7 @@
             timer = setTimeout(preview, 350);
         }
 
-        if (couponInput) couponInput.addEventListener('input', schedulePreview);
+        if (couponSelect) couponSelect.addEventListener('change', schedulePreview);
         if (pointsInput) pointsInput.addEventListener('input', schedulePreview);
 
         schedulePreview();

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CouponController;
+use App\Http\Controllers\Admin\CouponUserController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ImeiController;
 use App\Http\Controllers\Admin\InventoryController;
@@ -159,6 +160,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::resource('categories', CategoryController::class);
         Route::resource('brands', BrandController::class);
         Route::resource('coupons', CouponController::class);
+        Route::get('coupons/{coupon}/assign-users', [CouponUserController::class, 'edit'])->name('coupons.assign-users-edit');
+        Route::patch('coupons/{coupon}/assign-users', [CouponUserController::class, 'update'])->name('coupons.assign-users-update');
 
         Route::get('points', [AdminPointController::class, 'index'])->name('admin.points.index');
         Route::get('points/{user}', [AdminPointController::class, 'show'])->name('admin.points.show');

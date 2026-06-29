@@ -17,14 +17,18 @@ class ReviewController extends Controller
             'comment' => 'nullable|max:1000',
         ]);
 
-        // Ensure the authenticated user has purchased this product before allowing review
-        $bought = OrderItem::where('product_id', $product->id)
+        // Ensure the authenticated user has purchased this product and the order is completed before allowing review
+        $canReview = OrderItem::where('product_id', $product->id)
             ->whereHas('order', function ($q) {
-                $q->where('user_id', Auth::id());
+                $q->where('user_id', Auth::id())
+                    ->where(function ($subQuery) {
+                        $subQuery->where('status', 'completed')
+                            ->orWhere('fulfillment_status', 'completed');
+                    });
             })->exists();
 
-        if (! $bought) {
-            return back()->withErrors(['review' => 'Chỉ khách đã mua sản phẩm mới được đánh giá.']);
+        if (! $canReview) {
+            return back()->withErrors(['review' => 'Chỉ khách hàng đã mua sản phẩm và đơn hàng đã hoàn thành mới được đánh giá.']);
         }
 
         Review::create([
