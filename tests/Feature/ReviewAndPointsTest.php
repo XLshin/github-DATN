@@ -57,4 +57,48 @@ class ReviewAndPointsTest extends TestCase
             'product_id' => $product->id,
         ]);
     }
+
+    public function test_only_users_with_completed_orders_can_submit_review(): void
+    {
+        $user = User::factory()->create(['role' => 'customer']);
+        $product = Product::factory()->create();
+        $order = Order::create([
+            'user_id' => $user->id,
+            'order_code' => 'ORDTEST1',
+            'customer_name' => 'Test User',
+            'customer_phone' => '0912345678',
+            'shipping_address' => 'Test Address',
+            'subtotal' => 100000,
+            'membership_discount' => 0,
+            'coupon_discount' => 0,
+            'points_used' => 0,
+            'points_discount' => 0,
+            'coupon_id' => null,
+            'coupon_code' => null,
+            'total_amount' => 100000,
+            'status' => 'pending',
+            'fulfillment_status' => 'pending',
+        ]);
+
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'product_variant_id' => null,
+            'price' => 100000,
+            'quantity' => 1,
+            'total' => 100000,
+            'imei_id' => null,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('reviews.store', $product), [
+            'rating' => 5,
+            'comment' => 'Great product',
+        ]);
+
+        $response->assertSessionHasErrors(['review']);
+        $this->assertDatabaseMissing('reviews', [
+            'user_id' => $user->id,
+            'product_id' => $product->id,
+        ]);
+    }
 }
