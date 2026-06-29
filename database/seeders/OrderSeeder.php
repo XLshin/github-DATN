@@ -94,6 +94,13 @@ class OrderSeeder extends Seeder
                 'coupon_discount' => $couponDiscount,
                 'total_amount' => $totalAmount,
                 'status' => 'processing',
+                'fulfillment_status' => 'waiting_pack',
+                'confirmed_at' => $now,
+                'packed_at' => null,
+                'handed_over_at' => null,
+                'delivered_at' => null,
+                'cancelled_at' => null,
+                'shipping_label_printed_at' => null,
                 'updated_at' => $now,
             ];
 
