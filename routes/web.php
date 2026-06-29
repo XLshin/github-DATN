@@ -2,10 +2,12 @@
 
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ImeiController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
+use App\Http\Controllers\Admin\PointController as AdminPointController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Admin\ShipmentController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
@@ -82,6 +84,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
     Route::post('/checkout', [CheckoutController::class, 'process'])->name('checkout.process');
+    Route::post('/checkout/preview', [CheckoutController::class, 'preview'])->name('checkout.preview');
     Route::get('/checkout/success/{order}', [CheckoutController::class, 'success'])->name('checkout.success');
 
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
@@ -128,6 +131,13 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::prefix('admin')->group(function () {
         Route::resource('categories', CategoryController::class);
         Route::resource('brands', BrandController::class);
+        Route::resource('coupons', CouponController::class);
+
+        Route::get('points', [AdminPointController::class, 'index'])->name('admin.points.index');
+        Route::get('points/{user}', [AdminPointController::class, 'show'])->name('admin.points.show');
+        Route::post('points/{user}/add', [AdminPointController::class, 'addPoints'])->name('admin.points.add');
+        Route::post('points/{user}/deduct', [AdminPointController::class, 'deductPoints'])->name('admin.points.deduct');
+        Route::post('points/{user}/reset', [AdminPointController::class, 'reset'])->name('admin.points.reset');
 
         Route::get('reviews', [ReviewController::class, 'index'])->name('reviews.index');
         Route::patch('reviews/{review}/hide', [ReviewController::class, 'hide'])->name('reviews.hide');

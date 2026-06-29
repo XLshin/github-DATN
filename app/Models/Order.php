@@ -23,12 +23,13 @@ class Order extends Model
         'membership_discount',
 
         'coupon_discount',
-
+        'points_used',
+        'points_discount',
+        'coupon_id',
+        'coupon_code',
         'total_amount',
-
         'status'
     ];
-
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -52,6 +53,11 @@ class Order extends Model
     public function payment()
     {
         return $this->hasOne(Payment::class);
+    }
+
+    public function coupon()
+    {
+        return $this->belongsTo(Coupon::class);
     }
 
     /**
