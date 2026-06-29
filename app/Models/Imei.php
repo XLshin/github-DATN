@@ -31,6 +31,11 @@ class Imei extends Model
         return $this->belongsTo(OrderItem::class, 'reserved_by_order_item_id');
     }
 
+    public function orderItem()
+    {
+        return $this->hasOne(OrderItem::class);
+    }
+
     public function assignToOrderItem(OrderItem $item)
     {
         $this->status = 'sold';
