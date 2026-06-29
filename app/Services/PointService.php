@@ -44,11 +44,11 @@ class PointService
 
     /**
      * Calculate points from order amount
-     * Default: 1 point per 1000 VND (0.1%)
+     * New rate: 1 point per 100 VND (1%)
      */
     public function calculatePointsFromOrder(float $orderAmount): int
     {
-        return (int) floor($orderAmount / 1000);
+        return (int) floor($orderAmount / 100);
     }
 
     /**
