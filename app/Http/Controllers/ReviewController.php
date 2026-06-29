@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\Review;
+use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -16,12 +17,22 @@ class ReviewController extends Controller
             'comment' => 'nullable|max:1000',
         ]);
 
+        // Ensure the authenticated user has purchased this product before allowing review
+        $bought = OrderItem::where('product_id', $product->id)
+            ->whereHas('order', function ($q) {
+                $q->where('user_id', Auth::id());
+            })->exists();
+
+        if (! $bought) {
+            return back()->withErrors(['review' => 'Chỉ khách đã mua sản phẩm mới được đánh giá.']);
+        }
+
         Review::create([
-            // 'user_id' => auth()->id(),
             'user_id' => Auth::id(),
             'product_id' => $product->id,
             'rating' => $request->rating,
             'comment' => $request->comment,
+            'status' => true,
         ]);
 
         return back()->with('success', 'Đánh giá thành công!');
