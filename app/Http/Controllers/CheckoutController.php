@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\User;
 use App\Services\CartService;
 use App\Services\CheckoutService;
 use App\Models\Coupon;
@@ -16,9 +17,16 @@ class CheckoutController extends Controller
         private readonly CheckoutService $checkoutService,
     ) {}
 
-    public function show()
+    public function show(Request $request)
     {
-        $items = $this->cartService->getItems(auth()->user());
+        /** @var User $user */
+        $user = $request->user();
+
+        if (! $user) {
+            abort(403);
+        }
+
+        $items = $this->cartService->getItems($user);
         $total = $this->cartService->calculateTotal($items);
 
         return view('client.checkout.index', compact('items', 'total'));
@@ -26,6 +34,13 @@ class CheckoutController extends Controller
 
     public function process(Request $request)
     {
+        /** @var User $user */
+        $user = $request->user();
+
+        if (! $user) {
+            abort(403);
+        }
+
         $validated = $request->validate([
             'customer_name' => ['required', 'string', 'max:255'],
             'customer_phone' => ['required', 'string', 'max:20'],
@@ -35,18 +50,29 @@ class CheckoutController extends Controller
             'points_to_use' => ['nullable', 'integer', 'min:0'],
         ]);
 
-        if ($this->cartService->isEmpty(auth()->user())) {
-            return redirect()->route('cart.index')->with('error', 'Giỏ hàng trống.');
+        if ($this->cartService->isEmpty($user)) {
+            return redirect()
+                ->route('cart.index')
+                ->with('error', 'Giỏ hàng trống.');
         }
 
-        $order = $this->checkoutService->process(auth()->user(), $validated);
-
-        // For simulated gateways, show a gateway page for redirection
-        if (in_array($validated['payment_method'], ['card', 'momo', 'vnpay'])) {
-            return view('client.checkout.gateway', ['order' => $order, 'method' => $validated['payment_method']]);
+        try {
+            $order = $this->checkoutService->process($user, $validated);
+        } catch (ValidationException $e) {
+            return redirect()
+                ->route('cart.index')
+                ->withErrors($e->errors())
+                ->with('error', collect($e->errors())->flatten()->first());
         }
 
-        return redirect()->route('checkout.success', $order->id);
+        if (in_array($validated['payment_method'], ['card', 'momo', 'vnpay'], true)) {
+            return view('client.checkout.gateway', [
+                'order' => $order,
+                'method' => $validated['payment_method'],
+            ]);
+        }
+
+        return redirect()->route('checkout.success', $order->getKey());
     }
 
     public function preview(Request $request)
@@ -97,11 +123,18 @@ class CheckoutController extends Controller
         ]);
     }
 
-    public function success($orderId)
+    public function success(Request $request, int|string $orderId)
     {
+        /** @var User $user */
+        $user = $request->user();
+
+        if (! $user) {
+            abort(403);
+        }
+
         $order = Order::with('items')->findOrFail($orderId);
 
-        if ($order->user_id !== auth()->id()) {
+        if ((int) $order->user_id !== (int) $user->getKey()) {
             abort(403);
         }
 
