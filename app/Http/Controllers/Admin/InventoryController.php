@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\InventoryTransaction;
+use App\Models\Imei;
 use App\Models\ProductVariant;
 
 class InventoryController extends Controller
