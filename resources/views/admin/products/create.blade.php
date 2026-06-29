@@ -40,6 +40,17 @@
                         @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label">Loại sản phẩm <span class="text-danger">*</span></label>
+                        <select name="product_type" id="productType" class="form-select">
+                            <option value="quantity" @selected(old('product_type', 'quantity') == 'quantity')>Theo số lượng</option>
+                            <option value="imei/serial" @selected(old('product_type') == 'imei/serial')>Theo IMEI/Serial</option>
+                        </select>
+                        <div class="form-text">
+                            <span id="typeHint">Nhập số lượng tồn kho cho từng biến thể.</span>
+                        </div>
+                    </div>
+
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Danh mục <span class="text-danger">*</span></label>
@@ -110,17 +121,6 @@
 
                 <div class="p-3">
                     <div class="mb-3">
-                        <label class="form-label">Loại sản phẩm <span class="text-danger">*</span></label>
-                        <select name="product_type" id="productType" class="form-select">
-                            <option value="quantity" @selected(old('product_type', 'quantity') == 'quantity')>Theo số lượng</option>
-                            <option value="imei/serial" @selected(old('product_type') == 'imei/serial')>Theo IMEI/Serial</option>
-                        </select>
-                        <div class="form-text">
-                            <span id="typeHint">Nhập số lượng tồn kho cho từng biến thể.</span>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
                         <label class="form-label">Ảnh đại diện</label>
                         <input type="file" name="thumbnail" accept="image/*" id="thumbnailInput"
                             class="form-control @error('thumbnail') is-invalid @enderror">
@@ -169,11 +169,13 @@ function hasStorage() {
 
 function stockInputHtml(index) {
     if (getProductType() === 'imei/serial') {
-        return `<div class="col-md-2 stock-col">
-            <label class="form-label small">Số lượng IMEI</label>
-            <input type="number" name="variants[${index}][stock_quantity]"
-                class="form-control form-control-sm bg-light" value="0" min="0"
-                readonly title="Tự động tính từ IMEI">
+        return `<div class="col-12 stock-col">
+            <label class="form-label small">Danh sách IMEI / Serial <span class="text-danger">*</span></label>
+            <textarea name="variants[${index}][imeis]" rows="5"
+                class="form-control form-control-sm"
+                placeholder="Mỗi dòng một IMEI hoặc Serial&#10;123456789012345&#10;123456789012346&#10;123456789012347"></textarea>
+            <div class="form-text">Mỗi dòng nhập một IMEI hoặc Serial.</div>
+            <input type="hidden" name="variants[${index}][stock_quantity]" value="0">
         </div>`;
     }
     return `<div class="col-md-2 stock-col">

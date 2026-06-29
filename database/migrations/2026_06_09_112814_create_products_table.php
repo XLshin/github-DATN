@@ -45,6 +45,11 @@ return new class extends Migration
         $table->boolean('status')
               ->default(true);
 
+        $table->enum(
+                'product_type',
+                ['imei/serial', 'quantity']
+            )->default('quantity');
+
         $table->timestamps();
     });
 }

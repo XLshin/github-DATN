@@ -116,7 +116,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
         Route::resource('imeis', ImeiController::class);
         Route::resource('inventory', InventoryController::class);
-        Route::get('/stocks', [InventoryController::class, 'stock'])->name('stocks');
+        Route::get('/stocks', [ImeiController::class, 'stock'])->name('stocks');
+        Route::get('/stocks/accessories', [ImeiController::class, 'accessoryStock'])->name('stocks.accessories');
     });
 
     Route::prefix('admin')->group(function () {

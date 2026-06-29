@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\Imei;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
@@ -67,7 +68,7 @@ class ProductController extends Controller
         }
 
         foreach ($request->variants as $variant) {
-            ProductVariant::create([
+            $productVariant = ProductVariant::create([
                 'product_id'       => $product->id,
                 'color'            => $variant['color'],
                 'storage'          => $variant['storage'] ?? '',
@@ -75,6 +76,22 @@ class ProductController extends Controller
                 'additional_price' => $variant['additional_price'] ?? 0,
                 'status'           => true,
             ]);
+
+            // Nếu là imei/serial, tạo các bản ghi IMEI từ textarea
+            if ($validated['product_type'] === 'imei/serial' && !empty($variant['imeis'])) {
+                $imeiList = array_filter(array_map('trim', explode("\n", $variant['imeis'])));
+                foreach ($imeiList as $imeiCode) {
+                    if ($imeiCode !== '') {
+                        Imei::create([
+                            'product_variant_id' => $productVariant->id,
+                            'imei'               => $imeiCode,
+                            'status'             => 'available',
+                        ]);
+                    }
+                }
+                // Cập nhật stock_quantity theo số IMEI thực tế
+                $productVariant->update(['stock_quantity' => count($imeiList)]);
+            }
         }
 
         return redirect()->route('admin.products.show', $product)
@@ -168,9 +185,25 @@ class ProductController extends Controller
             'status'           => 'boolean',
         ]);
 
-        $validated['status']         = $request->boolean('status', false);
-        $validated['stock_quantity'] = $validated['stock_quantity'] ?? 0;
+        $validated['status']           = $request->boolean('status', false);
         $validated['additional_price'] = $validated['additional_price'] ?? 0;
+
+        // Nếu là imei/serial và có nhập imeis mới, thêm vào danh sách
+        if ($variant->product->product_type === 'imei/serial' && $request->filled('imeis')) {
+            $imeiList = array_filter(array_map('trim', explode("\n", $request->imeis)));
+            foreach ($imeiList as $imeiCode) {
+                if ($imeiCode !== '') {
+                    Imei::firstOrCreate(
+                        ['imei' => $imeiCode],
+                        ['product_variant_id' => $variant->id, 'status' => 'available']
+                    );
+                }
+            }
+            // Cập nhật stock_quantity theo số IMEI available
+            $validated['stock_quantity'] = $variant->imeis()->where('status', 'available')->count();
+        } else {
+            $validated['stock_quantity'] = $validated['stock_quantity'] ?? 0;
+        }
 
         $variant->update($validated);
 
