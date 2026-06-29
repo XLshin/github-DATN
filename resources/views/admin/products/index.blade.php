@@ -14,6 +14,46 @@
 
 @section('content')
 <section class="panel">
+    <form method="GET" class="p-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Tìm kiếm</label>
+                <input type="text" name="search" value="{{ request('search') }}"
+                    class="form-control" placeholder="Tìm theo tên sản phẩm">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Danh mục</label>
+                <select name="category_id" class="form-select">
+                    <option value="">Tất cả</option>
+                    @foreach($categories as $category)
+                    <option value="{{ $category->id }}" @selected(request('category_id') == $category->id)>{{ $category->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Thương hiệu</label>
+                <select name="brand_id" class="form-select">
+                    <option value="">Tất cả</option>
+                    @foreach($brands as $brand)
+                    <option value="{{ $brand->id }}" @selected(request('brand_id') == $brand->id)>{{ $brand->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Trạng thái</label>
+                <select name="status" class="form-select">
+                    <option value="">Tất cả</option>
+                    <option value="active" @selected(request('status') === 'active')>Đang bán</option>
+                    <option value="inactive" @selected(request('status') === 'inactive')>Ẩn</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-grid gap-2">
+                <button type="submit" class="btn btn-primary">Lọc</button>
+                <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary">Xóa</a>
+            </div>
+        </div>
+    </form>
+
     <div class="table-responsive">
         <table class="table align-middle mb-0">
             <thead>
@@ -23,7 +63,6 @@
                     <th>Tên sản phẩm</th>
                     <th>Danh mục</th>
                     <th>Thương hiệu</th>
-                    <th>Loại</th>
                     <th>Trạng thái</th>
                     <th class="text-end">Thao tác</th>
                 </tr>
@@ -52,14 +91,6 @@
 
                     <td>{{ $product->category->name ?? '-' }}</td>
                     <td>{{ $product->brand->name ?? '-' }}</td>
-
-                    <td>
-                        @if($product->product_type === 'imei/serial')
-                        <span class="badge text-bg-warning text-dark">IMEI/Serial</span>
-                        @else
-                        <span class="badge text-bg-secondary">Số lượng</span>
-                        @endif
-                    </td>
 
                     <td>
                         @if($product->status)
@@ -100,14 +131,17 @@
                 {{-- Hàng expand biến thể --}}
                 @if($product->variants_count > 0)
                 <tr id="variants-{{ $product->id }}" class="variant-row d-none">
-                    <td colspan="8" class="p-0">
+                    <td colspan="9" class="p-0">
                         <div class="bg-light border-top border-bottom px-4 py-2">
                             <table class="table table-sm align-middle mb-0">
                                 <thead>
                                     <tr class="text-muted small">
                                         <th>Màu</th>
                                         <th>Bộ nhớ</th>
-                                        <th class="text-end">Giá thêm</th>
+                                        @if($product->product_type === 'imei/serial')
+                                        <th class="text-start">Số IMEI</th>
+                                        @endif
+                                        <th class="text-end">Giá của biến thể</th>
                                         <th class="text-end">Tồn kho</th>
                                         <th>Trạng thái</th>
                                         <th class="text-end">Chi tiết</th>
@@ -118,10 +152,23 @@
                                     <tr>
                                         <td><span class="badge text-bg-secondary">{{ $v->color }}</span></td>
                                         <td><span class="badge text-bg-info">{{ $v->storage }}</span></td>
-                                        <td class="text-end">
-                                            {{ $v->additional_price > 0 ? '+'.number_format($v->additional_price, 0, ',', '.') : '0' }} đ
+                                        @if($product->product_type === 'imei/serial')
+                                        <td class="text-start">
+                                            @if($v->imeis->isNotEmpty())
+                                                <div class="small text-monospace">
+                                                    @foreach($v->imeis as $imei)
+                                                        <div>{{ $imei->imei }}</div>
+                                                    @endforeach
+                                                </div>
+                                            @else
+                                                <span class="text-muted small">--</span>
+                                            @endif
                                         </td>
-                                        <td class="text-end">{{ $v->stock_quantity }}</td>
+                                        @endif
+                                        <td class="text-end">
+                                            {{ $v->additional_price > 0 ? '' . number_format($v->additional_price, 0, ',', '.') : '0' }} đ
+                                        </td>
+                                        <td class="text-end">{{ $v->stock_quantity }}</td>s
                                         <td>
                                             @if($v->status)
                                             <span class="badge text-bg-success">Active</span>
@@ -146,7 +193,7 @@
 
                 @empty
                 <tr>
-                    <td colspan="8" class="text-center text-muted py-4">Chưa có sản phẩm nào.</td>
+                    <td colspan="9" class="text-center text-muted py-4">Chưa có sản phẩm nào.</td>
                 </tr>
                 @endforelse
             </tbody>

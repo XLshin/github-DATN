@@ -45,6 +45,7 @@ class CheckoutService
             ]);
 
             foreach ($items as $item) {
+
                 $price = (float) $item->product->price;
 
                 OrderItem::query()->create([
