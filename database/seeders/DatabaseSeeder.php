@@ -17,16 +17,20 @@ class DatabaseSeeder extends Seeder
             ProductSeeder::class,
             ProductVariantSeeder::class,
             ProductImageSeeder::class,
+
             CouponSeeder::class,
             BannerSeeder::class,
 
             ImeiSeeder::class,
 
             OrderSeeder::class,
+
+            // Tạo 1 đơn hàng test thực tế từ IMEI + biến thể có sẵn
+            RealOrderTestSeeder::class,
+
             ReviewSeeder::class,
             PointHistorySeeder::class,
 
-            // Bảo hành cần có product_variants, imeis, orders, order_items trước
             WarrantyTestSeeder::class,
         ]);
     }

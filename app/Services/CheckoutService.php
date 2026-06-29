@@ -2,71 +2,12 @@
 
 namespace App\Services;
 
-use App\Models\Order;
-use Illuminate\Support\Facades\DB;
-
-class CheckoutService
-{
-    private CartService $cart;
-
-    public function __construct(CartService $cart)
-    {
-        $this->cart = $cart;
-    }
-
-    public function process($user, array $data): Order
-    {
-        $items = $this->cart->getItems($user);
-        $total = $this->cart->calculateTotal($items);
-
-        return DB::transaction(function () use ($user, $data, $items, $total) {
-            $order = Order::create([
-                'user_id' => $user->id,
-                'order_code' => 'ORD_'.time(),
-                'customer_name' => $data['customer_name'],
-                'customer_phone' => $data['customer_phone'],
-                'shipping_address' => $data['shipping_address'],
-                'subtotal' => $total,
-                'membership_discount' => 0,
-                'coupon_discount' => 0,
-                'total_amount' => $total,
-                'status' => $data['payment_method'] === 'cod' ? 'processing' : 'pending',
-            ]);
-
-            foreach ($items as $it) {
-                $order->items()->create([
-                    'product_id' => $it['product_id'],
-                    'product_variant_id' => $it['variant_id'] ?? null,
-                    'price' => $it['price'] ?? 0,
-                    'quantity' => $it['quantity'] ?? 1,
-                    'total' => ($it['price'] ?? 0) * ($it['quantity'] ?? 1),
-                ]);
-            }
-
-            // create a payment record placeholder
-            $order->payment()->create([
-                'payment_method' => $data['payment_method'] ?? 'cod',
-                'amount' => $total,
-                'payment_status' => $data['payment_method'] === 'cod' ? 'pending' : 'pending',
-            ]);
-
-            // clear cart
-            $this->cart->clear();
-
-            return $order;
-        });
-    }
-}
-<?php
-
-namespace App\Services;
-
+use App\Models\Imei;
+use App\Models\InventoryTransaction;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\User;
-use App\Models\Imei;
-use App\Models\InventoryTransaction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -75,7 +16,6 @@ class CheckoutService
 {
     public function __construct(
         private readonly CartService $cartService,
-        private readonly \App\Services\ImeiReservationService $imeiReservationService,
     ) {}
 
     public function process(User $user, array $data): Order
@@ -93,7 +33,7 @@ class CheckoutService
 
             $order = Order::query()->create([
                 'user_id' => $user->id,
-                'order_code' => strtoupper(Str::random(10)),
+                'order_code' => $this->generateOrderCode(),
                 'customer_name' => $data['customer_name'],
                 'customer_phone' => $data['customer_phone'],
                 'shipping_address' => $data['shipping_address'],
@@ -102,50 +42,59 @@ class CheckoutService
                 'coupon_discount' => 0,
                 'total_amount' => $subtotal,
                 'status' => 'pending',
+                'fulfillment_status' => 'pending',
             ]);
 
             foreach ($items as $item) {
-                $price = (float) $item->product->price;
-
-                OrderItem::query()->create([
-                    'order_id' => $order->id,
-                    'product_id' => $item->product_id,
-                    'product_variant_id' => $item->product_variant_id,
-                    'price' => $price,
-                    'quantity' => $item->quantity,
-                    'total' => $price * $item->quantity,
-                ]);
-
-                // Cập nhật kho dựa trên loại sản phẩm
+                $product = $item->product;
                 $variant = $item->productVariant;
-                $hasImei = $variant->imeis()->exists();
 
-                if ($hasImei) {
-                    // Điện thoại: cập nhật IMEI status thành 'sold'
-                    Imei::where('product_variant_id', $item->product_variant_id)
-                        ->where('status', 'available')
-                        ->limit($item->quantity)
-                        ->update(['status' => 'sold']);
-
-                    // Tạo transaction
-                    InventoryTransaction::create([
-                        'product_variant_id' => $item->product_variant_id,
-                        'type' => 'export',
-                        'quantity' => $item->quantity,
-                        'note' => 'Bán hàng - Đơn: ' . $order->order_code,
-                    ]);
-                } else {
-                    // Phụ kiện: giảm stock_quantity
-                    $variant->decrement('stock_quantity', $item->quantity);
-
-                    // Tạo transaction
-                    InventoryTransaction::create([
-                        'product_variant_id' => $item->product_variant_id,
-                        'type' => 'export',
-                        'quantity' => $item->quantity,
-                        'note' => 'Bán hàng - Đơn: ' . $order->order_code,
+                if (! $product) {
+                    throw ValidationException::withMessages([
+                        'product' => 'Có sản phẩm trong giỏ hàng không còn tồn tại.',
                     ]);
                 }
+
+                if (! $variant) {
+                    throw ValidationException::withMessages([
+                        'variant' => 'Có biến thể sản phẩm trong giỏ hàng không còn tồn tại.',
+                    ]);
+                }
+
+                $quantity = (int) $item->quantity;
+                $price = (float) $product->price;
+                $productType = $product->product_type;
+
+                if ($productType === 'imei/serial' && $quantity > 1) {
+                    throw ValidationException::withMessages([
+                        'inventory' => 'Sản phẩm điện thoại chỉ được đặt số lượng 1 cho mỗi dòng sản phẩm.',
+                    ]);
+                }
+
+                $orderItem = OrderItem::query()->create([
+                    'order_id' => $order->id,
+                    'product_id' => $product->id,
+                    'product_variant_id' => $variant->id,
+                    'price' => $price,
+                    'quantity' => $quantity,
+                    'total' => $price * $quantity,
+                    'imei_id' => null,
+                ]);
+
+                if ($productType === 'imei/serial') {
+                    $this->reserveImeiForOrderItem($orderItem, $variant->id, $product->name);
+                }
+
+                if ($productType === 'quantity') {
+                    $this->decreaseVariantStock($variant, $quantity, $product->name);
+                }
+
+                InventoryTransaction::query()->create([
+                    'product_variant_id' => $variant->id,
+                    'type' => 'export',
+                    'quantity' => $quantity,
+                    'note' => 'Tạm giữ / xuất kho cho đơn hàng: ' . $order->order_code,
+                ]);
             }
 
             Payment::query()->create([
@@ -154,21 +103,62 @@ class CheckoutService
                 'amount' => $order->total_amount,
                 'payment_status' => $data['payment_method'] === 'cod' ? 'pending' : 'paid',
                 'transaction_code' => null,
-                'paid_at' => null,
+                'paid_at' => $data['payment_method'] === 'cod' ? null : now(),
             ]);
-
-            // Reserve IMEIs for order items; rollback if not enough stock
-            $reserved = $this->imeiReservationService->reserve($order);
-
-            if (! $reserved) {
-                throw ValidationException::withMessages([
-                    'inventory' => 'Không đủ IMEI cho một hoặc nhiều sản phẩm trong đơn hàng.',
-                ]);
-            }
 
             $this->cartService->clear($user);
 
             return $order;
         });
+    }
+
+    private function reserveImeiForOrderItem(OrderItem $orderItem, int $productVariantId, string $productName): void
+    {
+        $imei = Imei::query()
+            ->where('product_variant_id', $productVariantId)
+            ->where('status', 'available')
+            ->lockForUpdate()
+            ->first();
+
+        if (! $imei) {
+            throw ValidationException::withMessages([
+                'inventory' => 'Sản phẩm ' . $productName . ' đã hết IMEI khả dụng.',
+            ]);
+        }
+
+        $imei->update([
+            'status' => 'reserved',
+            'reserved_at' => now(),
+            'reserved_by_order_item_id' => $orderItem->id,
+        ]);
+
+        $orderItem->update([
+            'imei_id' => $imei->id,
+        ]);
+    }
+
+    private function decreaseVariantStock($variant, int $quantity, string $productName): void
+    {
+        $freshVariant = $variant->newQuery()
+            ->whereKey($variant->id)
+            ->lockForUpdate()
+            ->first();
+
+        if (! $freshVariant || $freshVariant->stock_quantity < $quantity) {
+            throw ValidationException::withMessages([
+                'inventory' => 'Sản phẩm ' . $productName . ' không đủ tồn kho.',
+            ]);
+        }
+
+        $freshVariant->decrement('stock_quantity', $quantity);
+    }
+
+    private function generateOrderCode(): string
+    {
+        do {
+            $code = 'ORD' . now()->format('YmdHis') . strtoupper(Str::random(4));
+        } while (Order::query()->where('order_code', $code)->exists());
+
+        return $code;
     }
 }
