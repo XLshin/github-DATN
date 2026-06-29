@@ -29,7 +29,14 @@ class CheckoutController extends Controller
         $items = $this->cartService->getItems($user);
         $total = $this->cartService->calculateTotal($items);
 
-        return view('client.checkout.index', compact('items', 'total'));
+        // Load danh sách voucher được cấp cho user này
+        $availableCoupons = $user->coupons()
+            ->where('status', true)
+            ->where('start_date', '<=', now())
+            ->where('end_date', '>=', now())
+            ->get();
+
+        return view('client.checkout.index', compact('items', 'total', 'availableCoupons'));
     }
 
     public function process(Request $request)
@@ -46,7 +53,7 @@ class CheckoutController extends Controller
             'customer_phone' => ['required', 'string', 'max:20'],
             'shipping_address' => ['required', 'string', 'max:500'],
             'payment_method' => ['required', 'string', 'in:cod,card,bank_transfer,momo,vnpay'],
-            'coupon_code' => ['nullable', 'string', 'max:50'],
+            'coupon_id' => ['nullable', 'integer', 'exists:coupons,id'],
             'points_to_use' => ['nullable', 'integer', 'min:0'],
         ]);
 
@@ -78,7 +85,7 @@ class CheckoutController extends Controller
     public function preview(Request $request)
     {
         $data = $request->validate([
-            'coupon_code' => ['nullable', 'string', 'max:50'],
+            'coupon_id' => ['nullable', 'integer', 'exists:coupons,id'],
             'points_to_use' => ['nullable', 'integer', 'min:0'],
         ]);
 
@@ -93,10 +100,14 @@ class CheckoutController extends Controller
 
         $coupon = null;
         $couponDiscount = 0;
-        if (!empty($data['coupon_code'])) {
-            $coupon = Coupon::where('code', strtoupper($data['coupon_code']))->first();
-            if (! $coupon || ! $coupon->isValidForAmount($subtotal)) {
-                throw ValidationException::withMessages(['coupon_code' => 'Mã voucher không hợp lệ hoặc không đáp ứng điều kiện.']);
+        if (!empty($data['coupon_id'])) {
+            $coupon = Coupon::findOrFail($data['coupon_id']);
+            // Kiểm tra user có quyền dùng coupon này không
+            if (!$user->coupons->contains($coupon->id)) {
+                throw ValidationException::withMessages(['coupon_id' => 'Voucher không hợp lệ hoặc bạn không có quyền sử dụng.']);
+            }
+            if (! $coupon->isValidForAmount($subtotal)) {
+                throw ValidationException::withMessages(['coupon_id' => 'Mã voucher không đáp ứng điều kiện tối thiểu.']);
             }
             $couponDiscount = $coupon->discountAmount($subtotal);
         }

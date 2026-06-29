@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Coupon extends Model
 {
@@ -33,6 +34,14 @@ class Coupon extends Model
         'end_date' => 'datetime',
         'status' => 'boolean',
     ];
+
+    /**
+     * Relationship: Users who can use this coupon
+     */
+    public function users(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'coupon_user');
+    }
 
     /**
      * Kiểm tra voucher còn hiệu lực không

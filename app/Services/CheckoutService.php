@@ -11,6 +11,7 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class CheckoutService
@@ -35,12 +36,19 @@ class CheckoutService
             $coupon = null;
             $couponDiscount = 0;
 
-            if (! empty($data['coupon_code'])) {
-                $coupon = Coupon::where('code', strtoupper($data['coupon_code']))->first();
+            if (! empty($data['coupon_id'])) {
+                $coupon = Coupon::findOrFail($data['coupon_id']);
 
-                if (! $coupon || ! $coupon->isValidForAmount($subtotal)) {
+                // Verify user has access to this coupon
+                if (!$user->coupons->contains($coupon->id)) {
                     throw ValidationException::withMessages([
-                        'coupon_code' => 'Mã voucher không hợp lệ hoặc không đáp ứng điều kiện.',
+                        'coupon_id' => 'Voucher không hợp lệ hoặc bạn không có quyền sử dụng.',
+                    ]);
+                }
+
+                if (! $coupon->isValidForAmount($subtotal)) {
+                    throw ValidationException::withMessages([
+                        'coupon_id' => 'Mã voucher không đáp ứng điều kiện tối thiểu.',
                     ]);
                 }
 
