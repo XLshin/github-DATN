@@ -41,6 +41,14 @@
             <span class="nav-icon"><i class="bi bi-receipt"></i></span>
             <span class="nav-text">Đơn hàng</span>
         </a>
+        <a class="nav-link {{ request()->routeIs('coupons.*') ? 'active' : '' }}" href="{{ route('coupons.index') }}">
+            <span class="nav-icon"><i class="bi bi-ticket-perforated"></i></span>
+            <span class="nav-text">Voucher</span>
+        </a>
+        <a class="nav-link {{ request()->routeIs('admin.points.*') ? 'active' : '' }}" href="{{ route('admin.points.index') }}">
+            <span class="nav-icon"><i class="bi bi-star-fill"></i></span>
+            <span class="nav-text">Quản lý điểm</span>
+        </a>
         <a class="nav-link {{ request()->routeIs('admin.shipments.*') ? 'active' : '' }}" href="{{ route('admin.shipments.index') }}">
             <span class="nav-icon"><i class="bi bi-truck"></i></span>
             <span class="nav-text">Vận chuyển</span>

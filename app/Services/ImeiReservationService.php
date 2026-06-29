@@ -17,7 +17,11 @@ class ImeiReservationService
     {
         return DB::transaction(function () use ($order) {
             foreach ($order->items as $item) {
-                $qty = $item->quantity;
+                $qty = (int) $item->quantity;
+
+                if ($qty <= 0 || empty($item->product_variant_id)) {
+                    continue;
+                }
 
                 $imeis = Imei::where('product_variant_id', $item->product_variant_id)
                     ->where('status', 'available')

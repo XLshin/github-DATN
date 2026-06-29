@@ -30,6 +30,18 @@
                                 <textarea name="shipping_address" class="form-control" rows="3" required>{{ old('shipping_address', auth()->user()->address) }}</textarea>
                             </div>
                             <div class="mb-3">
+                                <label class="form-label">Mã voucher</label>
+                                <input type="text" name="coupon_code" class="form-control" value="{{ old('coupon_code') }}" placeholder="Nhập mã voucher nếu có">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Dùng điểm</label>
+                                <div class="input-group">
+                                    <input type="number" name="points_to_use" class="form-control" value="{{ old('points_to_use', 0) }}" min="0" max="{{ auth()->user()->points ?? 0 }}">
+                                    <span class="input-group-text">đ (Bạn có: {{ number_format(auth()->user()->points ?? 0) }} điểm)</span>
+                                </div>
+                                @error('points_to_use') <div class="text-danger small">{{ $message }}</div> @enderror
+                            </div>
+                            <div class="mb-3">
                                 <label class="form-label">Phương thức thanh toán</label>
                                 <select name="payment_method" class="form-select" required>
                                     <option value="cod">Thanh toán khi nhận hàng (COD)</option>
@@ -50,13 +62,99 @@
                                 <span>{{ number_format($item->product->price * $item->quantity, 0, ',', '.') }} đ</span>
                             </li>
                         @endforeach
+                        <li class="list-group-item d-flex justify-content-between">
+                            <span>Tổng hàng</span>
+                            <span id="subtotal">{{ number_format($total, 0, ',', '.') }} đ</span>
+                        </li>
+
+                        <li class="list-group-item d-flex justify-content-between text-success d-none" id="coupon-row">
+                            <span>Giảm voucher</span>
+                            <span id="coupon-discount">-0 đ</span>
+                        </li>
+
+                        <li class="list-group-item d-flex justify-content-between text-success d-none" id="points-row">
+                            <span>Giảm điểm</span>
+                            <span id="points-discount">-0 đ</span>
+                        </li>
+
                         <li class="list-group-item d-flex justify-content-between fw-bold">
                             <span>Tổng cộng</span>
-                            <span class="text-primary">{{ number_format($total, 0, ',', '.') }} đ</span>
+                            <span class="text-primary" id="total">{{ number_format($total, 0, ',', '.') }} đ</span>
                         </li>
                     </ul>
                 </div>
             </div>
         </div>
     @endif
+
+@push('scripts')
+<script>
+(function(){
+    const couponInput = document.querySelector('input[name="coupon_code"]');
+    const pointsInput = document.querySelector('input[name="points_to_use"]');
+    const couponRow = document.getElementById('coupon-row');
+    const pointsRow = document.getElementById('points-row');
+    const couponDiscountEl = document.getElementById('coupon-discount');
+    const pointsDiscountEl = document.getElementById('points-discount');
+    const totalEl = document.getElementById('total');
+    const subtotalEl = document.getElementById('subtotal');
+
+    function formatVND(num){
+        return new Intl.NumberFormat('vi-VN').format(Math.round(num)) + ' đ';
+    }
+
+    let timer = null;
+    function preview(){
+        const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+        const token = tokenMeta ? tokenMeta.getAttribute('content') : null;
+        const payload = new URLSearchParams();
+        payload.append('coupon_code', couponInput ? couponInput.value : '');
+        payload.append('points_to_use', pointsInput ? pointsInput.value : 0);
+
+        fetch('{{ route('checkout.preview') }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': token,
+                'Accept': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: payload.toString()
+        }).then(r => r.json())
+        .then(data => {
+            if(data.coupon_discount && data.coupon_discount > 0){
+                couponRow.classList.remove('d-none');
+                couponDiscountEl.textContent = '-' + new Intl.NumberFormat('vi-VN').format(data.coupon_discount) + ' đ';
+            } else {
+                couponRow.classList.add('d-none');
+            }
+
+            if(data.points_discount && data.points_discount > 0){
+                pointsRow.classList.remove('d-none');
+                pointsDiscountEl.textContent = '-' + new Intl.NumberFormat('vi-VN').format(data.points_discount) + ' đ';
+            } else {
+                pointsRow.classList.add('d-none');
+            }
+
+            subtotalEl.textContent = formatVND(data.subtotal);
+            totalEl.textContent = formatVND(data.total);
+        }).catch(err => {
+            // silently ignore validation errors here; could show a message
+            // console.error(err);
+        });
+    }
+
+    function schedulePreview(){
+        if(timer) clearTimeout(timer);
+        timer = setTimeout(preview, 350);
+    }
+
+    if(couponInput) couponInput.addEventListener('input', schedulePreview);
+    if(pointsInput) pointsInput.addEventListener('input', schedulePreview);
+
+    // initial preview
+    schedulePreview();
+})();
+</script>
+@endpush
+
 @endsection
