@@ -6,11 +6,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Xác thực') — Byte Zone Store</title>
 
-    <link rel="stylesheet" href="{{ asset('assets/css/bootstrap.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/vendors/bootstrap-icons/bootstrap-icons.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/bootstrap.min.css') }}" data-turbo-track="reload">
+    <link rel="stylesheet" href="{{ asset('assets/vendors/bootstrap-icons/bootstrap-icons.css') }}" data-turbo-track="reload">
+    <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}" data-turbo-track="reload">
 
     @stack('styles')
+
+    <script>
+        // Kiểm tra ngay trạng thái giao diện trong localStorage trước khi vẽ HTML
+        const currentTheme = localStorage.getItem('theme'); // Đổi 'theme' thành tên key JS của bạn lưu
+
+        if (currentTheme === 'dark') {
+            // Tùy theo CSS của bạn, hãy mở comment dòng phù hợp bên dưới:
+            document.documentElement.classList.add('dark');
+            // HOẶC
+            // document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
+
+    <script type="module" src="https://unpkg.com/@hotwired/turbo"></script>
+    <style>
+        .turbo-progress-bar {
+            height: 3px;
+            background-color: #0d6efd;
+        }
+    </style>
 </head>
 
 <body class="auth-body">
