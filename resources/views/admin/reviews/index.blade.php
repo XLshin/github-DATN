@@ -59,19 +59,17 @@
 
                         <td class="text-end">
                             <div class="d-flex justify-content-end gap-2">
-                                @if($review->status)
                                 <form
                                     action="{{ route('reviews.hide', $review->id) }}"
                                     method="POST"
-                                    onsubmit="return confirm('Ẩn đánh giá này?')">
+                                    onsubmit="return confirm('{{ $review->status ? 'Ẩn' : 'Hiện' }} đánh giá này?')">
                                     @csrf
                                     @method('PATCH')
 
-                                    <button type="submit" class="btn btn-outline-warning btn-sm">
-                                        Ẩn
+                                    <button type="submit" class="btn btn-outline-{{ $review->status ? 'warning' : 'success' }} btn-sm">
+                                        {{ $review->status ? 'Ẩn' : 'Hiện' }}
                                     </button>
                                 </form>
-                                @endif
 
                                 <form
                                     action="{{ route('reviews.destroy', $review->id) }}"
