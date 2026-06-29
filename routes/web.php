@@ -111,6 +111,29 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
         Route::get('orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::get('orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
+        Route::post('orders/{order}/confirm', [AdminOrderController::class, 'confirm'])
+            ->name('orders.confirm');
+
+        Route::post('orders/{order}/mark-packed', [AdminOrderController::class, 'markPacked'])
+            ->name('orders.markPacked');
+
+        Route::post('orders/{order}/handover', [AdminOrderController::class, 'handover'])
+            ->name('orders.handover');
+
+        Route::post('orders/{order}/mark-delivered', [AdminOrderController::class, 'markDelivered'])
+            ->name('orders.markDelivered');
+
+        Route::post('orders/{order}/mark-failed', [AdminOrderController::class, 'markFailed'])
+            ->name('orders.markFailed');
+
+        Route::post('orders/{order}/retry-delivery', [AdminOrderController::class, 'retryDelivery'])
+            ->name('orders.retryDelivery');
+
+        Route::post('orders/{order}/cancel', [AdminOrderController::class, 'cancel'])
+            ->name('orders.cancel');
+
+        Route::get('orders/{order}/print-shipping-label', [AdminOrderController::class, 'printShippingLabel'])
+            ->name('orders.printShippingLabel');
 
         Route::get('shipments/lookup', [ShipmentController::class, 'lookup'])->name('shipments.lookup');
         Route::get('shipments/create-from-order/{order}', [ShipmentController::class, 'createFromOrder'])->name('shipments.createFromOrder');

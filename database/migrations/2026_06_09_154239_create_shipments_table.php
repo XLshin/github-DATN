@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('order_id')
-                ->constrained()
+                ->constrained('orders')
                 ->cascadeOnDelete();
 
             $table->string('shipping_unit');
@@ -24,9 +24,12 @@ return new class extends Migration
 
             $table->enum('shipping_status', [
                 'pending',
+                'processing',
+                'waiting_handover',
                 'shipping',
                 'delivered',
-                'failed'
+                'failed',
+                'cancelled',
             ])->default('pending');
 
             $table->timestamp('shipped_at')->nullable();
