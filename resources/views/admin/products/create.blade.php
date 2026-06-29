@@ -16,8 +16,6 @@
 <form action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data" id="productForm">
     @csrf
 
-    {{-- price & stock_quantity ẩn, tự điền 0 --}}
-    <input type="hidden" name="price" value="0">
     <input type="hidden" name="stock_quantity" value="0">
 
     <div class="row g-3">
@@ -242,10 +240,16 @@ document.getElementById('addVariant').addEventListener('click', function () {
                 <input type="text" name="variants[${variantIndex}][color]"
                     class="form-control form-control-sm" placeholder="VD: Đen">
             </div>
+            <div class="col-md-4 image-col">
+                <label class="form-label small">Ảnh biến thể</label>
+                <input type="file" name="variants[${variantIndex}][images][]"
+                    class="form-control form-control-sm" accept="image/*" multiple>
+                <div class="form-text small">Có thể chọn nhiều ảnh cho mỗi biến thể.</div>
+            </div>
             ${hasStorage() ? storageColHtml(variantIndex) : ''}
             ${stockInputHtml(variantIndex)}
             <div class="col-md-3">
-                <label class="form-label small">Giá thêm (đ)</label>
+                <label class="form-label small">Giá của biến thể (đ)</label>
                 <input type="number" name="variants[${variantIndex}][additional_price]"
                     class="form-control form-control-sm" value="0" min="0">
             </div>
