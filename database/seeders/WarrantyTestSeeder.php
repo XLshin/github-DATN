@@ -55,6 +55,8 @@ class WarrantyTestSeeder extends Seeder
                 ->where('id', $order->id)
                 ->update([
                     'status' => 'completed',
+                    'fulfillment_status' => 'completed',
+                    'delivered_at' => $now,
                     'updated_at' => $now,
                 ]);
 
