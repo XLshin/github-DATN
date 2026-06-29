@@ -186,9 +186,15 @@
                             <label class="form-label">Bộ nhớ <span class="text-danger">*</span></label>
                             <input type="text" name="storage" id="vStorage" class="form-control" required>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6" id="vStockWrapper">
                             <label class="form-label" id="vStockLabel">Tồn kho</label>
                             <input type="number" name="stock_quantity" id="vStock" class="form-control" min="0">
+                        </div>
+                        <div class="col-12 d-none" id="vImeiWrapper">
+                            <label class="form-label">Danh sách IMEI / Serial mới <span class="text-danger">*</span></label>
+                            <textarea name="imeis" id="vImeis" rows="5" class="form-control"
+                                placeholder="Mỗi dòng một IMEI hoặc Serial&#10;123456789012345&#10;123456789012346&#10;123456789012347"></textarea>
+                            <div class="form-text">Nhập IMEI mới muốn bổ sung. IMEI đã tồn tại sẽ được bỏ qua.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Giá thêm (đ)</label>
@@ -234,8 +240,14 @@ document.getElementById('editVariantModal').addEventListener('show.bs.modal', fu
     document.getElementById('vStatus').checked = status == '1';
 
     // Label tồn kho theo loại sản phẩm
-    document.getElementById('vStockLabel').textContent =
-        productType === 'imei/serial' ? 'Số lượng IMEI' : 'Tồn kho';
+    if (productType === 'imei/serial') {
+        document.getElementById('vStockWrapper').classList.add('d-none');
+        document.getElementById('vImeiWrapper').classList.remove('d-none');
+    } else {
+        document.getElementById('vStockWrapper').classList.remove('d-none');
+        document.getElementById('vImeiWrapper').classList.add('d-none');
+        document.getElementById('vStockLabel').textContent = 'Tồn kho';
+    }
 
     document.getElementById('editVariantForm').action =
         `{{ url('admin/variants') }}/${id}`;
