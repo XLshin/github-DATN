@@ -64,6 +64,7 @@
                 <tr>
                     <th>ID</th>
                     <th>Sản phẩm</th>
+                    <th>Thương hiệu</th>
                     <th>Màu</th>
                     <th>Dung lượng</th>
                     <th>Loại giao dịch</th>
@@ -83,6 +84,10 @@
                         {{ $item->productVariant?->product?->name ?? 'N/A' }}
                     </td>
 
+                    <td>
+                        {{ $item->productVariant?->product?->brand?->name ?? 'N/A' }}
+                    </td>
+                    
                     <td>
                         {{ $item->productVariant?->color ?? 'N/A' }}
                     </td>

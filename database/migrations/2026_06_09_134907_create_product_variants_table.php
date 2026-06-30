@@ -25,7 +25,7 @@ return new class extends Migration
                   ->default(0);
 
             $table->decimal('additional_price', 15, 2)
-                  ->default(0);
+                ->default(0);
 
             $table->boolean('status')
                   ->default(true);

@@ -13,24 +13,15 @@ class BrandSeeder extends Seeder
      */
     public function run(): void
     {
-        Brand::insert([
+        $brands = [
+            ['name' => 'Apple'],
+            ['name' => 'Samsung'],
+            ['name' => 'Xiaomi'],
+            ['name' => 'Oppo'],
+        ];
 
-            [
-                'name' => 'Apple'
-            ],
-
-            [
-                'name' => 'Samsung'
-            ],
-
-            [
-                'name' => 'Xiaomi'
-            ],
-
-            [
-                'name' => 'Oppo'
-            ]
-
-        ]);
+        foreach ($brands as $brand) {
+            Brand::updateOrCreate(['name' => $brand['name']], $brand);
+        }
     }
 }
