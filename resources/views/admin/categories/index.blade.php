@@ -28,6 +28,7 @@
                             <td class="fw-semibold">{{ $category->name }}</td>
                             <td>{{ Str::limit($category->description, 60) }}</td>
                             <td class="text-end">
+                                <a href="{{ route('categories.show', $category) }}" class="btn btn-light btn-sm"><i class="bi bi-eye"></i> Xem</a>
                                 <a href="{{ route('categories.edit', $category) }}" class="btn btn-light btn-sm">Sửa</a>
                                 <form action="{{ route('categories.destroy', $category) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa danh mục?')">
                                     @csrf @method('DELETE')

@@ -11,7 +11,9 @@ class Imei extends Model
     protected $fillable = [
         'product_variant_id',
         'imei',
-        'status'
+        'status',
+        'reserved_at',
+        'reserved_by_order_item_id'
     ];
 
     public function productVariant()
@@ -19,16 +21,29 @@ class Imei extends Model
         return $this->belongsTo(ProductVariant::class);
     }
 
-    public function warranties()
+    public function warranty()
     {
-        return $this->hasMany(Warranty::class);
+        return $this->hasOne(Warranty::class);
     }
 
-    public function currentWarranty()
+    public function reservedByOrderItem()
     {
-        return $this->hasOne(Warranty::class)
-            ->whereIn('status', ['active', 'claimed'])
-            ->latestOfMany();
+        return $this->belongsTo(OrderItem::class, 'reserved_by_order_item_id');
     }
-    
+
+    public function orderItem()
+    {
+        return $this->hasOne(OrderItem::class);
+    }
+
+    public function assignToOrderItem(OrderItem $item)
+    {
+        $this->status = 'sold';
+        $this->reserved_by_order_item_id = null;
+        $this->reserved_at = null;
+        $this->save();
+
+        $item->imei_id = $this->id;
+        $item->save();
+    }
 }
