@@ -7,45 +7,95 @@ use Illuminate\Database\Eloquent\Model;
 class Order extends Model
 {
     protected $fillable = [
+        'user_id',
+        'order_code',
+        'customer_name',
+        'customer_phone',
+        'shipping_address',
+        'subtotal',
+        'membership_discount',
+        'coupon_discount',
+        'total_amount',
+        'status',
 
-    'user_id',
+        'fulfillment_status',
+        'confirmed_at',
+        'packed_at',
+        'handed_over_at',
+        'delivered_at',
+        'cancelled_at',
+        'shipping_label_printed_at',
+    ];
 
-    'order_code',
+    protected $casts = [
+        'confirmed_at' => 'datetime',
+        'packed_at' => 'datetime',
+        'handed_over_at' => 'datetime',
+        'delivered_at' => 'datetime',
+        'cancelled_at' => 'datetime',
+        'shipping_label_printed_at' => 'datetime',
+    ];
 
-    'customer_name',
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
-    'customer_phone',
+    public function items()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
 
-    'shipping_address',
+    public function shipment()
+    {
+        return $this->hasOne(Shipment::class);
+    }
 
-    'subtotal',
+    public function warranties()
+    {
+        return $this->hasMany(Warranty::class);
+    }
 
-    'membership_discount',
+    public function payment()
+    {
+        return $this->hasOne(Payment::class);
+    }
 
-    'coupon_discount',
+    public function proofs()
+    {
+        return $this->hasMany(OrderProof::class);
+    }
 
-    'total_amount',
+    public function packedProofs()
+    {
+        return $this->hasMany(OrderProof::class)->where('type', 'packed');
+    }
 
-    'status'
-];
+    public function deliveredProofs()
+    {
+        return $this->hasMany(OrderProof::class)->where('type', 'delivered');
+    }
 
-public function user()
-{
-    return $this->belongsTo(User::class);
-}
+    public function isEditable(): bool
+    {
+        return !in_array($this->fulfillment_status, [
+            'shipping',
+            'completed',
+            'cancelled',
+        ]);
+    }
 
-public function items()
-{
-    return $this->hasMany(OrderItem::class);
-}
-
-public function shipment()
-{
-    return $this->hasOne(Shipment::class);
-}
-
-public function warranties()
-{
-    return $this->hasMany(Warranty::class);
-}
+    public function getFulfillmentStatusLabelAttribute(): string
+    {
+        return match ($this->fulfillment_status) {
+            'pending' => 'Chờ xử lý',
+            'waiting_pack' => 'Chờ đóng gói',
+            'waiting_handover' => 'Chờ bàn giao',
+            'shipping' => 'Đang giao',
+            'completed' => 'Hoàn thành',
+            'cancelled' => 'Đã hủy',
+            'failed' => 'Giao thất bại',
+            default => $this->fulfillment_status ?? 'Không xác định',
+        };
+    }
 }

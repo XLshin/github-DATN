@@ -52,9 +52,23 @@ class CategoryController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Category $category)
     {
-        //
+        // Load brands có sản phẩm trong danh mục này, kèm số lượng sản phẩm
+        $brands = \App\Models\Brand::withCount([
+            'products as products_count' => fn($q) => $q->where('category_id', $category->id)
+        ])
+        ->whereHas('products', fn($q) => $q->where('category_id', $category->id))
+        ->get();
+
+        // Load sản phẩm trong danh mục, có thể lọc theo brand
+        $products = $category->products()
+            ->with(['brand', 'images', 'variants'])
+            ->when(request('brand_id'), fn($q) => $q->where('brand_id', request('brand_id')))
+            ->paginate(12)
+            ->withQueryString();
+
+        return view('admin.categories.show', compact('category', 'brands', 'products'));
     }
 
     /**
