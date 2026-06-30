@@ -7,6 +7,9 @@
 @section('page_subtitle', 'Chi tiết biến thể sản phẩm.')
 
 @section('heading_actions')
+<a href="#" class="btn btn-outline-primary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#editVariantModal">
+    <i class="bi bi-pencil"></i> Sửa biến thể
+</a>
 <a href="{{ route('admin.products.index') }}" class="btn btn-light btn-sm">
     <i class="bi bi-arrow-left"></i> Quay lại
 </a>
