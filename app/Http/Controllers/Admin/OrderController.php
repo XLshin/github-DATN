@@ -26,21 +26,13 @@ class OrderController extends Controller
                 'unpaid' => $query->whereHas('payment', function ($q) {
                     $q->where('payment_status', 'pending');
                 }),
-
                 'pending' => $query->where('fulfillment_status', 'pending'),
-
                 'waiting_pack' => $query->where('fulfillment_status', 'waiting_pack'),
-
                 'waiting_handover' => $query->where('fulfillment_status', 'waiting_handover'),
-
                 'shipping' => $query->where('fulfillment_status', 'shipping'),
-
                 'completed' => $query->where('fulfillment_status', 'completed'),
-
                 'cancelled' => $query->where('fulfillment_status', 'cancelled'),
-
                 'failed' => $query->where('fulfillment_status', 'failed'),
-
                 default => null,
             };
         }
@@ -56,14 +48,15 @@ class OrderController extends Controller
             });
         }
 
+        // Đã xóa dòng $orders bị ghi đè phía dưới để giữ lại kết quả lọc/tìm kiếm
         $orders = $query->paginate(20)->withQueryString();
-        $orders = Order::with('user', 'shipment')->orderBy('created_at', 'desc')->paginate(20);
 
         return view('admin.orders.index', compact('orders'));
     }
 
     public function show(Order $order)
     {
+        // Route Model Binding đã tự động lấy đúng $order, chỉ cần load thêm các quan hệ
         $order->load([
             'user',
             'items.product',
@@ -73,7 +66,8 @@ class OrderController extends Controller
             'shipment',
             'proofs.creator',
         ]);
-        $order = Order::with(['user', 'items.product', 'items.imei', 'payment', 'shipment'])->findOrFail($id);
+
+        // Đã xóa dòng gây lỗi: $order = Order::with([...])->findOrFail($id);
 
         return view('admin.orders.show', compact('order'));
     }
@@ -299,8 +293,8 @@ class OrderController extends Controller
                 }
 
                 if ($item->product && $item->product->product_type === 'quantity' && $item->variant) {
-                        $item->variant->increment('stock_quantity', $item->quantity);
-                    }
+                    $item->variant->increment('stock_quantity', $item->quantity);
+                }
             }
 
             $order->update([
