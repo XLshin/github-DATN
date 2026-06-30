@@ -23,6 +23,8 @@ class Shipment extends Model
         'shipping_status',
         'shipped_at',
         'delivered_at',
+        'shipped_image',
+        'delivered_image',
     ];
 
     protected $casts = [
