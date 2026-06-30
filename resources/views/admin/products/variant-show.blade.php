@@ -51,9 +51,9 @@
                     </tr>
                     @endif
                     <tr>
-                        <th>Giá thêm</th>
+                        <th>Giá sản phẩm</th>
                         <td class="fw-semibold">
-                            {{ $variant->additional_price > 0 ? '+'.number_format($variant->additional_price, 0, ',', '.') : '0' }} đ
+                            {{ $variant->additional_price > 0 ? number_format($variant->additional_price, 0, ',', '.') : '0' }} đ
                         </td>
                     </tr>
                     <tr>
@@ -112,12 +112,9 @@
                         @else
                         <input type="hidden" name="storage" value="">
                         @endif
+
                         <div class="col-md-6">
-                            <label class="form-label">Tồn kho</label>
-                            <input type="number" name="stock_quantity" class="form-control" min="0" value="{{ old('stock_quantity', $variant->stock_quantity) }}">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Giá thêm (đ)</label>
+                            <label class="form-label">Giá sản phẩm(đ)</label>
                             <input type="number" name="additional_price" class="form-control" min="0" value="{{ old('additional_price', $variant->additional_price) }}">
                         </div>
                         <div class="col-12">
