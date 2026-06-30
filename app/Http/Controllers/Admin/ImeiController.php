@@ -251,7 +251,7 @@ class ImeiController extends Controller
             'product.brand',
             'imeis'
         ])
-        ->whereHas('imeis');
+            ->whereHas('imeis');
 
         // tìm kiếm
     if ($request->keyword) {
@@ -287,7 +287,6 @@ class ImeiController extends Controller
             $query->whereHas('product', function ($q) use ($request) {
 
                 $q->where('brand_id', $request->brand_id);
-
             });
         }
 
@@ -295,18 +294,18 @@ class ImeiController extends Controller
 
             $variant->available_count =
                 $variant->imeis
-                    ->where('status', 'available')
-                    ->count();
+                ->where('status', 'available')
+                ->count();
 
             $variant->sold_count =
                 $variant->imeis
-                    ->where('status', 'sold')
-                    ->count();
+                ->where('status', 'sold')
+                ->count();
 
             $variant->warranty_count =
                 $variant->imeis
-                    ->where('status', 'warranty')
-                    ->count();
+                ->where('status', 'warranty')
+                ->count();
 
             return $variant;
         });

@@ -2,52 +2,38 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Arr;
-use Illuminate\Support\Session\Store;
+use Illuminate\Support\Facades\Session;
+use App\Models\Cart;
 use App\Models\Product;
+use App\Models\User;
 use App\Models\ProductVariant;
+use Illuminate\Support\Collection;
 
 class CartService
 {
-    private Store $session;
-    private string $key = 'cart_items';
+    private string $sessionKey = 'cart_items';
 
-    public function __construct(Store $session)
+    // --- CÁC HÀM XỬ LÝ CHUNG ---
+
+    public function getItems(?User $user = null)
     {
-        $this->session = $session;
+        if ($user) {
+            return $this->getDbItems($user);
+        }
+        return $this->getSessionItems();
     }
 
-    public function all(): array
+    public function calculateTotal($items): float
     {
-        return $this->session->get($this->key, []);
-    }
-
-    public function getItems($user = null): array
-    {
-        $items = $this->all();
-        $result = [];
-
-        foreach ($items as $k => $it) {
-            $row = $it;
-            $row['key'] = $k;
-            if (!empty($it['variant_id'])) {
-                $variant = ProductVariant::with('product')->find($it['variant_id']);
-                $row['variant'] = $variant;
-                $row['product'] = $variant?->product;
-                $row['price'] = $variant ? ($variant->product->price + ($variant->additional_price ?? 0)) : 0;
-            } else {
-                $product = Product::find($it['product_id']);
-                $row['product'] = $product;
-                $row['price'] = $product?->price ?? 0;
-            }
-            $result[$k] = $row;
+        // Tự động nhận diện Collection (DB) hay Array (Session)
+        if ($items instanceof Collection) {
+            return $items->sum(function ($item) {
+                $basePrice = $item->product->price ?? 0;
+                $additionalPrice = $item->variant->additional_price ?? 0;
+                return (float) ($basePrice + $additionalPrice) * $item->quantity;
+            });
         }
 
-        return $result;
-    }
-
-    public function calculateTotal(array $items): float
-    {
         $total = 0.0;
         foreach ($items as $it) {
             $price = $it['price'] ?? 0;
@@ -57,12 +43,90 @@ class CartService
         return $total;
     }
 
-    public function isEmpty($user = null): bool
+    // --- LOGIC CHO DATABASE (KHI ĐÃ ĐĂNG NHẬP) ---
+
+    private function getOrCreateCart(User $user): Cart
     {
-        return empty($this->all());
+        return Cart::query()->firstOrCreate(['user_id' => $user->id]);
     }
 
-    public function add(int $productId, int $variantId = null, int $qty = 1, array $meta = []): void
+    private function getDbItems(User $user): Collection
+    {
+        return $this->getOrCreateCart($user)
+            ->items()
+            ->with(['product', 'variant'])
+            ->get();
+    }
+
+    public function addItem(User $user, Product $product, int $quantity = 1, ?int $variantId = null): void
+    {
+        $cart = $this->getOrCreateCart($user);
+
+        $item = $cart->items()
+            ->where('product_id', $product->id)
+            ->when($variantId, fn($q) => $q->where('product_variant_id', $variantId))
+            ->when(! $variantId, fn($q) => $q->whereNull('product_variant_id'))
+            ->first();
+
+        if ($item) {
+            $item->increment('quantity', $quantity);
+        } else {
+            $cart->items()->create([
+                'product_id' => $product->id,
+                'product_variant_id' => $variantId,
+                'quantity' => $quantity,
+            ]);
+        }
+    }
+
+    public function removeItem(User $user, int $cartItemId): void
+    {
+        $this->getOrCreateCart($user)
+            ->items()
+            ->where('id', $cartItemId)
+            ->delete();
+    }
+
+    // --- LOGIC CHO SESSION (KHI CHƯA ĐĂNG NHẬP) ---
+
+    public function all(): array
+    {
+        return Session::get($this->sessionKey, []);
+    }
+
+    private function getSessionItems(): array
+    {
+        $items = $this->all();
+        if (empty($items)) return [];
+
+        $result = [];
+        $productIds = collect($items)->whereNull('variant_id')->pluck('product_id')->unique();
+        $variantIds = collect($items)->whereNotNull('variant_id')->pluck('variant_id')->unique();
+
+        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+        $variants = ProductVariant::with('product')->whereIn('id', $variantIds)->get()->keyBy('id');
+
+        foreach ($items as $k => $it) {
+            $row = $it;
+            $row['key'] = $k;
+
+            if (!empty($it['variant_id'])) {
+                $variant = $variants->get($it['variant_id']);
+                $row['variant'] = $variant;
+                $row['product'] = $variant?->product;
+                $row['price'] = $variant ? (($variant->product->price ?? 0) + ($variant->additional_price ?? 0)) : 0;
+            } else {
+                $product = $products->get($it['product_id']);
+                $row['product'] = $product;
+                $row['price'] = $product?->price ?? 0;
+            }
+            $result[$k] = $row;
+        }
+
+        return $result;
+    }
+
+    public function add(int $productId, ?int $variantId = null, int $qty = 1, array $meta = []): void
     {
         $items = $this->all();
         $id = $variantId ? "v{$variantId}" : "p{$productId}";
@@ -78,7 +142,7 @@ class CartService
             ];
         }
 
-        $this->session->put($this->key, $items);
+        Session::put($this->sessionKey, $items);
     }
 
     public function update(string $itemKey, int $qty): void
@@ -90,7 +154,7 @@ class CartService
             } else {
                 $items[$itemKey]['quantity'] = $qty;
             }
-            $this->session->put($this->key, $items);
+            Session::put($this->sessionKey, $items);
         }
     }
 
@@ -99,85 +163,12 @@ class CartService
         $items = $this->all();
         if (isset($items[$itemKey])) {
             unset($items[$itemKey]);
-            $this->session->put($this->key, $items);
+            Session::put($this->sessionKey, $items);
         }
     }
 
     public function clear(): void
     {
-        $this->session->forget($this->key);
-    }
-
-    public function count(): int
-    {
-        return array_sum(array_map(fn($i) => $i['quantity'] ?? 0, $this->all()));
-    }
-}
-<?php
-
-namespace App\Services;
-
-use App\Models\Cart;
-use App\Models\Product;
-use App\Models\User;
-use Illuminate\Support\Collection;
-
-class CartService
-{
-    public function getOrCreateCart(User $user): Cart
-    {
-        return Cart::query()->firstOrCreate(['user_id' => $user->id]);
-    }
-
-    public function getItems(User $user): Collection
-    {
-        return $this->getOrCreateCart($user)
-            ->items()
-            ->with('product')
-            ->get();
-    }
-
-    public function addItem(User $user, Product $product, int $quantity = 1, ?int $variantId = null): void
-    {
-        $cart = $this->getOrCreateCart($user);
-
-        $item = $cart->items()
-            ->where('product_id', $product->id)
-            ->when($variantId, fn ($q) => $q->where('product_variant_id', $variantId))
-            ->when(! $variantId, fn ($q) => $q->whereNull('product_variant_id'))
-            ->first();
-
-        if ($item) {
-            $item->increment('quantity', $quantity);
-        } else {
-            $cart->items()->create([
-                'product_id' => $product->id,
-                'product_variant_id' => $variantId,
-                'quantity' => $quantity,
-            ]);
-        }
-    }
-
-    public function removeItem(User $user, int $productId): void
-    {
-        $this->getOrCreateCart($user)
-            ->items()
-            ->where('product_id', $productId)
-            ->delete();
-    }
-
-    public function calculateTotal(Collection $items): float
-    {
-        return $items->sum(fn ($item) => (float) $item->product->price * $item->quantity);
-    }
-
-    public function clear(User $user): void
-    {
-        $this->getOrCreateCart($user)->items()->delete();
-    }
-
-    public function isEmpty(User $user): bool
-    {
-        return $this->getItems($user)->isEmpty();
+        Session::forget($this->sessionKey);
     }
 }

@@ -107,7 +107,7 @@
                                     <tr class="text-muted small">
                                         <th>Màu</th>
                                         <th>Bộ nhớ</th>
-                                        <th class="text-end">Giá thêm</th>
+                                        <th class="text-end">Giá Sản Phẩm</th>
                                         <th class="text-end">Tồn kho</th>
                                         <th>Trạng thái</th>
                                         <th class="text-end">Chi tiết</th>
@@ -119,7 +119,7 @@
                                         <td><span class="badge text-bg-secondary">{{ $v->color }}</span></td>
                                         <td><span class="badge text-bg-info">{{ $v->storage }}</span></td>
                                         <td class="text-end">
-                                            {{ $v->additional_price > 0 ? '+'.number_format($v->additional_price, 0, ',', '.') : '0' }} đ
+                                            {{ $v->additional_price > 0 ? number_format($v->additional_price, 0, ',', '.') : '0' }} đ
                                         </td>
                                         <td class="text-end">{{ $v->stock_quantity }}</td>
                                         <td>
