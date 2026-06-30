@@ -14,6 +14,8 @@ class ProductVariant extends Model
 
         'storage',
 
+        'image_path',
+
         'stock_quantity',
 
         'additional_price',
@@ -46,4 +48,9 @@ public function inventoryTransactions()
 {
     return $this->hasMany(InventoryTransaction::class);
 }
+
+    public function images()
+    {
+        return $this->hasMany(ProductImage::class, 'product_variant_id');
+    }
 }

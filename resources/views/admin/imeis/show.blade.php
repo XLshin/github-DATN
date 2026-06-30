@@ -70,13 +70,6 @@
                     </tr>
 
                     <tr>
-                        <th>Mã biến thể</th>
-                        <td>
-                            #{{ $imei->product_variant_id }}
-                        </td>
-                    </tr>
-
-                    <tr>
                         <th>Ngày nhập kho</th>
                         <td>
                             {{ $imei->created_at?->format('d/m/Y H:i') }}

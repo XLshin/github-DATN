@@ -43,10 +43,11 @@ class InventoryController extends Controller
         $transactions = $query
             ->latest()
             ->paginate(10);
+        $brands = \App\Models\Brand::orderBy('name')->get();
 
         return view(
             'admin.inventory.index',
-            compact('transactions')
+            compact('transactions', 'brands')
         );
     }
 

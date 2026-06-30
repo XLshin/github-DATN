@@ -16,8 +16,6 @@
 <form action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data" id="productForm">
     @csrf
 
-    {{-- price & stock_quantity ẩn, tự điền 0 --}}
-    <input type="hidden" name="price" value="0">
     <input type="hidden" name="stock_quantity" value="0">
 
     <div class="row g-3">
@@ -30,7 +28,16 @@
                         <div class="text-muted small">Nhập tên, danh mục, thương hiệu và mô tả.</div>
                     </div>
                 </div>
+
                 <div class="p-3">
+                    <div class="mb-3">
+                        <label class="form-label">Tên sản phẩm <span class="text-danger">*</span></label>
+                        <input type="text" name="name" value="{{ old('name') }}"
+                            class="form-control @error('name') is-invalid @enderror"
+                            placeholder="Nhập tên sản phẩm">
+                        @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label">Loại sản phẩm <span class="text-danger">*</span></label>
                         <select name="product_type" id="productType" class="form-select">
@@ -41,15 +48,7 @@
                             <span id="typeHint">Nhập số lượng tồn kho cho từng biến thể.</span>
                         </div>
                     </div>
-                </div>
-                <div class="p-3">
-                    <div class="mb-3">
-                        <label class="form-label">Tên sản phẩm <span class="text-danger">*</span></label>
-                        <input type="text" name="name" value="{{ old('name') }}"
-                            class="form-control @error('name') is-invalid @enderror"
-                            placeholder="Nhập tên sản phẩm">
-                        @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                    </div>
+
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Danh mục <span class="text-danger">*</span></label>
@@ -57,7 +56,7 @@
                                 <option value="">-- Chọn danh mục --</option>
                                 @foreach($categories as $cat)
                                 <option value="{{ $cat->id }}"
-                                    data-has-storage="{{ strtolower($cat->name) !== 'phụ kiện' ? '1' : '0' }}"
+data-has-storage="{{ strtolower($cat->name) !== 'phụ kiện' ? '1' : '0' }}"
                                     @selected(old('category_id') == $cat->id)>{{ $cat->name }}</option>
                                 @endforeach
                             </select>
@@ -114,12 +113,11 @@
             <section class="panel">
                 <div class="panel-header">
                     <div>
-                        <h5 class="mb-1">Ảnh và trạng thái</h5>
+<h5 class="mb-1">Ảnh và trạng thái</h5>
                     </div>
                 </div>
 
                 <div class="p-3">
-
                     <div class="mb-3">
                         <label class="form-label">Ảnh đại diện</label>
                         <input type="file" name="thumbnail" accept="image/*" id="thumbnailInput"
@@ -169,14 +167,16 @@ function hasStorage() {
 
 function stockInputHtml(index) {
     if (getProductType() === 'imei/serial') {
-        return `<div class="col-md-2 stock-col">
-            <label class="form-label small">Số lượng IMEI</label>
-            <input type="number" name="variants[${index}][stock_quantity]"
-                class="form-control form-control-sm bg-light" value="0" min="0"
-                readonly title="Tự động tính từ IMEI">
+        return `<div class="col-12 stock-col">
+            <label class="form-label small">Danh sách IMEI / Serial <span class="text-danger">*</span></label>
+            <textarea name="variants[${index}][imeis]" rows="5"
+                class="form-control form-control-sm"
+                placeholder="Mỗi dòng một IMEI hoặc Serial&#10;123456789012345&#10;123456789012346&#10;123456789012347"></textarea>
+            <div class="form-text">Mỗi dòng nhập một IMEI hoặc Serial.</div>
+            <input type="hidden" name="variants[${index}][stock_quantity]" value="0">
         </div>`;
     }
-    return `<div class="col-md-2 stock-col">
+return `<div class="col-md-2 stock-col">
         <label class="form-label small">Số lượng</label>
         <input type="number" name="variants[${index}][stock_quantity]"
             class="form-control form-control-sm" value="0" min="0">
@@ -240,10 +240,15 @@ document.getElementById('addVariant').addEventListener('click', function () {
                 <input type="text" name="variants[${variantIndex}][color]"
                     class="form-control form-control-sm" placeholder="VD: Đen">
             </div>
-            ${hasStorage() ? storageColHtml(variantIndex) : ''}
+            <div class="col-md-4 image-col">
+                <label class="form-label small">Ảnh biến thể (chọn được nhiều ảnh)</label>
+                <input type="file" name="variants[${variantIndex}][images][]"
+                    class="form-control form-control-sm" accept="image/*" multiple>
+            </div>
+${hasStorage() ? storageColHtml(variantIndex) : ''}
             ${stockInputHtml(variantIndex)}
             <div class="col-md-3">
-                <label class="form-label small">Giá thêm (đ)</label>
+                <label class="form-label small">Giá của biến thể (đ)</label>
                 <input type="number" name="variants[${variantIndex}][additional_price]"
                     class="form-control form-control-sm" value="0" min="0">
             </div>
