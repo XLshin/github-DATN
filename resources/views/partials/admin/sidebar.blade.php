@@ -38,10 +38,6 @@
             <span class="nav-icon"><i class="bi bi-receipt"></i></span>
             <span class="nav-text">Đơn hàng</span>
         </a>
-        <a class="nav-link {{ request()->routeIs('admin.shipments.*') ? 'active' : '' }}" href="{{ route('admin.shipments.index') }}">
-            <span class="nav-icon"><i class="bi bi-truck"></i></span>
-            <span class="nav-text">Vận chuyển</span>
-        </a>
         <a class="nav-link {{ request()->routeIs('admin.warranties.*') ? 'active' : '' }}" href="{{ route('admin.warranties.index') }}">
             <span class="nav-icon"><i class="bi bi-shield-check"></i></span>
             <span class="nav-text">Bảo hành</span>
