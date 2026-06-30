@@ -153,11 +153,11 @@ class ImeiController extends Controller
      */
     public function show(string $id)
     {
-    $imei = Imei::with([
-        'productVariant.product.brand',
-        'order.user',
-        'warranty'
-    ])->findOrFail($id);
+        $imei = Imei::with([
+            'productVariant.product.brand',
+            'orderItem.order.user',
+            'warranty'
+        ])->findOrFail($id);
 
         return view(
             'admin.imeis.show',
