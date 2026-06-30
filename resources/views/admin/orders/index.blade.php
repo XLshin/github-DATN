@@ -121,8 +121,6 @@
                     <th>Mã đơn</th>
                     <th>Khách hàng</th>
                     <th>Sản phẩm</th>
-                    <th>Trạng thái đơn</th>
-                    <th>Trạng thái giao hàng</th>
                     <th class="text-end">Tổng tiền</th>
                     <th>Thanh toán</th>
                     <th>Trạng thái</th>
@@ -242,7 +240,7 @@
 
                             <a href="{{ route('admin.orders.printShippingLabel', $order) }}"
                                 target="_blank"
-                                class="btn btn-outline-dark btn-sm">
+                                class="btn btn-outline-secondary btn-sm">
                                 In phiếu
                             </a>
 
@@ -313,7 +311,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="9" class="text-center text-muted py-4">
+                    <td colspan="7" class="text-center text-muted py-4">
                         Không có đơn hàng nào
                     </td>
                 </tr>
