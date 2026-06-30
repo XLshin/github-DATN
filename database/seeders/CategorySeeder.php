@@ -13,23 +13,17 @@ class CategorySeeder extends Seeder
      */
     public function run(): void
     {
-        Category::insert([
+        $categories = [
+            ['name' => 'Điện thoại', 'description' => 'Danh mục điện thoại'],
+            ['name' => 'Máy tính bảng', 'description' => 'Danh mục máy tính bảng'],
+            ['name' => 'Phụ kiện', 'description' => 'Danh mục phụ kiện'],
+        ];
 
-            [
-                'name' => 'Điện thoại',
-                'description' => 'Danh mục điện thoại'
-            ],
-
-            [
-                'name' => 'Máy tính bảng',
-                'description' => 'Danh mục máy tính bảng'
-            ],
-
-            [
-                'name' => 'Phụ kiện',
-                'description' => 'Danh mục phụ kiện'
-            ]
-
-        ]);
+        foreach ($categories as $category) {
+            Category::updateOrCreate(
+                ['name' => $category['name']],
+                ['description' => $category['description']]
+            );
+        }
     }
 }

@@ -21,18 +21,6 @@
         </div>
     </div>
 
-<div class="p-3">
-
-    @if ($errors->any())
-    <div class="alert alert-danger">
-        <ul class="mb-0">
-            @foreach ($errors->all() as $error)
-            <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    </div>
-    @endif
-
     <form action="{{ route('admin.inventory.store') }}" method="POST" style="max-width:700px;">
         @csrf
 
