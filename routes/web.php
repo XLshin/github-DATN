@@ -21,20 +21,28 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReviewController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\CarrierWebhookController;
 
 /*
 |--------------------------------------------------------------------------
 | Public routes
 |--------------------------------------------------------------------------
 */
+
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
 
 Route::middleware('auth')->group(function () {
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+    Route::post('/cart/update', [CartController::class, 'update'])->name('cart.update');
     Route::post('/cart/remove', [CartController::class, 'remove'])->name('cart.remove');
 });
+
+// Webhook endpoints
+Route::post('/webhook/payment', [WebhookController::class, 'paymentCallback']);
+Route::post('/webhook/carrier/{code}', [CarrierWebhookController::class, 'handle']);
 
 /*
 |--------------------------------------------------------------------------
@@ -60,7 +68,7 @@ Route::middleware('guest')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', fn () => view('client.profile.dashboard'))->name('dashboard');
+    Route::get('/dashboard', fn() => view('client.profile.dashboard'))->name('dashboard');
 
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -97,10 +105,35 @@ Route::middleware(['auth', 'admin'])->group(function () {
 
         Route::resource('users', AdminUserController::class);
         Route::resource('products', AdminProductController::class);
-        Route::delete('products/{image}/image', [AdminProductController::class, 'destroyImage'])->name('products.image.destroy');
+        Route::delete('product-images/{image}', [AdminProductController::class, 'destroyImage'])->name('products.image.destroy');
+        Route::put('variants/{variant}', [AdminProductController::class, 'updateVariant'])->name('variants.update');
+        Route::get('variants/{variant}', [AdminProductController::class, 'showVariant'])->name('variants.show');
 
         Route::get('orders', [AdminOrderController::class, 'index'])->name('orders.index');
         Route::get('orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
+        Route::post('orders/{order}/confirm', [AdminOrderController::class, 'confirm'])
+            ->name('orders.confirm');
+
+        Route::post('orders/{order}/mark-packed', [AdminOrderController::class, 'markPacked'])
+            ->name('orders.markPacked');
+
+        Route::post('orders/{order}/handover', [AdminOrderController::class, 'handover'])
+            ->name('orders.handover');
+
+        Route::post('orders/{order}/mark-delivered', [AdminOrderController::class, 'markDelivered'])
+            ->name('orders.markDelivered');
+
+        Route::post('orders/{order}/mark-failed', [AdminOrderController::class, 'markFailed'])
+            ->name('orders.markFailed');
+
+        Route::post('orders/{order}/retry-delivery', [AdminOrderController::class, 'retryDelivery'])
+            ->name('orders.retryDelivery');
+
+        Route::post('orders/{order}/cancel', [AdminOrderController::class, 'cancel'])
+            ->name('orders.cancel');
+
+        Route::get('orders/{order}/print-shipping-label', [AdminOrderController::class, 'printShippingLabel'])
+            ->name('orders.printShippingLabel');
 
         Route::get('shipments/lookup', [ShipmentController::class, 'lookup'])->name('shipments.lookup');
         Route::get('shipments/create-from-order/{order}', [ShipmentController::class, 'createFromOrder'])->name('shipments.createFromOrder');
@@ -111,6 +144,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('warranties/lookup-imei', [WarrantyController::class, 'lookupImei'])->name('warranties.lookupImei');
         Route::patch('warranties/{warranty}/status', [WarrantyController::class, 'updateStatus'])->name('warranties.updateStatus');
         Route::resource('warranties', WarrantyController::class)->except(['destroy']);
+
+        Route::resource('imeis', ImeiController::class);
+        Route::resource('shipments', ShipmentController::class)->only(['index', 'show', 'create', 'store']);
+        Route::resource('inventory', InventoryController::class);
+        Route::get('/stocks', [ImeiController::class, 'stock'])->name('stocks');
+        Route::get('/stocks/accessories', [ImeiController::class, 'accessoryStock'])->name('stocks.accessories');
     });
 
     Route::prefix('admin')->group(function () {
@@ -121,8 +160,4 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::patch('reviews/{review}/hide', [ReviewController::class, 'hide'])->name('reviews.hide');
         Route::delete('reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
     });
-
-    Route::resource('imeis', ImeiController::class);
-    Route::resource('inventory', InventoryController::class);
-    Route::get('/stocks', [InventoryController::class, 'stock'])->name('stocks');
 });
