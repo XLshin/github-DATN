@@ -15,7 +15,7 @@
     <i class="bi bi-box-seam"></i> Sản phẩm
 </a>
 
-<a href="{{ route('stocks') }}" class="btn btn-primary btn-sm">
+<a href="{{ route('admin.stocks') }}" class="btn btn-primary btn-sm">
     <i class="bi bi-boxes"></i> Tồn kho
 </a>
 @endsection
@@ -155,7 +155,7 @@
                             </td>
 
                             <td>
-                                @if($product->stock_quantity <= 0)
+                                @if($product->stock_quantity == 0)
                                     <span class="badge text-bg-danger">Hết hàng</span>
                                     @else
                                     <span class="badge text-bg-warning">Sắp hết</span>

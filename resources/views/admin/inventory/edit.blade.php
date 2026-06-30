@@ -7,7 +7,7 @@
 @section('page_subtitle', 'Cập nhật số lượng và ghi chú cho giao dịch kho.')
 
 @section('heading_actions')
-<a href="{{ route('inventory.index') }}" class="btn btn-light btn-sm">
+<a href="{{ route('admin.inventory.index') }}" class="btn btn-light btn-sm">
     <i class="bi bi-arrow-left"></i> Quay lại
 </a>
 @endsection
@@ -34,7 +34,7 @@
         </div>
         @endif
 
-        <form action="{{ route('inventory.update', $transaction->id) }}" method="POST" style="max-width: 700px;">
+        <form action="{{ route('admin.inventory.update', $transaction->id) }}" method="POST" style="max-width: 700px;">
             @csrf
             @method('PUT')
 
@@ -116,7 +116,7 @@
                     <i class="bi bi-check-lg"></i> Cập nhật
                 </button>
 
-                <a href="{{ route('inventory.index') }}" class="btn btn-light btn-sm">
+                <a href="{{ route('admin.inventory.index') }}" class="btn btn-light btn-sm">
                     Hủy
                 </a>
             </div>
