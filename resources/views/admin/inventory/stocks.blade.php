@@ -35,7 +35,7 @@
             name="keyword"
             value="{{ request('keyword') }}"
             class="form-control"
-            placeholder="Tên sản phẩm, màu sắc hoặc dung lượng">
+            placeholder="Imei, tên, màu hoặc dung lượng">
     </div>
 
     <div class="col-md-4">
@@ -320,6 +320,7 @@
                                                 <span class="badge text-bg-primary">
                                                     Đã bán
                                                 </span>
+
 
                                             @else
 
