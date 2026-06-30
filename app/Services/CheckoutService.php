@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+
+use App\Models\Coupon;
 use App\Models\Imei;
 use App\Models\InventoryTransaction;
 use App\Models\Order;
@@ -15,8 +17,9 @@ use Illuminate\Validation\ValidationException;
 class CheckoutService
 {
     public function __construct(
-        private readonly CartService $cartService,
-    ) {}
+    private readonly CartService $cartService,
+    private readonly PointService $pointService,
+) {}
 
     public function process(User $user, array $data): Order
     {
@@ -30,6 +33,27 @@ class CheckoutService
 
         return DB::transaction(function () use ($user, $data, $items) {
             $subtotal = $this->cartService->calculateTotal($items);
+            $coupon = null;
+            $couponDiscount = 0;
+
+            if (! empty($data['coupon_id'])) {
+                $coupon = Coupon::findOrFail($data['coupon_id']);
+
+                // Verify user has access to this coupon
+                if (!$user->coupons->contains($coupon->id)) {
+                    throw ValidationException::withMessages([
+                        'coupon_id' => 'Voucher không hợp lệ hoặc bạn không có quyền sử dụng.',
+                    ]);
+                }
+
+                if (! $coupon->isValidForAmount($subtotal)) {
+                    throw ValidationException::withMessages([
+                        'coupon_id' => 'Mã voucher không đáp ứng điều kiện tối thiểu.',
+                    ]);
+                }
+
+                $couponDiscount = $coupon->discountAmount($subtotal);
+            }
 
             $order = Order::query()->create([
                 'user_id' => $user->id,
@@ -39,8 +63,12 @@ class CheckoutService
                 'shipping_address' => $data['shipping_address'],
                 'subtotal' => $subtotal,
                 'membership_discount' => 0,
-                'coupon_discount' => 0,
-                'total_amount' => $subtotal,
+                'coupon_discount' => $couponDiscount,
+                'points_used' => 0,
+                'points_discount' => 0,
+                'coupon_id' => $coupon?->id,
+                'coupon_code' => $coupon?->code,
+                'total_amount' => max($subtotal - $couponDiscount, 0),
                 'status' => 'pending',
                 'fulfillment_status' => 'pending',
             ]);
@@ -119,6 +147,16 @@ class CheckoutService
                 'paid_at' => $data['payment_method'] === 'cod' ? null : now(),
             ]);
 
+$pointsEarned = $this->pointService->calculatePointsFromOrder($order->total_amount);
+
+if ($pointsEarned > 0) {
+    $this->pointService->addPoints(
+        $user,
+        $pointsEarned,
+        'purchase',
+        "Mua hàng - Đơn hàng #{$order->order_code}"
+    );
+}
             $this->cartService->clear($user);
 
             return $order;
