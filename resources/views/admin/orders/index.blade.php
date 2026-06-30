@@ -121,6 +121,11 @@
                     <th>Mã đơn</th>
                     <th>Khách hàng</th>
                     <th>Sản phẩm</th>
+<<<<<<< HEAD
+=======
+                    <th>Trạng thái đơn</th>
+                    <th>Trạng thái giao hàng</th>
+>>>>>>> origin/bac
                     <th class="text-end">Tổng tiền</th>
                     <th>Thanh toán</th>
                     <th>Trạng thái</th>
@@ -156,7 +161,11 @@
                                     <span class="fw-semibold">
                                         {{ $item->product->name ?? ('Product #' . $item->product_id) }}
                                     </span>
+<<<<<<< HEAD
 x {{ $item->quantity }}
+=======
+                                    x {{ $item->quantity }}
+>>>>>>> origin/bac
 
                                     @if($item->variant)
                                         <div class="text-muted small">
@@ -180,6 +189,66 @@ x {{ $item->quantity }}
                                 </div>
                             @endforeach
                         </td>
+
+                        <td>
+                            @switch($order->status)
+                                @case('pending')
+                                    <span class="badge text-bg-secondary">Chờ xử lý</span>
+                                    @break
+
+                                @case('processing')
+                                    <span class="badge text-bg-primary">Đang xử lý</span>
+                                    @break
+
+                                @case('shipping')
+                                    <span class="badge text-bg-warning">Đang vận chuyển</span>
+                                    @break
+
+                                @case('completed')
+                                    <span class="badge text-bg-success">Hoàn thành</span>
+                                    @break
+
+                                @case('cancelled')
+                                    <span class="badge text-bg-danger">Đã hủy</span>
+                                    @break
+
+                                @case('returned')
+                                    <span class="badge text-bg-info">Đã hoàn trả</span>
+                                    @break
+
+                                @default
+                                    <span class="badge text-bg-light">{{ $order->status }}</span>
+                            @endswitch
+                        </td>
+
+<td>
+    @if($order->shipment)
+        @switch($order->shipment->shipping_status)
+            @case('pending')
+                <span class="badge text-bg-secondary">Chờ giao</span>
+                @break
+
+            @case('shipping')
+                <span class="badge text-bg-primary">Đang giao</span>
+                @break
+
+            @case('delivered')
+                <span class="badge text-bg-success">Đã giao</span>
+                @break
+
+            @case('failed')
+                <span class="badge text-bg-danger">Giao thất bại</span>
+                @break
+
+            @default
+                <span class="badge text-bg-light">
+                    {{ $order->shipment->shipping_status }}
+                </span>
+        @endswitch
+    @else
+        <span class="text-muted">—</span>
+    @endif
+</td>
 
                         <td class="text-end fw-semibold">
                             {{ number_format($order->total_amount, 0, ',', '.') }} đ
@@ -310,7 +379,7 @@ x {{ $item->quantity }}
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">
+                        <td colspan="9" class="text-center text-muted py-4">
                             Không có đơn hàng nào
                         </td>
                     </tr>
