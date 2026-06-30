@@ -239,27 +239,41 @@ class ImeiController extends Controller
 
     public function stock(Request $request)
     {
+        if ($request->filled('keyword')) {
+
+            $imei = Imei::where('imei', trim($request->keyword))->first();
+
+            if ($imei) {
+                return redirect()->route('admin.imeis.show', $imei->id);
+            }
+        }
         $query = ProductVariant::with([
             'product.brand',
             'imeis'
         ])
-        ->whereHas('imeis');
+            ->whereHas('imeis');
 
         // tìm kiếm
         if ($request->keyword) {
 
             $keyword = trim($request->keyword);
 
+
             $query->where(function ($query) use ($keyword) {
 
-                $query->whereHas('product', function ($q) use ($keyword) {
+                if (preg_match('/^\d{8,15}$/', $keyword)) {
 
-                    $q->where('name', 'like', "%{$keyword}%");
+                    $query->whereHas('imeis', function ($q) use ($keyword) {
+                        $q->where('imei', 'like', "%{$keyword}%");
+                    });
+                } else {
 
-                })
-                ->orWhere('color', 'like', "%{$keyword}%")
-                ->orWhere('storage', 'like', "%{$keyword}%");
-
+                    $query->whereHas('product', function ($q) use ($keyword) {
+                        $q->where('name', 'like', "%{$keyword}%");
+                    })
+                        ->orWhere('color', 'like', "%{$keyword}%")
+                        ->orWhere('storage', 'like', "%{$keyword}%");
+                }
             });
         }
 
@@ -269,7 +283,6 @@ class ImeiController extends Controller
             $query->whereHas('product', function ($q) use ($request) {
 
                 $q->where('brand_id', $request->brand_id);
-
             });
         }
 
@@ -277,18 +290,18 @@ class ImeiController extends Controller
 
             $variant->available_count =
                 $variant->imeis
-                    ->where('status', 'available')
-                    ->count();
+                ->where('status', 'available')
+                ->count();
 
             $variant->sold_count =
                 $variant->imeis
-                    ->where('status', 'sold')
-                    ->count();
+                ->where('status', 'sold')
+                ->count();
 
             $variant->warranty_count =
                 $variant->imeis
-                    ->where('status', 'warranty')
-                    ->count();
+                ->where('status', 'warranty')
+                ->count();
 
             return $variant;
         });
