@@ -56,7 +56,6 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
-        // Route Model Binding đã tự động lấy đúng $order, chỉ cần load thêm các quan hệ
         $order->load([
             'user',
             'items.product',
