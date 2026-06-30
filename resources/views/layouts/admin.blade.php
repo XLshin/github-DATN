@@ -1,16 +1,26 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="H-Phone Store - Quản trị hệ thống">
     <title>@yield('title', 'Quản trị') — Byte Zone Admin</title>
 
-    <link rel="stylesheet" href="{{ asset('assets/css/bootstrap.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/vendors/bootstrap-icons/bootstrap-icons.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/bootstrap.min.css') }}" data-turbo-track="reload">
+    <link rel="stylesheet" href="{{ asset('assets/vendors/bootstrap-icons/bootstrap-icons.css') }}" data-turbo-track="reload">
+    <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}" data-turbo-track="reload">
     @stack('styles')
+
+    <script>
+        if (localStorage.getItem('sidebar-collapsed') === 'true') {
+            document.documentElement.classList.add('sidebar-collapsed');
+        }
+    </script>
+
+    <script type="module" src="https://unpkg.com/@hotwired/turbo"></script>
 </head>
+
 <body>
     <div class="admin-shell">
         <div class="sidebar-backdrop" data-sidebar-close></div>
@@ -35,4 +45,5 @@
     @include('partials.admin.scripts')
     @stack('scripts')
 </body>
+
 </html>

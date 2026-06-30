@@ -28,22 +28,15 @@
             <span class="nav-text">Thương hiệu</span>
         </a>
 
-        <a class="nav-link {{ request()->routeIs('admin.inventory.*', 'admin.stocks') ? 'active' : '' }}" href="{{ route('admin.inventory.index') }}">
+        <a class="nav-link {{ request()->routeIs('admin.stocks', 'admin.imeis.*') ? 'active' : '' }}"
+        href="{{ route('admin.stocks') }}">
             <span class="nav-icon"><i class="bi bi-boxes"></i></span>
             <span class="nav-text">Kho hàng</span>
-        </a>
-        <a class="nav-link {{ request()->routeIs('admin.imeis.*') ? 'active' : '' }}" href="{{ route('admin.imeis.index') }}">
-            <span class="nav-icon"><i class="bi bi-upc-scan"></i></span>
-            <span class="nav-text">IMEI</span>
         </a>
 
         <a class="nav-link {{ request()->routeIs('admin.orders.*') ? 'active' : '' }}" href="{{ route('admin.orders.index') }}">
             <span class="nav-icon"><i class="bi bi-receipt"></i></span>
             <span class="nav-text">Đơn hàng</span>
-        </a>
-        <a class="nav-link {{ request()->routeIs('admin.shipments.*') ? 'active' : '' }}" href="{{ route('admin.shipments.index') }}">
-            <span class="nav-icon"><i class="bi bi-truck"></i></span>
-            <span class="nav-text">Vận chuyển</span>
         </a>
         <a class="nav-link {{ request()->routeIs('admin.warranties.*') ? 'active' : '' }}" href="{{ route('admin.warranties.index') }}">
             <span class="nav-icon"><i class="bi bi-shield-check"></i></span>

@@ -20,10 +20,17 @@ class InventoryController extends Controller
         );
 
         if ($request->keyword) {
-            $query->where(
-                'product_variant_id',
-                $request->keyword
-            );
+            $keyword = trim($request->keyword);
+
+            $query->where(function ($query) use ($keyword) {
+                $query->whereHas('productVariant.product', function ($query) use ($keyword) {
+                    $query->where('name', 'like', '%' . $keyword . '%');
+                });
+
+                if (is_numeric($keyword)) {
+                    $query->orWhere('product_variant_id', $keyword);
+                }
+            });
         }
 
         if ($request->transaction_type) {
@@ -48,11 +55,14 @@ class InventoryController extends Controller
      */
     public function create()
     {
-        $variants = ProductVariant::with('product')
-            ->where('status', true)
+        $quantityVariants = ProductVariant::with('product')
+            ->whereHas('product', function ($query) {
+                $query->where('product_type', 'quantity');
+            })
             ->get();
-        return view('admin.inventory.create', compact('variants'));
-    }
+
+        return view('admin.inventory.create', compact('quantityVariants'));
+    } 
 
     /**
      * Store a newly created resource in storage.
@@ -62,16 +72,28 @@ class InventoryController extends Controller
         $request->validate([
             'product_variant_id' => 'required|exists:product_variants,id',
             'quantity' => 'required|integer|min:1'
+        ], [
+            'product_variant_id.required' => 'Bạn phải chọn biến thể phụ kiện.',
+            'product_variant_id.exists' => 'Biến thể phụ kiện không tồn tại.',
+            'quantity.required' => 'Bạn phải nhập số lượng.',
+            'quantity.integer' => 'Số lượng phải là số nguyên.',
+            'quantity.min' => 'Số lượng phải lớn hơn hoặc bằng 1.',
         ]);
+
+        $variant = ProductVariant::findOrFail($request->product_variant_id);
+
+        // Tăng tồn kho
+        $variant->increment('stock_quantity', $request->quantity);
 
         InventoryTransaction::create([
             'product_variant_id' => $request->product_variant_id,
             'type' => 'import',
             'quantity' => $request->quantity,
-            'note' => $request->note
+            'note' => $request->note ?? 'Nhập kho phụ kiện'
         ]);
 
-        return redirect()->route('admin.inventory.index');
+        return redirect()->route('admin.stocks.accessories')
+            ->with('success', 'Đã nhập kho phụ kiện thành công.');
     }
 
     /**
@@ -124,31 +146,5 @@ class InventoryController extends Controller
         //
     }
 
-    public function stock(Request $request)
-    {
-        $query = Imei::with(
-            'productVariant.product'
-        )
-        ->selectRaw(
-            'product_variant_id,
-            count(*) as total'
-        )
-        ->where('status', 'available')
-        ->groupBy('product_variant_id');
 
-        if($request->variant_id)
-        {
-            $query->where(
-                'product_variant_id',
-                $request->variant_id
-            );
-        }
-
-        $stocks = $query->get();
-
-        return view(
-            'admin.inventory.stocks',
-            compact('stocks')
-        );
-    }
 }

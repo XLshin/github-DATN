@@ -2,9 +2,9 @@
 
 @section('title', 'IMEI')
 @section('page_icon', 'bi-upc-scan')
-@section('page_eyebrow', 'Kho hàng')
-@section('page_title', 'Danh sách IMEI')
-@section('page_subtitle', 'Quản lý mã IMEI thiết bị.')
+@section('page_eyebrow', 'Kho IMEI/Serial')
+@section('page_title', 'Danh sách IMEI/Serial')
+@section('page_subtitle', 'Quản lý mã IMEI/Serial thiết bị. Chỉ hiển thị IMEI/Serial của sản phẩm thuộc danh mục Điện thoại.')
 
 @section('heading_actions')
     <a href="{{ route('admin.imeis.create') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Thêm IMEI</a>
@@ -34,7 +34,7 @@
             <table class="table align-middle mb-0">
                 <thead>
                     <tr>
-                        <th>ID</th><th>Sản phẩm</th><th>Màu</th><th>Dung lượng</th><th>IMEI</th><th>Trạng thái</th><th class="text-end">Thao tác</th>
+                        <th>ID</th><th>Sản phẩm</th><th>Màu</th><th>Dung lượng</th><th>IMEI/Serial</th><th>Trạng thái</th><th class="text-end">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
