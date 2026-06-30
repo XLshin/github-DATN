@@ -81,7 +81,7 @@
                     <thead>
                         <tr>
                             <th>Màu</th>
-                            <th>Bộ nhớ</th>
+                            <th>Kiểu loại</th>
                             <th class="text-end">Giá Sản Phẩm</th>
                             <th class="text-end">
                                 @if($product->product_type === 'imei/serial') Số IMEI @else Tồn kho @endif
@@ -110,17 +110,7 @@
                                 <a href="{{ route('admin.variants.show', $v) }}" class="btn btn-light btn-sm">
                                     <i class="bi bi-eye"></i> Xem
                                 </a>
-                                <button type="button" class="btn btn-light btn-sm"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#editVariantModal"
-                                    data-id="{{ $v->id }}"
-                                    data-color="{{ $v->color }}"
-                                    data-storage="{{ $v->storage }}"
-                                    data-stock="{{ $v->stock_quantity }}"
-                                    data-price="{{ $v->additional_price }}"
-                                    data-status="{{ $v->status }}">
-                                    <i class="bi bi-pencil"></i> Sửa
-                                </button>
+
                             </td>
                         </tr>
                         @empty
@@ -183,12 +173,8 @@
                             <input type="text" name="color" id="vColor" class="form-control" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Bộ nhớ <span class="text-danger">*</span></label>
+                            <label class="form-label">Kiểu loại <span class="text-danger">*</span></label>
                             <input type="text" name="storage" id="vStorage" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label" id="vStockLabel">Tồn kho</label>
-                            <input type="number" name="stock_quantity" id="vStock" class="form-control" min="0">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Giá Sản Phẩm (đ)</label>
@@ -223,13 +209,11 @@ document.getElementById('editVariantModal').addEventListener('show.bs.modal', fu
     const id      = btn.dataset.id;
     const color   = btn.dataset.color;
     const storage = btn.dataset.storage;
-    const stock   = btn.dataset.stock;
     const price   = btn.dataset.price;
     const status  = btn.dataset.status;
 
     document.getElementById('vColor').value   = color;
     document.getElementById('vStorage').value = storage;
-    document.getElementById('vStock').value   = stock;
     document.getElementById('vPrice').value   = price;
     document.getElementById('vStatus').checked = status == '1';
 

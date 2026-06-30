@@ -113,47 +113,7 @@
                         @enderror
                     </div>
 
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">
-                                Giá (đ) <span class="text-danger">*</span>
-                            </label>
-
-                            <input
-                                type="number"
-                                name="price"
-                                value="{{ old('price', $product->price) }}"
-                                min="0"
-                                class="form-control @error('price') is-invalid @enderror"
-                                placeholder="Nhập giá sản phẩm">
-
-                            @error('price')
-                            <div class="invalid-feedback">
-                                {{ $message }}
-                            </div>
-                            @enderror
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label">
-                                Tồn kho <span class="text-danger">*</span>
-                            </label>
-
-                            <input
-                                type="number"
-                                name="stock_quantity"
-                                value="{{ old('stock_quantity', $product->stock_quantity) }}"
-                                min="0"
-                                class="form-control @error('stock_quantity') is-invalid @enderror"
-                                placeholder="Nhập số lượng tồn kho">
-
-                            @error('stock_quantity')
-                            <div class="invalid-feedback">
-                                {{ $message }}
-                            </div>
-                            @enderror
-                        </div>
-                    </div>
+                   
                 </div>
             </section>
         </div>

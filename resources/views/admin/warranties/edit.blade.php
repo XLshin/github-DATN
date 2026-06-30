@@ -127,7 +127,7 @@
                             type="date"
                             name="warranty_start"
                             value="{{ old('warranty_start', $warranty->warranty_start ? $warranty->warranty_start->format('Y-m-d') : '') }}"
-                            class="form-control @error('warranty_start') is-invalid @enderror">
+                            class="form-control @error('warranty_start') is-invalid  @enderror" readonly >
 
                         @error('warranty_start')
                         <div class="invalid-feedback">
@@ -145,7 +145,7 @@
                             type="date"
                             name="warranty_end"
                             value="{{ old('warranty_end', $warranty->warranty_end ? $warranty->warranty_end->format('Y-m-d') : '') }}"
-                            class="form-control @error('warranty_end') is-invalid @enderror">
+                            class="form-control @error('warranty_end') is-invalid @enderror" readonly >
 
                         @error('warranty_end')
                         <div class="invalid-feedback">

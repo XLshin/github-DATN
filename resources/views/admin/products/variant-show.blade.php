@@ -17,7 +17,7 @@
 
 @section('content')
 <div class="row g-3">
-    <div class="col-lg-6">
+    <div class="col-lg-8">
         <section class="panel">
             <div class="panel-header">
                 <h5 class="mb-0">Thông tin biến thể</h5>
@@ -46,7 +46,7 @@
                     </tr>
                     @if($variant->storage)
                     <tr>
-                        <th>Bộ nhớ</th>
+                        <th>Kiểu loại</th>
                         <td><span class="badge text-bg-info fs-6">{{ $variant->storage }}</span></td>
                     </tr>
                     @endif
@@ -86,6 +86,164 @@
             </div>
         </section>
     </div>
+    <div class="col-lg-4">
+
+    @if($variant->product->product_type === 'imei/serial')
+
+        <section class="panel">
+            <div class="panel-header">
+                <h5 class="mb-0">Danh sách IMEI</h5>
+            </div>
+
+            <div class="p-3">
+
+                @if($variant->imeis->count())
+
+                    <div style="max-height:420px;overflow:auto;">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>IMEI</th>
+                                    <th>TT</th>
+                                    <th>Ngày nhập</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                            @foreach($variant->imeis as $imei)
+
+                                <tr>
+                                    <td class="small">{{ $imei->imei }}</td>
+
+                                    <td>
+                                        @switch($imei->status)
+
+                                            @case('available')
+                                                <span class="badge text-bg-success">
+                                                    Available
+                                                </span>
+                                                @break
+
+                                            @case('sold')
+                                                <span class="badge text-bg-danger">
+                                                    Sold
+                                                </span>
+                                                @break
+
+                                            @case('warranty')
+                                                <span class="badge text-bg-warning">
+                                                    Warranty
+                                                </span>
+                                                @break
+
+                                            @default
+                                                <span class="badge text-bg-secondary">
+                                                    {{ $imei->status }}
+                                                </span>
+
+                                        @endswitch
+                                    </td>
+                                    <td class="small">{{ $imei->created_at }}</td>
+
+
+                                </tr>
+
+                            @endforeach
+
+                            </tbody>
+
+                        </table>
+                    </div>
+
+                @else
+
+                    <div class="text-muted">
+                        Chưa có IMEI nào.
+                    </div>
+
+                @endif
+
+            </div>
+        </section>
+
+    @else
+
+        <section class="panel">
+            <div class="panel-header">
+                <h5 class="mb-0">Lịch sử nhập / xuất</h5>
+            </div>
+
+            <div class="p-3">
+
+                @if($variant->inventoryTransactions->count())
+
+                    <div style="max-height:420px;overflow:auto;">
+
+                        @foreach($variant->inventoryTransactions->sortByDesc('created_at') as $log)
+
+                            <div class="border rounded p-2 mb-2">
+
+                                <div class="fw-semibold">
+
+                                    @switch($log->type)
+
+                                        @case('import')
+                                            <span class="text-success">
+                                                Nhập kho
+                                            </span>
+                                            @break
+
+                                        @case('export')
+                                            <span class="text-danger">
+                                                Xuất kho
+                                            </span>
+                                            @break
+
+                                        @default
+                                            <span class="text-primary">
+                                                Điều chỉnh
+                                            </span>
+
+                                    @endswitch
+
+                                </div>
+
+                                <div>
+                                    SL:
+                                    <strong>{{ $log->quantity }}</strong>
+                                </div>
+
+                                @if($log->note)
+                                    <div class="small text-muted">
+                                        {{ $log->note }}
+                                    </div>
+                                @endif
+
+                                <div class="small text-muted">
+                                    {{ $log->created_at->format('d/m/Y H:i') }}
+                                </div>
+
+                            </div>
+
+                        @endforeach
+
+                    </div>
+
+                @else
+
+                    <div class="text-muted">
+                        Chưa có lịch sử nhập xuất.
+                    </div>
+
+                @endif
+
+            </div>
+        </section>
+
+    @endif
+
+</div>
 </div>
 
 {{-- Modal sửa biến thể --}}
@@ -106,7 +264,7 @@
                         </div>
                         @if($variant->storage !== null && $variant->storage !== '')
                         <div class="col-md-6">
-                            <label class="form-label">Bộ nhớ</label>
+                            <label class="form-label">Kiểu loại</label>
                             <input type="text" name="storage" class="form-control" value="{{ old('storage', $variant->storage) }}">
                         </div>
                         @else

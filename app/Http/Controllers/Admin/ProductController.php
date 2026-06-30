@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Admin;
-
+use App\Models\InventoryTransaction;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Category;
@@ -67,14 +67,28 @@ class ProductController extends Controller
         }
 
         foreach ($request->variants as $variant) {
-            ProductVariant::create([
-                'product_id'       => $product->id,
-                'color'            => $variant['color'],
-                'storage'          => $variant['storage'] ?? '',
-                'stock_quantity'   => $variant['stock_quantity'] ?? 0,
-                'additional_price' => $variant['additional_price'] ?? 0,
-                'status'           => true,
+        $productVariant = ProductVariant::create([
+            'product_id'       => $product->id,
+            'color'            => $variant['color'],
+            'storage'          => $variant['storage'] ?? '',
+            'stock_quantity'   => $variant['stock_quantity'] ?? 0,
+            'additional_price' => $variant['additional_price'] ?? 0,
+            'status'           => true,
+        ]);
+
+        if (
+            $product->product_type === 'quantity'
+            && $productVariant->stock_quantity > 0
+        ) {
+            InventoryTransaction::create([
+                'product_variant_id' => $productVariant->id,
+                'type' => 'import',
+                'quantity' => $productVariant->stock_quantity,
+                'note' => 'Nhập kho ban đầu khi tạo sản phẩm',
             ]);
+        }
+
+            
         }
 
         return redirect()->route('admin.products.show', $product)
@@ -154,7 +168,12 @@ class ProductController extends Controller
 
     public function showVariant(ProductVariant $variant)
     {
-        $variant->load(['product.category', 'product.brand']);
+        $variant->load([
+        'product.brand',
+        'product.category',
+        'imeis',
+        'inventoryTransactions',
+    ]);
         return view('admin.products.variant-show', compact('variant'));
     }
 

@@ -23,7 +23,7 @@
                     <th>Tên sản phẩm</th>
                     <th>Danh mục</th>
                     <th>Thương hiệu</th>
-                    <th>Loại</th>
+                    <th>Kiểu loại</th>
                     <th>Trạng thái</th>
                     <th class="text-end">Thao tác</th>
                 </tr>
@@ -106,7 +106,7 @@
                                 <thead>
                                     <tr class="text-muted small">
                                         <th>Màu</th>
-                                        <th>Bộ nhớ</th>
+                                        <th>Kiểu loại</th>
                                         <th class="text-end">Giá Sản Phẩm</th>
                                         <th class="text-end">Tồn kho</th>
                                         <th>Trạng thái</th>
