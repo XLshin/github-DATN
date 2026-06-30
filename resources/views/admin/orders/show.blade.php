@@ -6,23 +6,46 @@
     {{-- Header --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h3>Chi tiết đơn hàng</h3>
+            <h3 class="mb-1">Chi tiết đơn hàng</h3>
             <div class="text-muted">
-                Mã đơn: <strong>{{ $order->order_code }}</strong>
+                Mã đơn:
+                <strong>{{ $order->order_code }}</strong>
             </div>
         </div>
 
         <div class="d-flex gap-2">
-            <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary">Quay lại</a>
-            <a href="{{ route('admin.orders.printShippingLabel', $order) }}" target="_blank" class="btn btn-primary">
+            <a href="{{ route('admin.orders.index') }}" class="btn btn-outline-secondary">
+                Quay lại
+            </a>
+
+            <a href="{{ route('admin.orders.printShippingLabel', $order) }}" target="_blank" class="btn btn-outline-primary">
                 In phiếu
             </a>
         </div>
     </div>
 
-    {{-- Alerts --}}
-    @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
-    @if(session('error')) <div class="alert alert-danger">{{ session('error') }}</div> @endif
+    {{-- Alert --}}
+    @if(session('success'))
+        <div class="alert alert-success">
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     @php
         $fulfillmentLabels = [
@@ -35,54 +58,142 @@
             'failed' => 'Giao thất bại',
         ];
 
-        $paymentLabels = [
-            'pending' => 'Chờ thanh toán',
-            'paid' => 'Đã thanh toán',
-            'failed' => 'Thất bại',
-            'cancelled' => 'Đã hủy',
-            'refunded' => 'Hoàn tiền',
+        $fulfillmentClasses = [
+            'pending' => 'bg-warning text-dark',
+            'waiting_pack' => 'bg-info text-dark',
+            'waiting_handover' => 'bg-primary',
+            'shipping' => 'bg-primary',
+            'completed' => 'bg-success',
+            'cancelled' => 'bg-danger',
+            'failed' => 'bg-danger',
         ];
 
         $paymentStatus = $order->payment->payment_status ?? null;
+
+        $paymentLabels = [
+            'pending' => 'Chờ thanh toán',
+            'paid' => 'Đã thanh toán',
+            'failed' => 'Thanh toán thất bại',
+            'cancelled' => 'Đã hủy',
+            'refunded' => 'Đã hoàn tiền',
+        ];
+
+        $paymentClasses = [
+            'pending' => 'bg-warning text-dark',
+            'paid' => 'bg-success',
+            'failed' => 'bg-danger',
+            'cancelled' => 'bg-danger',
+            'refunded' => 'bg-secondary',
+        ];
     @endphp
 
-    {{-- ORDER INFO --}}
-    <div class="card mb-4">
+    {{-- Thông tin đơn hàng --}}
+    <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
+            <h5 class="mb-3">Thông tin đơn hàng</h5>
+
             <div class="row g-3">
-
                 <div class="col-md-3">
-                    <small class="text-muted">Trạng thái</small><br>
-                    <span class="badge bg-primary">
-                        {{ $fulfillmentLabels[$order->fulfillment_status] ?? $order->fulfillment_status }}
-                    </span>
+                    <div class="text-muted small">Mã đơn</div>
+<div class="fw-semibold">{{ $order->order_code }}</div>
                 </div>
 
                 <div class="col-md-3">
-                    <small class="text-muted">Thanh toán</small><br>
-                    <span class="badge bg-success">
-                        {{ $paymentLabels[$paymentStatus] ?? '-' }}
-                    </span>
+                    <div class="text-muted small">Tiến trình xử lý</div>
+                    <div>
+                        <span class="badge {{ $fulfillmentClasses[$order->fulfillment_status] ?? 'bg-secondary' }}">
+                            {{ $fulfillmentLabels[$order->fulfillment_status] ?? $order->fulfillment_status }}
+                        </span>
+                    </div>
                 </div>
 
                 <div class="col-md-3">
-                    <small class="text-muted">Khách hàng</small><br>
-                    {{ $order->customer_name }}
+                    <div class="text-muted small">Thanh toán</div>
+                    <div>
+                        <span class="badge {{ $paymentClasses[$paymentStatus] ?? 'bg-secondary' }}">
+                            {{ $paymentLabels[$paymentStatus] ?? '-' }}
+                        </span>
+                    </div>
                 </div>
 
                 <div class="col-md-3">
-                    <small class="text-muted">Tổng tiền</small><br>
-                    <strong>{{ number_format($order->total_amount, 0, ',', '.') }} đ</strong>
+                    <div class="text-muted small">Tổng tiền</div>
+                    <div class="fw-bold">
+                        {{ number_format($order->total_amount, 0, ',', '.') }} đ
+                    </div>
                 </div>
-
             </div>
         </div>
     </div>
 
-    {{-- CUSTOMER --}}
-    <div class="card mb-4">
+    {{-- Thông tin khách hàng + thanh toán --}}
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="mb-3">Thông tin khách hàng</h5>
+
+                    <div class="mb-2">
+                        <div class="text-muted small">Tên khách hàng</div>
+                        <div class="fw-semibold">{{ $order->customer_name }}</div>
+                    </div>
+
+                    <div class="mb-2">
+                        <div class="text-muted small">Số điện thoại</div>
+                        <div>{{ $order->customer_phone }}</div>
+                    </div>
+
+                    <div class="mb-2">
+                        <div class="text-muted small">Địa chỉ giao hàng</div>
+                        <div>{{ $order->shipping_address }}</div>
+                    </div>
+
+                    <div>
+                        <div class="text-muted small">Tài khoản</div>
+                        <div>{{ $order->user->email ?? '-' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="mb-3">Thanh toán</h5>
+
+                    <div class="mb-2">
+                        <div class="text-muted small">Phương thức</div>
+                        <div class="fw-semibold">
+                            {{ strtoupper($order->payment->payment_method ?? '-') }}
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+<div class="text-muted small">Trạng thái thanh toán</div>
+                        <span class="badge {{ $paymentClasses[$paymentStatus] ?? 'bg-secondary' }}">
+                            {{ $paymentLabels[$paymentStatus] ?? '-' }}
+                        </span>
+                    </div>
+
+                    <div class="mb-2">
+                        <div class="text-muted small">Số tiền</div>
+                        <div class="fw-bold">
+                            {{ number_format($order->payment->amount ?? 0, 0, ',', '.') }} đ
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="text-muted small">Mã giao dịch</div>
+                        <div>{{ $order->payment->transaction_code ?? '-' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Thao tác xử lý --}}
+    <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
-<<<<<<< HEAD
             <h5 class="mb-3">Thao tác xử lý</h5>
 
             <div class="d-flex flex-wrap gap-2">
@@ -125,7 +236,7 @@
                     <form action="{{ route('admin.orders.retryDelivery', $order) }}" method="POST"
                           onsubmit="return confirm('Bạn có chắc muốn giao lại đơn hàng này không?');">
                         @csrf
-                        <button type="submit" class="btn btn-primary">
+<button type="submit" class="btn btn-primary">
                             Giao lại
                         </button>
                     </form>
@@ -140,38 +251,14 @@
                         </button>
                     </form>
                 @endif
-                @if($order->status === 'pending')
-                <span class="badge text-bg-secondary">Chờ xử lý</span>
-                @elseif($order->status === 'processing')
-                <span class="badge text-bg-primary">Đang xử lý</span>
-                @elseif($order->status === 'completed')
-                <span class="badge text-bg-success">Hoàn thành</span>
-                @elseif($order->status === 'cancelled')
-                <span class="badge text-bg-danger">Đã hủy</span>
-                @elseif($order->status === 'shipping')
-                <span class="badge text-bg-warning">Đang vận chuyển — không thể chỉnh sửa</span>
-                @elseif($order->status === 'returned')
-                <span class="badge text-bg-info">Đã hoàn trả</span>
-                @else
-                <span class="badge text-bg-light">
-                    {{ $order->status }}
-                </span>
-                @endif
 
             </div>
-=======
-            <h5>Thông tin khách hàng</h5>
-            <div>{{ $order->customer_phone }}</div>
-            <div>{{ $order->shipping_address }}</div>
-            <div>{{ $order->user->email ?? '-' }}</div>
->>>>>>> origin/main
         </div>
     </div>
 
-    {{-- PRODUCTS --}}
-    <div class="card mb-4">
+    {{-- Tiến trình xử lý --}}
+    <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
-<<<<<<< HEAD
             <h5 class="mb-1">Tiến trình xử lý</h5>
             <p class="text-muted mb-4">Các mốc thời gian xử lý đơn hàng.</p>
 
@@ -216,123 +303,248 @@
                     <div class="fw-semibold">
                         {{ $order->shipping_label_printed_at ? $order->shipping_label_printed_at->format('d/m/Y H:i') : '-' }}
                     </div>
-                    </div>
-                    
-<!-- Customer Information Section -->
-<section class="panel mb-4">
-    <div class="panel-header">
-        <div>
-            <h5 class="mb-1">Thông tin khách hàng</h5>
-            <div class="text-muted small">
-                Chi tiết liên hệ và địa chỉ giao hàng.
-            </div>
-        </div>
-    </div>
-
-    <div class="p-3">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="text-muted small">Tên khách hàng</div>
-                <div class="fw-semibold">
-                    {{ $order->customer_name ?? $order->user->name ?? 'N/A' }}
-                </div>
-            </div>
-
-            <div class="col-md-6">
-                <div class="text-muted small">Số điện thoại</div>
-                <div class="fw-semibold">
-                    {{ $order->customer_phone ?? 'N/A' }}
-                </div>
-            </div>
-
-            <div class="col-md-12">
-                <div class="text-muted small">Địa chỉ giao hàng</div>
-                <div class="fw-semibold">
-                    {{ $order->shipping_address ?? 'N/A' }}
                 </div>
             </div>
         </div>
     </div>
-
-    {{-- Sản phẩm trong đơn --}}
+{{-- Sản phẩm trong đơn --}}
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
             <h5 class="mb-1">Sản phẩm trong đơn</h5>
             <p class="text-muted mb-4">Danh sách sản phẩm, số lượng, biến thể và IMEI nếu có.</p>
-=======
-            <h5>Sản phẩm</h5>
->>>>>>> origin/main
 
             <div class="table-responsive">
-                <table class="table">
+                <table class="table align-middle">
                     <thead>
                         <tr>
                             <th>Sản phẩm</th>
+                            <th>Biến thể</th>
                             <th>IMEI</th>
-                            <th class="text-end">SL</th>
-                            <th class="text-end">Tiền</th>
+                            <th class="text-center">Số lượng</th>
+                            <th class="text-end">Thành tiền</th>
                         </tr>
                     </thead>
 
                     <tbody>
                         @foreach($order->items as $item)
                             <tr>
-                                <td>{{ $item->product->name ?? 'N/A' }}</td>
-                                <td>{{ $item->imei->imei ?? '-' }}</td>
-                                <td class="text-end">{{ $item->quantity }}</td>
-                                <td class="text-end">
+                                <td class="fw-semibold">
+                                    {{ $item->product->name ?? 'Sản phẩm đã xóa' }}
+                                </td>
+
+                                <td>
+                                    @if($item->variant)
+                                        <div class="fw-semibold">
+                                            {{ $item->variant->color ?? 'Không có màu' }}
+                                        </div>
+
+                                        @if(!empty($item->variant->storage))
+                                            <small class="text-muted">
+                                                {{ $item->variant->storage }}
+                                            </small>
+                                        @endif
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+
+                                <td>
+                                    @if($item->imei)
+                                        <span class="fw-semibold">
+                                            {{ $item->imei->imei ?? $item->imei->serial_number ?? '-' }}
+                                        </span>
+
+                                        @if(!empty($item->imei->status))
+                                            <div>
+                                                <small class="text-muted">
+                                                    Trạng thái: {{ $item->imei->status }}
+                                                </small>
+                                            </div>
+                                        @endif
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+
+                                <td class="text-center">
+                                    {{ $item->quantity }}
+</td>
+
+                                <td class="text-end fw-semibold">
                                     {{ number_format($item->total, 0, ',', '.') }} đ
                                 </td>
                             </tr>
                         @endforeach
-                    </tbody>
 
-                    <tfoot>
                         <tr>
-                            <th colspan="3" class="text-end">Tổng</th>
-                            <th class="text-end">
+                            <td colspan="4" class="text-end fw-bold">Tổng tiền</td>
+                            <td class="text-end fw-bold">
                                 {{ number_format($order->total_amount, 0, ',', '.') }} đ
-                            </th>
+                            </td>
                         </tr>
-                    </tfoot>
+                    </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    {{-- PROOFS --}}
-    <div class="card mb-4">
+    {{-- Ảnh minh chứng --}}
+    <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
-            <h5>Ảnh minh chứng</h5>
+            <h5 class="mb-1">Ảnh minh chứng</h5>
+            <p class="text-muted mb-4">Ảnh đóng gói, giao hàng thành công hoặc giao thất bại.</p>
 
-            @forelse($order->proofs as $proof)
-                <div class="border p-2 mb-2">
-                    <img src="{{ asset('storage/' . $proof->image_path) }}" style="width:200px">
-                    <div>{{ $proof->type }}</div>
+            @if($order->proofs && $order->proofs->count())
+                <div class="row g-3">
+                    @foreach($order->proofs as $proof)
+                        <div class="col-md-4">
+                            <div class="border rounded p-2 h-100">
+                                <img src="{{ asset('storage/' . $proof->image_path) }}"
+                                     alt="Ảnh minh chứng"
+                                     class="img-fluid rounded mb-2"
+                                     style="width: 100%; height: 220px; object-fit: cover;">
+
+                                <div class="fw-semibold">
+                                    @if($proof->type === 'packed')
+                                        Ảnh đóng gói
+                                    @elseif($proof->type === 'delivered')
+                                        Ảnh giao hàng thành công
+                                    @elseif($proof->type === 'failed_delivery')
+                                        Ảnh giao hàng thất bại
+                                    @else
+                                        {{ $proof->type }}
+                                    @endif
+                                </div>
+
+                                <div class="text-muted small">
+                                    Người tạo: {{ $proof->creator->name ?? '-' }}
+                                </div>
+
+                                <div class="text-muted small">
+                                    Thời gian: {{ $proof->created_at ? $proof->created_at->format('d/m/Y H:i') : '-' }}
+                                </div>
+
+                                @if($proof->note)
+                                    <div class="mt-2">
+                                        {{ $proof->note }}
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+</div>
+            @else
+                <div class="text-muted">
+                    Chưa có ảnh minh chứng.
                 </div>
-            @empty
-                <div class="text-muted">Chưa có ảnh</div>
-            @endforelse
+            @endif
         </div>
     </div>
 
-    {{-- SHIPMENT --}}
-    @if($order->shipment)
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5>Hình ảnh giao hàng</h5>
+</div>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <img src="{{ asset('storage/'.$order->shipment->shipped_image) }}" class="img-fluid">
+{{-- Modal: Xác nhận đóng gói --}}
+<div class="modal fade" id="packedModal" tabindex="-1" aria-labelledby="packedModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form action="{{ route('admin.orders.markPacked', $order) }}" method="POST" enctype="multipart/form-data" class="modal-content">
+            @csrf
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="packedModalLabel">Xác nhận đóng gói</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Ảnh minh chứng đóng gói <span class="text-danger">*</span></label>
+                    <input type="file" name="packed_image" class="form-control" accept="image/*" required>
                 </div>
-                <div class="col-md-6">
-                    <img src="{{ asset('storage/'.$order->shipment->delivered_image) }}" class="img-fluid">
+
+                <div class="mb-3">
+                    <label class="form-label">Ghi chú</label>
+                    <textarea name="note" class="form-control" rows="3" placeholder="Nhập ghi chú nếu có"></textarea>
                 </div>
             </div>
-        </div>
-    </div>
-    @endif
 
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Đóng
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    Xác nhận
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{-- Modal: Giao thành công --}}
+<div class="modal fade" id="deliveredModal" tabindex="-1" aria-labelledby="deliveredModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form action="{{ route('admin.orders.markDelivered', $order) }}" method="POST" enctype="multipart/form-data" class="modal-content">
+            @csrf
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="deliveredModalLabel">Xác nhận giao hàng thành công</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Ảnh minh chứng giao hàng <span class="text-danger">*</span></label>
+                    <input type="file" name="delivered_image" class="form-control" accept="image/*" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Ghi chú</label>
+                    <textarea name="note" class="form-control" rows="3" placeholder="Nhập ghi chú nếu có"></textarea>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Đóng
+                </button>
+                <button type="submit" class="btn btn-success">
+                    Xác nhận đã giao
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{-- Modal: Giao thất bại --}}
+<div class="modal fade" id="failedModal" tabindex="-1" aria-labelledby="failedModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <form action="{{ route('admin.orders.markFailed', $order) }}" method="POST" enctype="multipart/form-data" class="modal-content">
+            @csrf
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="failedModalLabel">Xác nhận giao hàng thất bại</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Ảnh minh chứng giao thất bại</label>
+                    <input type="file" name="failed_image" class="form-control" accept="image/*">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Lý do / Ghi chú</label>
+                    <textarea name="note" class="form-control" rows="3" placeholder="Ví dụ: Khách không nghe máy, sai địa chỉ..."></textarea>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Đóng
+                </button>
+                <button type="submit" class="btn btn-danger">
+                    Xác nhận thất bại
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 @endsection
