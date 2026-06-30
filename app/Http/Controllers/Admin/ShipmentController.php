@@ -32,8 +32,16 @@ class ShipmentController extends Controller
             ->latest()
             ->paginate(10);
 
-        $ordersCanCreateShipment = Order::where('status', 'processing')
-            ->whereDoesntHave('shipment')
+        $ordersCanCreateShipment = Order::where(function ($query) {
+                $query->where('status', 'processing')
+                    ->whereDoesntHave('shipment');
+            })
+            ->orWhere(function ($query) {
+                $query->where('status', 'returned')
+                    ->whereHas('shipment', function ($q) {
+                        $q->where('shipping_status', 'failed');
+                    });
+            })
             ->latest()
             ->get();
 
@@ -46,8 +54,9 @@ class ShipmentController extends Controller
             return back()->with('error', 'Không thể tạo vận đơn cho đơn đã hoàn tất hoặc đã hủy.');
         }
 
-        if (Shipment::where('order_id', $order->id)->exists()) {
-            return back()->with('error', 'Đơn hàng này đã có vận đơn.');
+        $existingShipment = Shipment::where('order_id', $order->id)->first();
+        if ($existingShipment && $existingShipment->shipping_status !== 'failed') {
+            return back()->with('error', 'Đơn hàng này đã có vận đơn hợp lệ.');
         }
 
         return view('admin.shipments.create', compact('order'));
@@ -64,17 +73,25 @@ class ShipmentController extends Controller
             return back()->with('error', 'Không thể tạo vận đơn cho đơn đã hoàn tất, đang vận chuyển hoặc đã hủy.');
         }
 
-        if (Shipment::where('order_id', $order->id)->exists()) {
-            return back()->with('error', 'Đơn hàng này đã có vận đơn.');
-        }
+        $existingShipment = Shipment::where('order_id', $order->id)->first();
 
-        DB::transaction(function () use ($validated, $order) {
-            Shipment::create([
-                'order_id' => $order->id,
-                'shipping_unit' => $validated['shipping_unit'],
-                'tracking_code' => $validated['tracking_code'] ?? null,
-                'shipping_status' => 'pending',
-            ]);
+        DB::transaction(function () use ($validated, $order, $existingShipment) {
+            if ($existingShipment && $existingShipment->shipping_status === 'failed') {
+                $existingShipment->update([
+                    'shipping_unit' => $validated['shipping_unit'],
+                    'tracking_code' => $validated['tracking_code'] ?? null,
+                    'shipping_status' => 'pending',
+                    'shipped_at' => null,
+                    'delivered_at' => null,
+                ]);
+            } else {
+                Shipment::create([
+                    'order_id' => $order->id,
+                    'shipping_unit' => $validated['shipping_unit'],
+                    'tracking_code' => $validated['tracking_code'] ?? null,
+                    'shipping_status' => 'pending',
+                ]);
+            }
 
             $order->update([
                 'status' => 'shipping',
@@ -97,14 +114,26 @@ class ShipmentController extends Controller
 
     public function updateStatus(Request $request, Shipment $shipment)
     {
-        $validated = $request->validate([
+        $rules = [
             'shipping_status' => [
                 'required',
                 Rule::in(['pending', 'shipping', 'delivered', 'failed']),
             ],
-        ]);
+        ];
 
-        DB::transaction(function () use ($validated, $shipment) {
+        if ($request->input('shipping_status') === 'shipping') {
+            $rules['shipped_image'] = ['required', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120'];
+        } elseif ($request->input('shipping_status') === 'delivered') {
+            $rules['delivered_image'] = ['required', 'image', 'mimes:jpeg,png,jpg,gif', 'max:5120'];
+        }
+
+        $validated = $request->validate($rules);
+
+        if (in_array($shipment->shipping_status, ['delivered', 'failed']) && $validated['shipping_status'] !== $shipment->shipping_status) {
+            return back()->with('error', 'Không thể thay đổi trạng thái vận đơn khi đã giao hoặc đã thất bại.');
+        }
+
+        DB::transaction(function () use ($validated, $request, $shipment) {
             $status = $validated['shipping_status'];
 
             $data = [
@@ -113,8 +142,25 @@ class ShipmentController extends Controller
 
             if ($status === 'shipping' && is_null($shipment->shipped_at)) {
                 $data['shipped_at'] = now();
+                if ($request->hasFile('shipped_image')) {
+                    $path = $request->file('shipped_image')->store('shipments', 'public');
+                    $data['shipped_image'] = $path;
+                }
+            } elseif ($status === 'shipping' && !is_null($shipment->shipped_at)) {
+                if ($request->hasFile('shipped_image')) {
+                    $path = $request->file('shipped_image')->store('shipments', 'public');
+                    $data['shipped_image'] = $path;
+                }
+            }
 
-                // decrement stock safely for each order item
+            if ($status === 'delivered') {
+                $data['delivered_at'] = now();
+                if ($request->hasFile('delivered_image')) {
+                    $path = $request->file('delivered_image')->store('shipments', 'public');
+                    $data['delivered_image'] = $path;
+                }
+
+                // decrement stock safely for each order item only when status is delivered
                 foreach ($shipment->order->items as $item) {
                     $variant = $item->variant()->lockForUpdate()->first();
                     if ($variant) {
@@ -125,11 +171,6 @@ class ShipmentController extends Controller
                         $variant->save();
                     }
                 }
-            }
-
-            if ($status === 'delivered') {
-                $data['shipped_at'] = $shipment->shipped_at ?? now();
-                $data['delivered_at'] = now();
             }
 
             $shipment->update($data);

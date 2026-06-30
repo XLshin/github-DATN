@@ -57,6 +57,7 @@ class OrderController extends Controller
         }
 
         $orders = $query->paginate(20)->withQueryString();
+        $orders = Order::with('user', 'shipment')->orderBy('created_at', 'desc')->paginate(20);
 
         return view('admin.orders.index', compact('orders'));
     }
@@ -72,6 +73,7 @@ class OrderController extends Controller
             'shipment',
             'proofs.creator',
         ]);
+        $order = Order::with(['user', 'items.product', 'items.imei', 'payment', 'shipment'])->findOrFail($id);
 
         return view('admin.orders.show', compact('order'));
     }
