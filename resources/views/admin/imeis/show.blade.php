@@ -145,21 +145,21 @@
 <tr>
     <th width="180">Mã đơn hàng</th>
     <td>
-        {{ $imei->warranty?->order?->order_code ?? '--' }}
+        {{ $imei->order?->order_code ?? '--' }}
     </td>
 </tr>
 
 <tr>
     <th>Khách hàng</th>
     <td>
-        {{ $imei->warranty?->order?->user?->name ?? '--' }}
+        {{ $imei->order?->user?->name ?? '--' }}
     </td>
 </tr>
 
 <tr>
     <th>Email</th>
     <td>
-        {{ $imei->warranty?->order?->user?->email ?? '--' }}
+        {{ $imei->order?->user?->email ?? '--' }}
     </td>
 </tr>
 
@@ -167,8 +167,8 @@
     <th>Ngày bán</th>
     <td>
         {{
-            $imei->warranty?->order?->created_at
-            ? $imei->warranty?->order?->created_at->format('d/m/Y H:i')
+            $imei->order?->created_at
+            ? $imei->order?->created_at->format('d/m/Y H:i')
             : '--'
         }}
     </td>

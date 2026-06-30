@@ -153,10 +153,11 @@ class ImeiController extends Controller
      */
     public function show(string $id)
     {
-        $imei = Imei::with([
-            'productVariant.product.brand',
-            'warranty.order.user'
-        ])->findOrFail($id);
+    $imei = Imei::with([
+        'productVariant.product.brand',
+        'order.user',
+        'warranty'
+    ])->findOrFail($id);
 
         return view(
             'admin.imeis.show',
@@ -238,6 +239,14 @@ class ImeiController extends Controller
 
     public function stock(Request $request)
     {
+        if ($request->filled('keyword')) {
+
+            $imei = Imei::where('imei', trim($request->keyword))->first();
+
+            if ($imei) {
+                return redirect()->route('admin.imeis.show', $imei->id);
+            }
+        }
         $query = ProductVariant::with([
             'product.brand',
             'imeis'
@@ -245,22 +254,32 @@ class ImeiController extends Controller
         ->whereHas('imeis');
 
         // tìm kiếm
-        if ($request->keyword) {
+    if ($request->keyword) {
+    
+        $keyword = trim($request->keyword);
+        
 
-            $keyword = trim($request->keyword);
+        $query->where(function ($query) use ($keyword) {
 
-            $query->where(function ($query) use ($keyword) {
+            if (preg_match('/^\d{8,15}$/', $keyword)) {
+
+                $query->whereHas('imeis', function ($q) use ($keyword) {
+                    $q->where('imei', 'like', "%{$keyword}%");
+                });
+
+            } else {
 
                 $query->whereHas('product', function ($q) use ($keyword) {
-
                     $q->where('name', 'like', "%{$keyword}%");
-
                 })
                 ->orWhere('color', 'like', "%{$keyword}%")
                 ->orWhere('storage', 'like', "%{$keyword}%");
 
-            });
-        }
+            }
+
+        });
+
+    }
 
         // lọc brand
         if ($request->brand_id) {
