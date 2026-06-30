@@ -15,23 +15,26 @@ return new class extends Migration
             $table->id();
 
             $table->foreignId('order_id')
-                ->constrained()
+                ->constrained('orders')
                 ->cascadeOnDelete();
 
             $table->enum('payment_method', [
                 'cod',
+                'card',
+                'bank_transfer',
                 'momo',
                 'vnpay',
-                'zalopay'
-            ]);
+                'zalopay',
+            ])->default('cod');
 
-            $table->decimal('amount', 15, 2);
+            $table->decimal('amount', 15, 2)->default(0);
 
             $table->enum('payment_status', [
                 'pending',
                 'paid',
                 'failed',
-                'refunded'
+                'cancelled',
+                'refunded',
             ])->default('pending');
 
             $table->string('transaction_code')->nullable();

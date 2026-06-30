@@ -23,14 +23,11 @@ class BrandRequest extends FormRequest
     public function rules(): array
     {
         return [
-
-            'name' => 'required|max:255',
-
-            'logo' =>
-            'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
-
-            'description' => 'nullable'
-
+            'category_ids'  => 'nullable|array',
+            'category_ids.*'=> 'exists:categories,id',
+            'name'          => 'required|max:255',
+            'logo'          => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'description'   => 'nullable',
         ];
     }
 }
