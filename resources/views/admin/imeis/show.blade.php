@@ -95,6 +95,11 @@
                                         Còn hàng
                                     </span>
                                     @break
+                                @case('reserved')
+                                    <span class="badge text-bg-success">
+                                        Tạm giữ
+                                    </span>
+                                    @break
 
                                 @case('sold')
                                     <span class="badge text-bg-primary">
@@ -102,7 +107,7 @@
                                     </span>
                                     @break
 
-                                @case('warranties')
+                                @case('warranty')
                                     <span class="badge text-bg-warning">
                                         Đang bảo hành
                                     </span>
@@ -145,21 +150,21 @@
 <tr>
     <th width="180">Mã đơn hàng</th>
     <td>
-        {{ $imei->order?->order_code ?? '--' }}
+        {{ $imei->orderItem?->order?->order_code ?? '--' }}
     </td>
 </tr>
 
 <tr>
     <th>Khách hàng</th>
     <td>
-        {{ $imei->order?->user?->name ?? '--' }}
+        {{ $imei->orderItem?->order?->user?->name ?? '--' }}
     </td>
 </tr>
 
 <tr>
     <th>Email</th>
     <td>
-        {{ $imei->order?->user?->email ?? '--' }}
+        {{ $imei->orderItem?->order?->user?->email ?? '--' }}
     </td>
 </tr>
 
@@ -167,8 +172,8 @@
     <th>Ngày bán</th>
     <td>
         {{
-            $imei->order?->created_at
-            ? $imei->order?->created_at->format('d/m/Y H:i')
+            $imei->orderItem?->order?->created_at
+            ? $imei->orderItem?->order?->created_at->format('d/m/Y H:i')
             : '--'
         }}
     </td>
@@ -275,27 +280,7 @@
 
     </div>
 
-    {{-- Lịch sử sửa chữa --}}
-    <div class="col-12">
 
-        <section class="panel">
-
-            <div class="panel-header">
-                <h5 class="mb-0">
-                    Lịch sử sửa chữa
-                    
-                </h5>
-            </div>
-
-            <div class="p-3 text-muted">
-
-                Chưa có lịch sử sửa chữa.
-
-            </div>
-
-        </section>
-
-    </div>
 
 </div>
 

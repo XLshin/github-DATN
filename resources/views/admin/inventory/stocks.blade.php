@@ -320,6 +320,11 @@
                                                 <span class="badge text-bg-primary">
                                                     Đã bán
                                                 </span>
+                                            @elseif($imei->status == 'reserved')
+
+                                                <span class="badge text-bg-primary">
+                                                    Tạm giữ
+                                                </span>
 
 
                                             @else

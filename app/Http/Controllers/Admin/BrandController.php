@@ -3,94 +3,80 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Brand;
+use App\Models\Category;
 use App\Http\Requests\BrandRequest;
 
 class BrandController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        $brands = Brand::paginate(10);
-
+        $brands = Brand::with('categories')->paginate(10);
         return view('admin.brands.index', compact('brands'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        return view('admin.brands.create');
+        $categories = Category::orderBy('name')->get();
+        return view('admin.brands.create', compact('categories'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(BrandRequest $request)
     {
-        $data = $request->validated();
-
-        if ($request->hasFile('logo')) {
-
-            $data['logo'] = $request
-                ->file('logo')
-                ->store(
-                    'brands',
-                    'public'
-                );
-        }
-
-        Brand::create($data);
-
-        return redirect()
-            ->route('brands.index');
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        $brand = Brand::findOrFail($id);
-        return view('admin.brands.edit', compact('brand'));
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(BrandRequest $request, string $id)
-    {
-        $brand = Brand::findOrFail($id);
         $data = $request->validated();
 
         if ($request->hasFile('logo')) {
             $data['logo'] = $request->file('logo')->store('brands', 'public');
         }
 
-        $brand->update($data);
+        $brand = Brand::create(\Arr::except($data, ['category_ids']));
+        $brand->categories()->sync($data['category_ids'] ?? []);
+
+        return redirect()->route('brands.index')->with('success', 'Thêm thương hiệu thành công');
+    }
+
+    public function show(Brand $brand)
+    {
+        $products = $brand->products()
+            ->with(['category', 'images', 'variants'])
+            ->when(request('category_id'), fn($q) => $q->where('category_id', request('category_id')))
+            ->paginate(12)
+            ->withQueryString();
+
+        // Danh mục có sản phẩm thuộc brand này
+        $categories = Category::withCount([
+            'products as products_count' => fn($q) => $q->where('brand_id', $brand->id)
+        ])
+        ->whereHas('products', fn($q) => $q->where('brand_id', $brand->id))
+        ->get();
+
+        return view('admin.brands.show', compact('brand', 'products', 'categories'));
+    }
+
+    public function edit(Brand $brand)
+    {
+        $categories = Category::orderBy('name')->get();
+        $selectedCategoryIds = $brand->categories->pluck('id')->toArray();
+        return view('admin.brands.edit', compact('brand', 'categories', 'selectedCategoryIds'));
+    }
+
+    public function update(BrandRequest $request, Brand $brand)
+    {
+        $data = $request->validated();
+
+        if ($request->hasFile('logo')) {
+            $data['logo'] = $request->file('logo')->store('brands', 'public');
+        }
+
+        $brand->update(\Arr::except($data, ['category_ids']));
+        $brand->categories()->sync($data['category_ids'] ?? []);
 
         return redirect()->route('brands.index')->with('success', 'Cập nhật thành công');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy(Brand $brand)
     {
-        Brand::findOrFail($id)->delete();
-
+        $brand->delete();
         return back()->with('success', 'Xóa thành công');
     }
 }
