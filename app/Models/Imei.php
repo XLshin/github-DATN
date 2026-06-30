@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Imei extends Model
 {
@@ -22,5 +23,16 @@ class Imei extends Model
     public function warranty()
     {
         return $this->hasOne(Warranty::class);
+    }
+        public function order(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            Order::class,
+            Warranty::class,
+            'imei_id',
+            'id',
+            'id',
+            'order_id'
+        );
     }
 }
