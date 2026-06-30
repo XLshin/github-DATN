@@ -47,6 +47,19 @@ class CheckoutService
 
             foreach ($items as $item) {
                 $product = $item->product;
+
+                $price = (float) $item->product->price;
+
+                OrderItem::query()->create([
+                    'order_id' => $order->id,
+                    'product_id' => $item->product_id,
+                    'product_variant_id' => $item->product_variant_id,
+                    'price' => $price,
+                    'quantity' => $item->quantity,
+                    'total' => $price * $item->quantity,
+                ]);
+
+                // Cập nhật kho dựa trên loại sản phẩm
                 $variant = $item->productVariant;
 
                 if (! $product) {

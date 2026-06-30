@@ -11,43 +11,140 @@ class ProductSeeder extends Seeder
 {
     public function run(): void
     {
-        $categoryId = Category::query()->value('id');
+        $categoryNames = ['Điện thoại', 'Máy tính bảng', 'Phụ kiện'];
+        $brandNames = ['Apple', 'Samsung', 'Xiaomi', 'Oppo'];
 
-        $appleId = Brand::where('name', 'Apple')->value('id');
-        $samsungId = Brand::where('name', 'Samsung')->value('id');
+        $categories = Category::whereIn('name', $categoryNames)->get()->keyBy('name');
+        $brands = Brand::whereIn('name', $brandNames)->get()->keyBy('name');
 
-        if (!$categoryId) {
-            throw new \Exception('Chưa có dữ liệu trong bảng categories. Hãy chạy CategorySeeder trước.');
+        $missingCategories = array_diff($categoryNames, $categories->keys()->toArray());
+        $missingBrands = array_diff($brandNames, $brands->keys()->toArray());
+
+        if (!empty($missingCategories)) {
+            throw new \Exception('Thiếu danh mục: ' . implode(', ', $missingCategories) . '. Hãy chạy CategorySeeder trước.');
         }
 
-        if (!$appleId || !$samsungId) {
-            throw new \Exception('Chưa có brand Apple hoặc Samsung. Hãy kiểm tra BrandSeeder.');
+        if (!empty($missingBrands)) {
+            throw new \Exception('Thiếu thương hiệu: ' . implode(', ', $missingBrands) . '. Hãy chạy BrandSeeder trước.');
         }
 
-        Product::updateOrCreate(
-            ['slug' => 'iphone-16-pro'],
+        $products = [
             [
-                'category_id' => $categoryId,
-                'brand_id' => $appleId,
+                'slug' => 'iphone-16-pro',
                 'name' => 'iPhone 16 Pro',
-                'description' => 'iPhone 16 Pro chính hãng',
+                'category' => 'Điện thoại',
+                'brand' => 'Apple',
+                'description' => 'iPhone 16 Pro chính hãng, thiết kế mới và hiệu năng vượt trội.',
                 'price' => 29990000,
                 'stock_quantity' => 50,
                 'status' => true,
-            ]
-        );
-
-        Product::updateOrCreate(
-            ['slug' => 'samsung-galaxy-s25'],
+                'product_type' => 'imei/serial',
+            ],
             [
-                'category_id' => $categoryId,
-                'brand_id' => $samsungId,
+                'slug' => 'samsung-galaxy-s25',
                 'name' => 'Samsung Galaxy S25',
-                'description' => 'Samsung Galaxy S25 chính hãng',
+                'category' => 'Điện thoại',
+                'brand' => 'Samsung',
+                'description' => 'Samsung Galaxy S25 chính hãng với màn hình siêu sắc nét.',
                 'price' => 24990000,
                 'stock_quantity' => 30,
                 'status' => true,
-            ]
-        );
+                'product_type' => 'imei/serial',
+            ],
+            [
+                'slug' => 'xiaomi-redmi-note-15',
+                'name' => 'Xiaomi Redmi Note 15',
+                'category' => 'Điện thoại',
+                'brand' => 'Xiaomi',
+                'description' => 'Xiaomi Redmi Note 15 pin khỏe, hiệu năng tốt trong tầm giá.',
+                'price' => 6990000,
+                'stock_quantity' => 40,
+                'status' => true,
+                'product_type' => 'quantity',
+            ],
+            [
+                'slug' => 'oppo-reno-12',
+                'name' => 'Oppo Reno 12',
+                'category' => 'Điện thoại',
+                'brand' => 'Oppo',
+                'description' => 'Oppo Reno 12 camera đẹp, thiết kế mỏng nhẹ.',
+                'price' => 8990000,
+                'stock_quantity' => 35,
+                'status' => true,
+                'product_type' => 'quantity',
+            ],
+            [
+                'slug' => 'ipad-air-6',
+                'name' => 'iPad Air 6',
+                'category' => 'Máy tính bảng',
+                'brand' => 'Apple',
+                'description' => 'iPad Air 6 mỏng nhẹ, hiệu năng mạnh mẽ cho công việc và giải trí.',
+                'price' => 22990000,
+                'stock_quantity' => 20,
+                'status' => true,
+                'product_type' => 'quantity',
+            ],
+            [
+                'slug' => 'samsung-galaxy-tab-s10',
+                'name' => 'Samsung Galaxy Tab S10',
+                'category' => 'Máy tính bảng',
+                'brand' => 'Samsung',
+                'description' => 'Samsung Galaxy Tab S10 màn hình lớn, âm thanh sống động.',
+                'price' => 19990000,
+                'stock_quantity' => 18,
+                'status' => true,
+                'product_type' => 'quantity',
+            ],
+            [
+                'slug' => 'apple-airpods-pro-3',
+                'name' => 'Apple AirPods Pro 3',
+                'category' => 'Phụ kiện',
+                'brand' => 'Apple',
+                'description' => 'AirPods Pro 3 chống ồn chủ động, âm thanh chất lượng.',
+                'price' => 5990000,
+                'stock_quantity' => 45,
+                'status' => true,
+                'product_type' => 'quantity',
+            ],
+            [
+                'slug' => 'samsung-galaxy-buds-3',
+                'name' => 'Samsung Galaxy Buds 3',
+                'category' => 'Phụ kiện',
+                'brand' => 'Samsung',
+                'description' => 'Galaxy Buds 3 tiện lợi, pin bền và âm thanh rõ nét.',
+                'price' => 2490000,
+                'stock_quantity' => 38,
+                'status' => true,
+                'product_type' => 'quantity',
+            ],
+            [
+                'slug' => 'xiaomi-65w-charger',
+                'name' => 'Xiaomi 65W Charger',
+                'category' => 'Phụ kiện',
+                'brand' => 'Xiaomi',
+                'description' => 'Sạc nhanh 65W tương thích nhiều thiết bị.',
+                'price' => 490000,
+                'stock_quantity' => 60,
+                'status' => true,
+                'product_type' => 'quantity',
+            ],
+        ];
+
+        foreach ($products as $productData) {
+            Product::updateOrCreate(
+                ['slug' => $productData['slug']],
+                [
+                    'category_id' => $categories[$productData['category']]->id,
+                    'brand_id' => $brands[$productData['brand']]->id,
+                    'name' => $productData['name'],
+                    'description' => $productData['description'],
+                    'price' => $productData['price'],
+                    'stock_quantity' => $productData['stock_quantity'],
+                    'thumbnail' => null,
+                    'status' => $productData['status'],
+                    'product_type' => $productData['product_type'],
+                ]
+            );
+        }
     }
 }
