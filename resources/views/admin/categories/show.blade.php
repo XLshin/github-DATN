@@ -79,7 +79,6 @@
                     <th>Thương hiệu</th>
                     <th>Biến thể</th>
                     <th>Giá</th>
-                    <th>Tồn kho</th>
                     <th>Trạng thái</th>
                     <th class="text-end">Thao tác</th>
                 </tr>
@@ -129,7 +128,6 @@
                             @endif
                         </td>
                         <td>{{ number_format($product->price, 0, ',', '.') }}đ</td>
-                        <td>{{ $product->stock_quantity }}</td>
                         <td>
                             @if($product->status)
                                 <span class="badge bg-success-subtle text-success">Đang bán</span>
