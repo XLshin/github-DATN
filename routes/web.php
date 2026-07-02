@@ -98,25 +98,89 @@ Route::middleware('auth')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Admin routes (auth + admin middleware)
+| Admin routes (auth + admin/staff middleware)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'admin'])->group(function () {
+Route::middleware(['auth', 'admin_or_staff'])->group(function () {
     Route::redirect('/admin', '/admin/dashboard');
 
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-        Route::resource('users', AdminUserController::class);
-        Route::resource('products', AdminProductController::class);
-        Route::delete('product-images/{image}', [AdminProductController::class, 'destroyImage'])->name('products.image.destroy');
-        Route::put('variants/{variant}', [AdminProductController::class, 'updateVariant'])->name('variants.update');
-        Route::delete('variants/{variant}', [AdminProductController::class, 'destroyVariant'])->name('variants.destroy');
-        Route::delete('variants/{variant}/main-image', [AdminProductController::class, 'destroyVariantMainImage'])->name('variants.image.destroy');
-        Route::get('variants/{variant}', [AdminProductController::class, 'showVariant'])->name('variants.show');
+        /*
+        |--------------------------------------------------------------------------
+        | Chỉ admin được quản lý người dùng, danh mục, thương hiệu, voucher, điểm
+        |--------------------------------------------------------------------------
+        */
+        Route::middleware('only_admin')->group(function () {
+            Route::resource('users', AdminUserController::class)->only([
+                'index',
+                'show',
+                'create',
+                'store',
+            ]);
 
-        Route::get('orders', [AdminOrderController::class, 'index'])->name('orders.index');
-        Route::get('orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
+            Route::patch('users/{user}/toggle-lock', [AdminUserController::class, 'toggleLock'])
+                ->name('users.toggle-lock');
+
+            Route::resource('categories', CategoryController::class);
+            Route::resource('brands', BrandController::class);
+
+            Route::resource('coupons', CouponController::class);
+            Route::get('coupons/{coupon}/assign-users', [CouponUserController::class, 'edit'])
+                ->name('coupons.assign-users-edit');
+            Route::patch('coupons/{coupon}/assign-users', [CouponUserController::class, 'update'])
+                ->name('coupons.assign-users-update');
+
+            Route::get('points', [AdminPointController::class, 'index'])
+                ->name('points.index');
+            Route::get('points/{user}', [AdminPointController::class, 'show'])
+                ->name('points.show');
+            Route::post('points/{user}/add', [AdminPointController::class, 'addPoints'])
+                ->name('points.add');
+            Route::post('points/{user}/deduct', [AdminPointController::class, 'deductPoints'])
+                ->name('points.deduct');
+            Route::post('points/{user}/reset', [AdminPointController::class, 'reset'])
+                ->name('points.reset');
+        });
+
+        /*
+        |--------------------------------------------------------------------------
+        | Sản phẩm
+        |--------------------------------------------------------------------------
+        */
+        Route::resource('products', AdminProductController::class);
+
+        Route::delete('product-images/{image}', [AdminProductController::class, 'destroyImage'])
+            ->middleware('only_admin')
+            ->name('products.image.destroy');
+
+        Route::put('variants/{variant}', [AdminProductController::class, 'updateVariant'])
+            ->middleware('only_admin')
+            ->name('variants.update');
+
+        Route::delete('variants/{variant}', [AdminProductController::class, 'destroyVariant'])
+            ->middleware('only_admin')
+            ->name('variants.destroy');
+
+        Route::delete('variants/{variant}/main-image', [AdminProductController::class, 'destroyVariantMainImage'])
+            ->middleware('only_admin')
+            ->name('variants.image.destroy');
+
+        Route::get('variants/{variant}', [AdminProductController::class, 'showVariant'])
+            ->name('variants.show');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Đơn hàng
+        |--------------------------------------------------------------------------
+        */
+        Route::get('orders', [AdminOrderController::class, 'index'])
+            ->name('orders.index');
+
+        Route::get('orders/{order}', [AdminOrderController::class, 'show'])
+            ->name('orders.show');
+
         Route::post('orders/{order}/confirm', [AdminOrderController::class, 'confirm'])
             ->name('orders.confirm');
 
@@ -141,38 +205,72 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::get('orders/{order}/print-shipping-label', [AdminOrderController::class, 'printShippingLabel'])
             ->name('orders.printShippingLabel');
 
-        Route::get('shipments/lookup', [ShipmentController::class, 'lookup'])->name('shipments.lookup');
-        Route::get('shipments/create-from-order/{order}', [ShipmentController::class, 'createFromOrder'])->name('shipments.createFromOrder');
-        Route::post('shipments/store-from-order/{order}', [ShipmentController::class, 'storeFromOrder'])->name('shipments.storeFromOrder');
-        Route::patch('shipments/{shipment}/status', [ShipmentController::class, 'updateStatus'])->name('shipments.updateStatus');
-        Route::resource('shipments', ShipmentController::class)->only(['index', 'show']);
+        /*
+        |--------------------------------------------------------------------------
+        | Vận chuyển
+        |--------------------------------------------------------------------------
+        */
+        Route::get('shipments/lookup', [ShipmentController::class, 'lookup'])
+            ->name('shipments.lookup');
 
-        Route::get('warranties/lookup-imei', [WarrantyController::class, 'lookupImei'])->name('warranties.lookupImei');
-        Route::patch('warranties/{warranty}/status', [WarrantyController::class, 'updateStatus'])->name('warranties.updateStatus');
-        Route::resource('warranties', WarrantyController::class)->except(['destroy']);
+        Route::get('shipments/create-from-order/{order}', [ShipmentController::class, 'createFromOrder'])
+            ->name('shipments.createFromOrder');
 
+        Route::post('shipments/store-from-order/{order}', [ShipmentController::class, 'storeFromOrder'])
+            ->name('shipments.storeFromOrder');
+
+        Route::patch('shipments/{shipment}/status', [ShipmentController::class, 'updateStatus'])
+            ->name('shipments.updateStatus');
+
+        Route::resource('shipments', ShipmentController::class)->only([
+            'index',
+            'show',
+            'create',
+            'store',
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Bảo hành
+        |--------------------------------------------------------------------------
+        */
+        Route::get('warranties/lookup-imei', [WarrantyController::class, 'lookupImei'])
+            ->name('warranties.lookupImei');
+
+        Route::patch('warranties/{warranty}/status', [WarrantyController::class, 'updateStatus'])
+            ->name('warranties.updateStatus');
+
+        Route::resource('warranties', WarrantyController::class)->except([
+            'destroy',
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | IMEI, kho hàng, tồn kho
+        |--------------------------------------------------------------------------
+        */
         Route::resource('imeis', ImeiController::class);
-        Route::resource('shipments', ShipmentController::class)->only(['index', 'show', 'create', 'store']);
         Route::resource('inventory', InventoryController::class);
-        Route::get('/stocks', [ImeiController::class, 'stock'])->name('stocks');
-        Route::get('/stocks/accessories', [ImeiController::class, 'accessoryStock'])->name('stocks.accessories');
-    });
 
-    Route::prefix('admin')->group(function () {
-        Route::resource('categories', CategoryController::class);
-        Route::resource('brands', BrandController::class);
-        Route::resource('coupons', CouponController::class);
-        Route::get('coupons/{coupon}/assign-users', [CouponUserController::class, 'edit'])->name('coupons.assign-users-edit');
-        Route::patch('coupons/{coupon}/assign-users', [CouponUserController::class, 'update'])->name('coupons.assign-users-update');
+        Route::get('/stocks', [ImeiController::class, 'stock'])
+            ->name('stocks');
 
-        Route::get('points', [AdminPointController::class, 'index'])->name('admin.points.index');
-        Route::get('points/{user}', [AdminPointController::class, 'show'])->name('admin.points.show');
-        Route::post('points/{user}/add', [AdminPointController::class, 'addPoints'])->name('admin.points.add');
-        Route::post('points/{user}/deduct', [AdminPointController::class, 'deductPoints'])->name('admin.points.deduct');
-        Route::post('points/{user}/reset', [AdminPointController::class, 'reset'])->name('admin.points.reset');
+        Route::get('/stocks/accessories', [ImeiController::class, 'accessoryStock'])
+            ->name('stocks.accessories');
 
-        Route::get('reviews', [ReviewController::class, 'index'])->name('reviews.index');
-        Route::patch('reviews/{review}/hide', [ReviewController::class, 'hide'])->name('reviews.hide');
-        Route::delete('reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
+        /*
+        |--------------------------------------------------------------------------
+        | Đánh giá
+        |--------------------------------------------------------------------------
+        */
+        Route::get('reviews', [ReviewController::class, 'index'])
+            ->name('reviews.index');
+
+        Route::patch('reviews/{review}/hide', [ReviewController::class, 'hide'])
+            ->name('reviews.hide');
+
+        Route::delete('reviews/{review}', [ReviewController::class, 'destroy'])
+            ->middleware('only_admin')
+            ->name('reviews.destroy');
     });
 });
