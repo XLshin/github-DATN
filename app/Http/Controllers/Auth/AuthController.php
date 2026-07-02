@@ -39,14 +39,16 @@ class AuthController extends Controller
             'password' => $validated['password'],
             'role' => 'customer',
             'total_spent' => 0,
+            'points' => 0,
             'membership_level' => 'bronze',
+            'is_locked' => false,
         ]);
 
         Auth::login($user);
         $request->session()->regenerate();
 
         return redirect()
-            ->route('dashboard')
+            ->route('home')
             ->with('success', 'Đăng ký tài khoản thành công.');
     }
 
@@ -74,10 +76,23 @@ class AuthController extends Controller
             ]);
         }
 
+        $user = Auth::user();
+
+        if ($user->is_locked) {
+            Auth::logout();
+
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            throw ValidationException::withMessages([
+                'email' => 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.',
+            ]);
+        }
+
         $request->session()->regenerate();
 
         return redirect()
-            ->intended(route('dashboard'))
+            ->route('home')
             ->with('success', 'Đăng nhập thành công.');
     }
 
@@ -89,7 +104,7 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()
-            ->route('login')
+            ->route('home')
             ->with('success', 'Đăng xuất thành công.');
     }
 }
