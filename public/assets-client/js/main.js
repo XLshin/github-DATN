@@ -6,25 +6,41 @@ Author: GrayGrids
 (function () {
     //===== Prealoder
 
-    window.onload = function () {
+    function hidePreloader() {
         window.setTimeout(fadeout, 500);
     }
 
     function fadeout() {
-        document.querySelector('.preloader').style.opacity = '0';
-        document.querySelector('.preloader').style.display = 'none';
+        var preloader = document.querySelector('.preloader');
+
+        if (!preloader) {
+            return;
+        }
+
+        preloader.style.opacity = '0';
+        preloader.style.display = 'none';
     }
 
+    if (document.readyState === 'complete') {
+        hidePreloader();
+    } else {
+        window.addEventListener('load', hidePreloader);
+    }
+
+    document.addEventListener('turbo:load', hidePreloader);
 
     /*=====================================
     Sticky
     ======================================= */
     window.onscroll = function () {
         var header_navbar = document.querySelector(".navbar-area");
-        var sticky = header_navbar.offsetTop;
+        var backToTo = document.querySelector(".scroll-top");
+
+        if (!header_navbar || !backToTo) {
+            return;
+        }
 
         // show or hide the back-top-top button
-        var backToTo = document.querySelector(".scroll-top");
         if (document.body.scrollTop > 50 || document.documentElement.scrollTop > 50) {
             backToTo.style.display = "flex";
         } else {
@@ -33,10 +49,26 @@ Author: GrayGrids
     };
 
     //===== mobile-menu-btn
-    let navbarToggler = document.querySelector(".mobile-menu-btn");
-    navbarToggler.addEventListener('click', function () {
-        navbarToggler.classList.toggle("active");
-    });
+    function initNavbarToggler() {
+        let navbarToggler = document.querySelector(".mobile-menu-btn");
+
+        if (!navbarToggler || navbarToggler.dataset.clientMenuInitialized === 'true') {
+            return;
+        }
+
+        navbarToggler.dataset.clientMenuInitialized = 'true';
+        navbarToggler.addEventListener('click', function () {
+            navbarToggler.classList.toggle("active");
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initNavbarToggler);
+    } else {
+        initNavbarToggler();
+    }
+
+    document.addEventListener('turbo:load', initNavbarToggler);
 
 
 })();
