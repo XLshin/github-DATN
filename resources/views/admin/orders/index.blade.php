@@ -121,11 +121,8 @@
                     <th>Mã đơn</th>
                     <th>Khách hàng</th>
                     <th>Sản phẩm</th>
-<<<<<<< HEAD
-=======
                     <th>Trạng thái đơn</th>
                     <th>Trạng thái giao hàng</th>
->>>>>>> origin/bac
                     <th class="text-end">Tổng tiền</th>
                     <th>Thanh toán</th>
                     <th>Trạng thái</th>
@@ -161,11 +158,7 @@
                                     <span class="fw-semibold">
                                         {{ $item->product->name ?? ('Product #' . $item->product_id) }}
                                     </span>
-<<<<<<< HEAD
-x {{ $item->quantity }}
-=======
                                     x {{ $item->quantity }}
->>>>>>> origin/bac
 
                                     @if($item->variant)
                                         <div class="text-muted small">
