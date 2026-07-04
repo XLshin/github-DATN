@@ -54,7 +54,7 @@ class CategoryController extends Controller
      */
     public function show(Category $category)
     {
-        // Load brands có sản phẩm trong danh mục này, kèm số lượng sản phẩm
+        // Load brands có sản phẩm trong danh mục này
         $brands = \App\Models\Brand::withCount([
             'products as products_count' => fn($q) => $q->where('category_id', $category->id)
         ])
@@ -64,6 +64,12 @@ class CategoryController extends Controller
         // Load sản phẩm trong danh mục, có thể lọc theo brand
         $products = $category->products()
             ->with(['brand', 'images', 'variants'])
+            ->withSum('variants as total_stock', 'stock_quantity')
+            ->withSum([
+                'orderItems as sold_quantity' => fn($q) => $q->whereHas(
+                    'order', fn($o) => $o->whereIn('status', ['processing', 'shipping', 'completed'])
+                )
+            ], 'quantity')
             ->when(request('brand_id'), fn($q) => $q->where('brand_id', request('brand_id')))
             ->paginate(12)
             ->withQueryString();
