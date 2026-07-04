@@ -8,19 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-<<<<<<< HEAD
-        if (! Schema::hasColumn('products', 'product_type')) {
-            Schema::table('products', function (Blueprint $table) {
-                $table->enum('product_type', ['imei/serial', 'quantity'])
-                    ->default('quantity')
-                    ->after('status');
-=======
         if (!Schema::hasColumn('products', 'product_type')) {
             Schema::table('products', function (Blueprint $table) {
                 $table->enum('product_type', ['imei/serial', 'quantity'])
                       ->default('quantity')
                       ->after('status');
->>>>>>> origin/son
             });
         }
     }
