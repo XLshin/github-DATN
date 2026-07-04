@@ -60,7 +60,7 @@
                         <td class="text-end">
                             <div class="d-flex justify-content-end gap-2">
                                 <form
-                                    action="{{ route('reviews.hide', $review->id) }}"
+                                    action="{{ route('admin.reviews.hide', $review->id) }}"
                                     method="POST"
                                     onsubmit="return confirm('{{ $review->status ? 'Ẩn' : 'Hiện' }} đánh giá này?')">
                                     @csrf
@@ -72,7 +72,7 @@
                                 </form>
 
                                 <form
-                                    action="{{ route('reviews.destroy', $review->id) }}"
+                                    action="{{ route('admin.reviews.destroy', $review->id) }}"
                                     method="POST"
                                     onsubmit="return confirm('Xóa đánh giá này?')">
                                     @csrf
