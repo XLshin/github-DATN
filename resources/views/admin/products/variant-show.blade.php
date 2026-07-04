@@ -67,7 +67,7 @@
                     <tr>
                         <th>Trạng thái</th>
                         <td>
-                            @if($variant->status)
+@if($variant->status)
                             <span class="badge text-bg-success">Active</span>
                             @else
                             <span class="badge text-bg-secondary">Ẩn</span>
@@ -128,7 +128,7 @@
                     <div class="col-6">
                         <div class="position-relative">
                             <img src="{{ Storage::url($image->image_path) }}" alt="Ảnh phụ biến thể" class="img-fluid rounded border" style="max-height: 220px; object-fit: cover; width: 100%;">
-                            <form action="{{ route('admin.products.image.destroy', $image) }}" method="POST" class="position-absolute top-0 end-0 m-2">
+<form action="{{ route('admin.products.image.destroy', $image) }}" method="POST" class="position-absolute top-0 end-0 m-2">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-danger" title="Xóa ảnh">×</button>
@@ -193,7 +193,7 @@
                 @csrf @method('PUT')
                 <div class="modal-header">
                     <h5 class="modal-title">Sửa biến thể</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
@@ -209,10 +209,6 @@
                         @else
                         <input type="hidden" name="storage" value="">
                         @endif
-                        <div class="col-md-6">
-                            <label class="form-label">Tồn kho</label>
-                            <input type="number" name="stock_quantity" class="form-control" min="0" value="{{ old('stock_quantity', $variant->stock_quantity) }}">
-                        </div>
                         <div class="col-md-6">
                             <label class="form-label">Ảnh biến thể</label>
                             <input type="file" name="images[]" class="form-control" accept="image/*" multiple>
@@ -235,7 +231,7 @@
                                 <label class="form-label">Ảnh hiện tại</label>
                                 <div>
                                     <img src="{{ Storage::url($variant->image_path) }}" alt="Ảnh biến thể" class="img-fluid rounded" style="max-height: 180px; object-fit: cover;">
-                                </div>
+</div>
                             </div>
                         </div>
                         @endif
