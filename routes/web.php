@@ -205,6 +205,9 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
         Route::get('orders/{order}/print-shipping-label', [AdminOrderController::class, 'printShippingLabel'])
             ->name('orders.printShippingLabel');
 
+        Route::post('/orders/{order}/receiver', [OrderController::class, 'updateReceiver'])
+        ->name('orders.updateReceiver');
+        
         /*
         |--------------------------------------------------------------------------
         | Vận chuyển
