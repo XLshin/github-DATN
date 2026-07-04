@@ -233,19 +233,16 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
         ]);
 
         /*
-        |--------------------------------------------------------------------------
-        | Bảo hành
-        |--------------------------------------------------------------------------
-        */
-        Route::get('warranties/lookup-imei', [WarrantyController::class, 'lookupImei'])
-            ->name('warranties.lookupImei');
+            |--------------------------------------------------------------------------
+            | Bảo hành
+            |--------------------------------------------------------------------------
+            */
+            Route::get('warranties/lookup-imei', [WarrantyController::class, 'lookupImei'])
+                ->name('warranties.lookupImei');
 
-        Route::patch('warranties/{warranty}/status', [WarrantyController::class, 'updateStatus'])
-            ->name('warranties.updateStatus');
-
-        Route::resource('warranties', WarrantyController::class)->except([
-            'destroy',
-        ]);
+            Route::resource('warranties', WarrantyController::class)->except([
+                'destroy',
+            ]);
 
         /*
         |--------------------------------------------------------------------------

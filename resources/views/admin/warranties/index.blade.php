@@ -78,6 +78,7 @@
                     <th>Mã đơn</th>
                     <th>Khách hàng</th>
                     <th>Lỗi khách báo</th>
+                    <th>Minh chứng</th>
                     <th>Thời hạn bảo hành</th>
                     <th>Trạng thái xử lý</th>
                     <th class="text-end">Thao tác</th>
@@ -88,6 +89,7 @@
                 @forelse ($warranties as $warranty)
                 @php
                     $detail = $warrantyDetails[$warranty->id] ?? null;
+
                     $isWarrantyExpired = $warranty->warranty_end
                         ? now()->startOfDay()->gt($warranty->warranty_end->copy()->startOfDay())
                         : false;
@@ -139,6 +141,18 @@
                     </td>
 
                     <td>
+                        <div class="small">
+                            Tiếp nhận:
+                            <strong>{{ $warranty->reception_media_count ?? 0 }}</strong>
+                        </div>
+
+                        <div class="small">
+                            Sau sửa:
+                            <strong>{{ $warranty->completion_media_count ?? 0 }}</strong>
+                        </div>
+                    </td>
+
+                    <td>
                         <div>
                             {{ $warranty->warranty_start ? $warranty->warranty_start->format('d/m/Y') : 'N/A' }}
                         </div>
@@ -170,34 +184,21 @@
                                 Chi tiết
                             </a>
 
-                            <a href="{{ route('admin.warranties.edit', $warranty) }}" class="btn btn-light btn-sm">
-                                Sửa
-                            </a>
-
-                            <form method="POST" action="{{ route('admin.warranties.updateStatus', $warranty) }}" class="d-flex gap-2">
-                                @csrf
-                                @method('PATCH')
-
-                                <select name="status" class="form-select form-select-sm">
-                                    <option value="claimed" @selected($warranty->status === 'claimed')>
-                                        Đang xử lý
-                                    </option>
-
-                                    <option value="active" @selected(in_array($warranty->status, ['active', 'expired'], true))>
-                                        Hoàn tất
-                                    </option>
-                                </select>
-
-                                <button type="submit" class="btn btn-outline-primary btn-sm">
+                            @if($warranty->status === 'claimed')
+                                <a href="{{ route('admin.warranties.edit', $warranty) }}" class="btn btn-primary btn-sm">
                                     Cập nhật
-                                </button>
-                            </form>
+                                </a>
+                            @else
+                                <a href="{{ route('admin.warranties.edit', $warranty) }}" class="btn btn-light btn-sm">
+                                    Cập nhật bổ sung
+                                </a>
+                            @endif
                         </div>
                     </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="9" class="text-center text-muted py-4">
+                    <td colspan="10" class="text-center text-muted py-4">
                         Chưa có phiếu bảo hành nào.
                     </td>
                 </tr>

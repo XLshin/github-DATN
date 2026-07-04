@@ -4,7 +4,7 @@
 @section('page_icon', 'bi-shield-check')
 @section('page_eyebrow', 'Dịch vụ sau bán')
 @section('page_title', 'Chi tiết bảo hành')
-@section('page_subtitle', 'Xem thông tin phiếu bảo hành, lỗi khách báo, cập nhật trạng thái và theo dõi lịch sử.')
+@section('page_subtitle', 'Xem thông tin phiếu bảo hành, lỗi khách báo, minh chứng tiếp nhận, kết quả sau sửa và lịch sử.')
 
 @section('heading_actions')
 <a href="{{ route('admin.warranties.index') }}" class="btn btn-light btn-sm">
@@ -12,7 +12,7 @@
 </a>
 
 <a href="{{ route('admin.warranties.edit', $warranty) }}" class="btn btn-primary btn-sm">
-    <i class="bi bi-pencil"></i> Sửa phiếu
+    <i class="bi bi-pencil"></i> Cập nhật trạng thái
 </a>
 @endsection
 
@@ -133,7 +133,9 @@
                     </div>
 
                     <div class="col-12">
-                        <div class="text-muted small mb-1">Lỗi khách báo / ghi chú tiếp nhận</div>
+                        <div class="text-muted small mb-1">
+                            Lỗi khách báo / ghi chú tiếp nhận
+                        </div>
 
                         @if($warranty->customer_note)
                             <div class="border rounded p-3 bg-light">
@@ -154,48 +156,171 @@
         <section class="panel h-100">
             <div class="panel-header">
                 <div>
-                    <h5 class="mb-1">Cập nhật trạng thái</h5>
+                    <h5 class="mb-1">Thông tin xử lý</h5>
                     <div class="text-muted small">
-                        Chỉ cập nhật trạng thái xử lý phiếu bảo hành.
+                        Ghi chú xác nhận và kết quả sau khi sửa xong.
                     </div>
                 </div>
             </div>
 
             <div class="p-3">
-                <form method="POST" action="{{ route('admin.warranties.updateStatus', $warranty) }}">
-                    @csrf
-                    @method('PATCH')
-
-                    <div class="mb-3">
-                        <label class="form-label">
-                            Trạng thái xử lý
-                        </label>
-
-                        <select name="status" class="form-select form-select-sm">
-                            <option value="claimed" @selected($warranty->status === 'claimed')>
-                                Đang xử lý bảo hành
-                            </option>
-
-                            <option value="active" @selected(in_array($warranty->status, ['active', 'expired'], true))>
-                                Hoàn tất xử lý
-                            </option>
-                        </select>
+                <div class="mb-3">
+                    <div class="text-muted small mb-1">
+                        Ghi chú cập nhật trạng thái
                     </div>
 
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="bi bi-check-lg"></i> Cập nhật
-                    </button>
-                </form>
+                    @if($warranty->status_update_note)
+                        <div class="border rounded p-3 bg-light">
+                            {!! nl2br(e($warranty->status_update_note)) !!}
+                        </div>
+                    @else
+                        <div class="text-muted">
+                            Chưa có ghi chú cập nhật.
+                        </div>
+                    @endif
+                </div>
+
+                <div class="mb-3">
+                    <div class="text-muted small mb-1">
+                        Kết quả sửa chữa / bảo hành
+                    </div>
+
+                    @if($warranty->repair_result_note)
+                        <div class="border rounded p-3 bg-light">
+                            {!! nl2br(e($warranty->repair_result_note)) !!}
+                        </div>
+                    @else
+                        <div class="text-muted">
+                            Chưa có kết quả sửa chữa.
+                        </div>
+                    @endif
+                </div>
+
+                <div class="mb-3">
+                    <div class="text-muted small">
+                        Thời gian hoàn tất
+                    </div>
+
+                    <div class="fw-semibold">
+                        {{ $warranty->completed_at ? $warranty->completed_at->format('d/m/Y H:i') : 'Chưa hoàn tất' }}
+                    </div>
+                </div>
+
+                <a href="{{ route('admin.warranties.edit', $warranty) }}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-pencil-square"></i> Cập nhật trạng thái bảo hành
+                </a>
 
                 <div class="alert alert-info mt-3 mb-0">
-                    <strong>Đang xử lý bảo hành</strong>: IMEI sẽ ở trạng thái <strong>warranty</strong> và chưa được tạo phiếu mới.<br>
-                    <strong>Hoàn tất xử lý</strong>: IMEI chuyển về <strong>sold</strong>, sau này vẫn có thể tạo phiếu mới nếu còn thời hạn bảo hành thật sự.<br>
-                    <strong>Hết hạn bảo hành</strong>: hệ thống tự kiểm tra theo ngày mua + 12 tháng, admin không cần chọn thủ công.
+                    Trang chi tiết chỉ dùng để xem thông tin. Muốn cập nhật trạng thái, ghi chú hoặc minh chứng sau sửa thì bấm nút cập nhật.
                 </div>
             </div>
         </section>
     </div>
 </div>
+
+<section class="panel mb-3">
+    <div class="panel-header">
+        <div>
+            <h5 class="mb-1">Minh chứng tình trạng máy lúc tiếp nhận</h5>
+            <div class="text-muted small">
+                Ảnh/video được upload khi tạo phiếu bảo hành.
+            </div>
+        </div>
+    </div>
+
+    <div class="p-3">
+        @if($warranty->receptionMedia->count())
+            <div class="row g-3">
+                @foreach($warranty->receptionMedia as $media)
+                    <div class="col-md-4">
+                        @php
+                            $mediaUrl = asset('storage/' . $media->file_path);
+                        @endphp
+
+                        <div class="border rounded p-2 h-100 d-flex flex-column">
+
+                            <div class="media-box mb-2">
+                                @if($media->type === \App\Models\WarrantyMedia::TYPE_IMAGE)
+                                    <a href="{{ $mediaUrl }}" target="_blank">
+                                        <img src="{{ $mediaUrl }}" class="media-content">
+                                    </a>
+                                @else
+                                    <video controls class="media-content">
+                                        <source src="{{ $mediaUrl }}" type="{{ $media->mime_type }}">
+                                    </video>
+                                @endif
+                            </div>
+
+                            <div class="small text-muted mt-auto">
+                                {{ $media->type_label }}
+                                @if($media->created_at)
+                                    - {{ $media->created_at->format('d/m/Y H:i') }}
+                                @endif
+                            </div>
+
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @else
+            <div class="text-muted">
+                Chưa có ảnh/video tiếp nhận.
+            </div>
+        @endif
+    </div>
+</section>
+
+<section class="panel mb-3">
+    <div class="panel-header">
+        <div>
+            <h5 class="mb-1">Minh chứng sau khi sửa xong</h5>
+            <div class="text-muted small">
+                Ảnh bắt buộc và video tùy chọn được upload khi hoàn tất bảo hành.
+            </div>
+        </div>
+    </div>
+
+    <div class="p-3">
+        @if($warranty->completionMedia->count())
+            <div class="row g-3">
+                @foreach($warranty->completionMedia as $media)
+                    <div class="col-md-4">
+                        @php
+                            $mediaUrl = asset('storage/' . $media->file_path);
+                        @endphp
+
+                        <div class="border rounded p-2 h-100 d-flex flex-column">
+
+                            <div class="media-box mb-2">
+                                @if($media->type === \App\Models\WarrantyMedia::TYPE_IMAGE)
+                                    <a href="{{ $mediaUrl }}" target="_blank">
+                                        <img src="{{ $mediaUrl }}" class="media-content">
+                                    </a>
+                                @else
+                                    <video controls class="media-content">
+                                        <source src="{{ $mediaUrl }}" type="{{ $media->mime_type }}">
+                                    </video>
+                                @endif
+                            </div>
+
+                            <div class="small text-muted mt-auto">
+                                {{ $media->type_label }}
+                                @if($media->created_at)
+                                    - {{ $media->created_at->format('d/m/Y H:i') }}
+                                @endif
+                            </div>
+
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @else
+            <div class="text-muted">
+                Chưa có ảnh/video sau sửa.
+            </div>
+        @endif
+    </div>
+</section>
 
 <section class="panel">
     <div class="panel-header">
@@ -221,7 +346,11 @@
                 @forelse ($histories as $history)
                 <tr>
                     <td class="fw-semibold">
-                        {{ $history['time'] }}
+                        @if($history['time'] instanceof \Carbon\CarbonInterface)
+                            {{ $history['time']->format('d/m/Y H:i') }}
+                        @else
+                            {{ $history['time'] }}
+                        @endif
                     </td>
 
                     <td>
