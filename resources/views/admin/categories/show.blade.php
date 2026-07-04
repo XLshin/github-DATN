@@ -109,24 +109,30 @@
                         </td>
                         <td>
                             @if($product->variants->isNotEmpty())
-                                <div class="d-flex flex-wrap gap-1">
-                                    @foreach($product->variants->take(4) as $variant)
-                                        <span class="badge bg-secondary-subtle text-secondary border" style="font-size:11px">
-                                            {{ $variant->color }} / {{ $variant->storage }}
-                                        </span>
-                                    @endforeach
-                                    @if($product->variants->count() > 4)
-                                        <span class="badge bg-light text-muted border" style="font-size:11px">
-                                            +{{ $product->variants->count() - 4 }} khác
-                                        </span>
+                                @php $first = $product->variants->first(); @endphp
+                                <span
+                                    tabindex="0"
+                                    data-bs-toggle="popover"
+                                    data-bs-trigger="hover focus"
+                                    data-bs-placement="bottom"
+                                    data-bs-html="true"
+                                    data-bs-content="{{ $product->variants->map(fn($v) => '<span class=\'badge bg-secondary-subtle text-secondary border me-1 mb-1\'>' . e($v->color) . ' / ' . e($v->storage) . '</span>')->implode('') }}"
+                                    class="badge bg-secondary-subtle text-secondary border"
+                                    style="font-size:11px;cursor:pointer">
+                                    {{ $first->color }} / {{ $first->storage }}
+                                    @if($product->variants->count() > 1)
+                                        <span class="ms-1 text-muted">+{{ $product->variants->count() - 1 }}</span>
                                     @endif
-                                </div>
+                                </span>
                             @else
                                 <span class="text-muted small">Chưa có</span>
                             @endif
                         </td>
                         <td>{{ number_format($product->price, 0, ',', '.') }}đ</td>
-                        <td>{{ $product->stock_quantity }}</td>
+                        <td>
+                            @php $actual = max(0, (int)($product->total_stock ?? $product->stock_quantity) - (int)($product->sold_quantity ?? 0)); @endphp
+                            {{ $actual }}
+                        </td>
                         <td>
                             @if($product->status)
                                 <span class="badge bg-success-subtle text-success">Đang bán</span>
@@ -152,5 +158,13 @@
         <div class="p-3">{{ $products->links() }}</div>
     @endif
 </section>
+
+@push('scripts')
+<script>
+    document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+        new bootstrap.Popover(el);
+    });
+</script>
+@endpush
 
 @endsection

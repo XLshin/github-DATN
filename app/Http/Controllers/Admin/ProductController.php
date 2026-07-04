@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Admin;
-
+use App\Models\InventoryTransaction;
 use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Category;
@@ -12,6 +12,7 @@ use App\Models\ProductVariant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
@@ -57,8 +58,10 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+    DB::beginTransaction();
+    try{
         $validated = $request->validate([
-            'name'         => 'required|string|max:255',
+            'name' => 'required|string|max:255|unique:products,name',
             'category_id'  => 'required|exists:categories,id',
             'brand_id'     => 'required|exists:brands,id',
             'description'  => 'required|string',
@@ -117,7 +120,18 @@ class ProductController extends Controller
             }
 
             $productVariant = ProductVariant::create($variantData);
-
+// Nếu sản phẩm quản lý theo số lượng thì tạo lịch sử nhập kho ban đầu
+            if (
+                $validated['product_type'] === 'quantity'
+                && $productVariant->stock_quantity > 0
+            ) {
+                InventoryTransaction::create([
+                    'product_variant_id' => $productVariant->id,
+                    'type'               => 'import',
+                    'quantity'           => $productVariant->stock_quantity,
+                    'note'               => 'Nhập kho ban đầu khi tạo sản phẩm',
+                ]);
+            }
             if (count($paths) > 1) {
                 foreach (array_slice($paths, 1) as $path) {
                     ProductImage::create([
@@ -133,20 +147,42 @@ class ProductController extends Controller
                 $imeiList = array_filter(array_map('trim', explode("\n", $variant['imeis'])));
                 foreach ($imeiList as $imeiCode) {
                     if ($imeiCode !== '') {
-                        Imei::create([
-                            'product_variant_id' => $productVariant->id,
-                            'imei'               => $imeiCode,
-                            'status'             => 'available',
-                        ]);
+                        validator(
+                                ['imei' => $imeiCode],
+                                [
+                                    'imei' => 'required|digits:15|unique:imeis,imei'
+                                ]
+                            )->validate();
+                            Imei::create([
+                                'product_variant_id' => $productVariant->id,
+                                'imei'               => $imeiCode,
+                                'status'             => 'available', 
+                            ]);
                     }
                 }
                 // Cập nhật stock_quantity theo số IMEI thực tế
                 $productVariant->update(['stock_quantity' => count($imeiList)]);
+                if (count($imeiList) > 0) {
+                    InventoryTransaction::create([
+                        'product_variant_id' => $productVariant->id,
+                        'type'               => 'import',
+                        'quantity'           => count($imeiList),
+                        'note'               => 'Nhập kho ban đầu (' . count($imeiList) . ' IMEI)',
+                    ]);
+                }
             }
         }
+            DB::commit();
 
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+
+            throw $e;
+        }
         return redirect()->route('admin.products.index')
             ->with('success', 'Thêm sản phẩm thành công!');
+    
     }
 
     public function show(Product $product)
@@ -171,7 +207,7 @@ class ProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $validated = $request->validate([
-            'name'               => 'required|string|max:255',
+            'name'               => 'required|string|max:255|unique:products,name,' . $product->id,
             'category_id'        => 'required|exists:categories,id',
             'brand_id'           => 'required|exists:brands,id',
             'description'        => 'required|string',

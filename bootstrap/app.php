@@ -10,15 +10,18 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware) {
+    ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'admin_or_staff' => \App\Http\Middleware\AdminOrStaffMiddleware::class,
+            'only_admin' => \App\Http\Middleware\OnlyAdminMiddleware::class,
         ]);
 
         $middleware->web(append: [
             \App\Http\Middleware\ForceHttps::class,
         ]);
     })
-    ->withExceptions(function (Exceptions $exceptions) {
+    ->withExceptions(function (Exceptions $exceptions): void {
         //
-    })->create();
+    })
+    ->create();

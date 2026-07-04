@@ -75,8 +75,7 @@
                     <div class="text-muted small">{{ $product->variants->count() }} biến thể</div>
                 </div>
             </div>
-
-            <div class="table-responsive">
+<div class="table-responsive">
                 <table class="table align-middle mb-0">
                     <thead>
                         <tr>
@@ -130,7 +129,7 @@
                         <tr>
                             <td colspan="6" class="text-center text-muted py-3">Chưa có biến thể nào.</td>
                         </tr>
-                        @endforelse
+@endforelse
                     </tbody>
                 </table>
             </div>

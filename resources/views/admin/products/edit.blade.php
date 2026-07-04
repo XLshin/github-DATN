@@ -51,12 +51,12 @@
                     <div class="mb-3">
                         <label class="form-label">Tổng tồn kho <span class="text-danger">*</span></label>
                         <input type="number" name="stock_quantity" value="{{ old('stock_quantity', $product->stock_quantity) }}"
-                            class="form-control @error('stock_quantity') is-invalid @enderror" min="0">
+                            class="form-control @error('stock_quantity') is-invalid @enderror" min="0"readonly>
                         @error('stock_quantity')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
                     <div class="row g-3">
-                        <div class="col-md-6">
+<div class="col-md-6">
                             <label class="form-label">Danh mục <span class="text-danger">*</span></label>
                             <select name="category_id" id="categorySelect" class="form-select @error('category_id') is-invalid @enderror">
                                 <option value="">-- Chọn danh mục --</option>
@@ -104,7 +104,7 @@
                 </div>
 
                 <div class="p-3" id="variantsContainer">
-                    <p class="text-muted small mb-0" id="noVariantMsg">Chưa có biến thể nào.</p>
+<p class="text-muted small mb-0" id="noVariantMsg">Chưa có biến thể nào.</p>
                 </div>
 
                 @error('variants')
@@ -160,7 +160,7 @@
                     <div class="mb-3">
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" name="status" id="status" value="1" @checked(old('status', $product->status))>
-                            <label class="form-check-label" for="status">Đang bán</label>
+<label class="form-check-label" for="status">Đang bán</label>
                         </div>
                     </div>
 
@@ -196,22 +196,22 @@ function stockInputHtml(index) {
         return `<div class="col-12 stock-col">
             <label class="form-label small">Danh sách IMEI / Serial <span class="text-danger">*</span></label>
             <textarea name="variants[${index}][imeis]" rows="5"
-                class="form-control form-control-sm"
+                class="form-control form-control-sm" readonly
                 placeholder="Mỗi dòng một IMEI hoặc Serial&#10;123456789012345&#10;123456789012346&#10;123456789012347"></textarea>
             <div class="form-text">Mỗi dòng nhập một IMEI hoặc Serial.</div>
-            <input type="hidden" name="variants[${index}][stock_quantity]" value="0">
+            <input type="hidden" name="variants[${index}][stock_quantity]" value="0" >
         </div>`;
     }
     return `<div class="col-md-2 stock-col">
         <label class="form-label small">Tồn kho</label>
         <input type="number" name="variants[${index}][stock_quantity]"
-            class="form-control form-control-sm" value="0" min="0">
+            class="form-control form-control-sm" value="0" min="0" readonly>
     </div>`;
 }
 
 function storageColHtml(index) {
     return `<div class="col-md-2 storage-col">
-        <label class="form-label small">Bộ nhớ</label>
+        <label class="form-label small">Kiểu loại</label>
         <input type="text" name="variants[${index}][storage]"
             class="form-control form-control-sm" placeholder="VD: 128GB">
     </div>`;
@@ -234,7 +234,7 @@ function updateTypeHint() {
 
 function updateStorageCols() {
     document.querySelectorAll('.variant-row').forEach(row => {
-        const storageCol = row.querySelector('.storage-col');
+const storageCol = row.querySelector('.storage-col');
         if (hasStorage()) {
             if (!storageCol) {
                 const colorCol = row.querySelector('.color-col');
@@ -267,10 +267,10 @@ document.getElementById('addVariant').addEventListener('click', function () {
                     class="form-control form-control-sm" placeholder="VD: Đen">
             </div>
             <div class="col-md-4 image-col">
-                <label class="form-label small">Ảnh biến thể</label>
+                <label class="form-label small">Ảnh biến thể (có thể thêm nhiều ảnh) </label>
                 <input type="file" name="variants[${variantIndex}][images][]"
                     class="form-control form-control-sm" accept="image/*" multiple>
-                <div class="form-text small">Có thể chọn nhiều ảnh cho mỗi biến thể.</div>
+              
             </div>
             ${hasStorage() ? storageColHtml(variantIndex) : ''}
             ${stockInputHtml(variantIndex)}
@@ -301,7 +301,7 @@ document.getElementById('thumbnailInput').addEventListener('change', function ()
     const preview = document.getElementById('thumbnailPreview');
     if (this.files[0]) {
         preview.src = URL.createObjectURL(this.files[0]);
-        preview.classList.remove('d-none');
+preview.classList.remove('d-none');
     }
 });
 </script>

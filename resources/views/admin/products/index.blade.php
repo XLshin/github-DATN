@@ -7,6 +7,12 @@
 @section('page_subtitle', 'Bấm mũi tên để xem biến thể của từng sản phẩm.')
 
 @section('heading_actions')
+<a href="{{ route('admin.imeis.create') }}" class="btn btn-light btn-sm">
+    <i class="bi bi-plus-lg"></i> Nhập IMEI/Serial
+</a>
+<a href="{{ route('admin.inventory.create') }}" class="btn btn-light btn-sm">
+    <i class="bi bi-box-arrow-in-down"></i> Nhập kho phụ kiện
+</a>
 <a href="{{ route('admin.products.create') }}" class="btn btn-primary btn-sm">
     <i class="bi bi-plus-lg"></i> Thêm sản phẩm
 </a>
@@ -67,8 +73,7 @@
                     <th class="text-end">Thao tác</th>
                 </tr>
             </thead>
-
-            <tbody>
+<tbody>
                 @forelse($products as $product)
                 {{-- Hàng sản phẩm --}}
                 <tr>
@@ -130,7 +135,7 @@
 
                 {{-- Hàng expand biến thể --}}
                 @if($product->variants_count > 0)
-                <tr id="variants-{{ $product->id }}" class="variant-row d-none">
+<tr id="variants-{{ $product->id }}" class="variant-row d-none">
                     <td colspan="9" class="p-0">
                         <div class="bg-light border-top border-bottom px-4 py-2">
                             <table class="table table-sm align-middle mb-0">
@@ -173,7 +178,7 @@
                                             @if($v->status)
                                             <span class="badge text-bg-success">Active</span>
                                             @else
-                                            <span class="badge text-bg-secondary">Ẩn</span>
+<span class="badge text-bg-secondary">Ẩn</span>
                                             @endif
                                         </td>
                                         <td class="text-end">
