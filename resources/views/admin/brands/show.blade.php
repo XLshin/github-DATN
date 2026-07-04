@@ -7,10 +7,10 @@
 @section('page_subtitle', $brand->description ?? 'Danh sách sản phẩm của thương hiệu')
 
 @section('heading_actions')
-    <a href="{{ route('brands.index') }}" class="btn btn-light btn-sm">
+    <a href="{{ route('admin.brands.index') }}" class="btn btn-light btn-sm">
         <i class="bi bi-arrow-left"></i> Quay lại
     </a>
-    <a href="{{ route('brands.edit', $brand) }}" class="btn btn-primary btn-sm">
+    <a href="{{ route('admin.brands.edit', $brand) }}" class="btn btn-primary btn-sm">
         <i class="bi bi-pencil"></i> Sửa thương hiệu
     </a>
 @endsection
@@ -65,12 +65,12 @@
     </div>
     <div class="p-3">
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('brands.show', $brand) }}"
+            <a href="{{ route('admin.brands.show', $brand) }}"
                class="btn btn-sm {{ !request('category_id') ? 'btn-primary' : 'btn-outline-secondary' }}">
                 Tất cả ({{ $products->total() }})
             </a>
             @foreach($categories as $category)
-                <a href="{{ route('brands.show', $brand) }}?category_id={{ $category->id }}"
+                <a href="{{ route('admin.brands.show', $brand) }}?category_id={{ $category->id }}"
                    class="btn btn-sm {{ request('category_id') == $category->id ? 'btn-primary' : 'btn-outline-secondary' }}">
                     {{ $category->name }}
                     <span class="badge bg-white text-dark ms-1">{{ $category->products_count }}</span>
