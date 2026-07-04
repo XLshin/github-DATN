@@ -23,7 +23,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            // UserSeeder::class,
+            UserSeeder::class,
 
             CategorySeeder::class,
             BrandSeeder::class,
@@ -44,6 +44,7 @@ class DatabaseSeeder extends Seeder
 
             ReviewSeeder::class,
             PointHistorySeeder::class,
+            CouponUserSeeder::class,
 
             WarrantyTestSeeder::class,
         ]);

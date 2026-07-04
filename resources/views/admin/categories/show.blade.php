@@ -129,7 +129,10 @@
                             @endif
                         </td>
                         <td>{{ number_format($product->price, 0, ',', '.') }}đ</td>
-                        <td>{{ $product->stock_quantity }}</td>
+                        <td>
+                            @php $actual = max(0, (int)($product->total_stock ?? $product->stock_quantity) - (int)($product->sold_quantity ?? 0)); @endphp
+                            {{ $actual }}
+                        </td>
                         <td>
                             @if($product->status)
                                 <span class="badge bg-success-subtle text-success">Đang bán</span>
