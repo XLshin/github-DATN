@@ -7,7 +7,7 @@
 @section('page_subtitle', 'Tạo mã voucher để khách hàng sử dụng khi thanh toán.')
 
 @section('heading_actions')
-    <a href="{{ route('coupons.index') }}" class="btn btn-light btn-sm">
+    <a href="{{ route('admin.coupons.index') }}" class="btn btn-light btn-sm">
         <i class="bi bi-arrow-left"></i> Quay lại
     </a>
 @endsection
@@ -22,7 +22,7 @@
         </div>
 
         <div class="p-3">
-            <form action="{{ route('coupons.store') }}" method="POST" style="max-width: 700px;">
+            <form action="{{ route('admin.coupons.store') }}" method="POST" style="max-width: 700px;">
                 @csrf
 
                 <div class="mb-3">

@@ -63,6 +63,7 @@ class DatabaseSeeder extends Seeder
 
             ReviewSeeder::class,
             PointHistorySeeder::class,
+            CouponUserSeeder::class,
 
             /*
             |--------------------------------------------------------------------------
