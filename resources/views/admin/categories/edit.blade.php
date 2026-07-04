@@ -7,7 +7,7 @@
 @section('page_subtitle', 'Cập nhật tên và mô tả danh mục sản phẩm.')
 
 @section('heading_actions')
-<a href="{{ route('categories.index') }}" class="btn btn-light btn-sm">
+<a href="{{ route(admin_categories.index') }}" class="btn btn-light btn-sm">
     <i class="bi bi-arrow-left"></i> Quay lại
 </a>
 @endsection
@@ -24,7 +24,7 @@
     </div>
 
     <div class="p-3">
-        <form action="{{ route('categories.update', $category) }}" method="POST" style="max-width: 700px;">
+        <form action="{{ route('admin.categories.update', $category) }}" method="POST" style="max-width: 700px;">
             @csrf
             @method('PUT')
 
@@ -70,7 +70,7 @@
                     <i class="bi bi-check-lg"></i> Cập nhật
                 </button>
 
-                <a href="{{ route('categories.index') }}" class="btn btn-light btn-sm">
+                <a href="{{ route('admin.categories.index') }}" class="btn btn-light btn-sm">
                     Hủy
                 </a>
             </div>
