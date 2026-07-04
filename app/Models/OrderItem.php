@@ -7,20 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class OrderItem extends Model
 {
     protected $fillable = [
-
         'order_id',
-
         'product_id',
-
         'product_variant_id',
-
         'price',
-
         'quantity',
-
         'total',
-        'imei_id'
-
+        'imei_id',
     ];
 
     public function order()
@@ -41,5 +34,10 @@ class OrderItem extends Model
     public function imei()
     {
         return $this->belongsTo(Imei::class, 'imei_id');
+    }
+
+    public function needsImei(): bool
+    {
+        return ($this->product->product_type ?? null) === 'imei/serial';
     }
 }
