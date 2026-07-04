@@ -39,6 +39,12 @@ class BrandController extends Controller
     {
         $products = $brand->products()
             ->with(['category', 'images', 'variants'])
+            ->withSum('variants as total_stock', 'stock_quantity')
+            ->withSum([
+                'orderItems as sold_quantity' => fn($q) => $q->whereHas(
+                    'order', fn($o) => $o->whereIn('status', ['processing', 'shipping', 'completed'])
+                )
+            ], 'quantity')
             ->when(request('category_id'), fn($q) => $q->where('category_id', request('category_id')))
             ->paginate(12)
             ->withQueryString();

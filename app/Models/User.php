@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -11,6 +12,10 @@ class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
+
+    public const ROLE_ADMIN = 'admin';
+    public const ROLE_STAFF = 'staff';
+    public const ROLE_CUSTOMER = 'customer';
 
     protected $fillable = [
         'name',
@@ -22,6 +27,7 @@ class User extends Authenticatable
         'total_spent',
         'points',
         'membership_level',
+        'is_locked',
     ];
 
     protected $hidden = [
@@ -34,6 +40,9 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_locked' => 'boolean',
+            'total_spent' => 'decimal:2',
+            'points' => 'integer',
         ];
     }
 
@@ -62,8 +71,36 @@ class User extends Authenticatable
         return $this->hasMany(PasswordResetToken::class);
     }
 
+    public function coupons(): BelongsToMany
+    {
+        return $this->belongsToMany(Coupon::class, 'coupon_user');
+    }
+
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->role === self::ROLE_ADMIN;
+    }
+
+    public function isStaff(): bool
+    {
+        return $this->role === self::ROLE_STAFF;
+    }
+
+    public function isCustomer(): bool
+    {
+        return $this->role === self::ROLE_CUSTOMER;
+    }
+
+    public function isLocked(): bool
+    {
+        return (bool) $this->is_locked;
+    }
+
+    public function canAccessAdminPanel(): bool
+    {
+        return in_array($this->role, [
+            self::ROLE_ADMIN,
+            self::ROLE_STAFF,
+        ], true);
     }
 }

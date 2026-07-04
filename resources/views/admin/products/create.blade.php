@@ -56,7 +56,7 @@
                                 <option value="">-- Chọn danh mục --</option>
                                 @foreach($categories as $cat)
                                 <option value="{{ $cat->id }}"
-                                    data-has-storage="{{ strtolower($cat->name) !== 'phụ kiện' ? '1' : '0' }}"
+data-has-storage="{{ strtolower($cat->name) !== 'phụ kiện' ? '1' : '0' }}"
                                     @selected(old('category_id') == $cat->id)>{{ $cat->name }}</option>
                                 @endforeach
                             </select>
@@ -113,7 +113,7 @@
             <section class="panel">
                 <div class="panel-header">
                     <div>
-                        <h5 class="mb-1">Ảnh và trạng thái</h5>
+<h5 class="mb-1">Ảnh và trạng thái</h5>
                     </div>
                 </div>
 
@@ -176,8 +176,8 @@ function stockInputHtml(index) {
             <input type="hidden" name="variants[${index}][stock_quantity]" value="0">
         </div>`;
     }
-    return `<div class="col-md-2 stock-col">
-        <label class="form-label small">Tồn kho</label>
+return `<div class="col-md-2 stock-col">
+        <label class="form-label small">Số lượng</label>
         <input type="number" name="variants[${index}][stock_quantity]"
             class="form-control form-control-sm" value="0" min="0">
     </div>`;
@@ -185,7 +185,7 @@ function stockInputHtml(index) {
 
 function storageColHtml(index) {
     return `<div class="col-md-2 storage-col">
-        <label class="form-label small">Bộ nhớ</label>
+        <label class="form-label small">Kiểu loại</label>
         <input type="text" name="variants[${index}][storage]"
             class="form-control form-control-sm" placeholder="VD: 128GB">
     </div>`;
@@ -241,12 +241,11 @@ document.getElementById('addVariant').addEventListener('click', function () {
                     class="form-control form-control-sm" placeholder="VD: Đen">
             </div>
             <div class="col-md-4 image-col">
-                <label class="form-label small">Ảnh biến thể</label>
+                <label class="form-label small">Ảnh biến thể (chọn được nhiều ảnh)</label>
                 <input type="file" name="variants[${variantIndex}][images][]"
                     class="form-control form-control-sm" accept="image/*" multiple>
-                <div class="form-text small">Có thể chọn nhiều ảnh cho mỗi biến thể.</div>
             </div>
-            ${hasStorage() ? storageColHtml(variantIndex) : ''}
+${hasStorage() ? storageColHtml(variantIndex) : ''}
             ${stockInputHtml(variantIndex)}
             <div class="col-md-3">
                 <label class="form-label small">Giá của biến thể (đ)</label>

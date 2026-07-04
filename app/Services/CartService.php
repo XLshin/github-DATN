@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Session;
 use App\Models\Cart;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\ProductVariant;
 use Illuminate\Support\Collection;
 
 class CartService

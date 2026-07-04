@@ -19,8 +19,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('products', function (Blueprint $table) {
-            $table->dropColumn('product_type');
-        });
+        // Không drop product_type ở đây vì cột này có thể đã được tạo từ migration create_products_table.
     }
 };
