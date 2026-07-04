@@ -51,7 +51,7 @@
                     <div class="mb-3">
                         <label class="form-label">Tổng tồn kho <span class="text-danger">*</span></label>
                         <input type="number" name="stock_quantity" value="{{ old('stock_quantity', $product->stock_quantity) }}"
-                            class="form-control @error('stock_quantity') is-invalid @enderror" min="0">
+                            class="form-control @error('stock_quantity') is-invalid @enderror" min="0"readonly>
                         @error('stock_quantity')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
@@ -196,22 +196,22 @@ function stockInputHtml(index) {
         return `<div class="col-12 stock-col">
             <label class="form-label small">Danh sách IMEI / Serial <span class="text-danger">*</span></label>
             <textarea name="variants[${index}][imeis]" rows="5"
-                class="form-control form-control-sm"
+                class="form-control form-control-sm" readonly
                 placeholder="Mỗi dòng một IMEI hoặc Serial&#10;123456789012345&#10;123456789012346&#10;123456789012347"></textarea>
             <div class="form-text">Mỗi dòng nhập một IMEI hoặc Serial.</div>
-            <input type="hidden" name="variants[${index}][stock_quantity]" value="0">
+            <input type="hidden" name="variants[${index}][stock_quantity]" value="0" >
         </div>`;
     }
     return `<div class="col-md-2 stock-col">
         <label class="form-label small">Tồn kho</label>
         <input type="number" name="variants[${index}][stock_quantity]"
-            class="form-control form-control-sm" value="0" min="0">
+            class="form-control form-control-sm" value="0" min="0" readonly>
     </div>`;
 }
 
 function storageColHtml(index) {
     return `<div class="col-md-2 storage-col">
-        <label class="form-label small">Bộ nhớ</label>
+        <label class="form-label small">Kiểu loại</label>
         <input type="text" name="variants[${index}][storage]"
             class="form-control form-control-sm" placeholder="VD: 128GB">
     </div>`;
@@ -267,10 +267,10 @@ document.getElementById('addVariant').addEventListener('click', function () {
                     class="form-control form-control-sm" placeholder="VD: Đen">
             </div>
             <div class="col-md-4 image-col">
-                <label class="form-label small">Ảnh biến thể</label>
+                <label class="form-label small">Ảnh biến thể (có thể thêm nhiều ảnh) </label>
                 <input type="file" name="variants[${variantIndex}][images][]"
                     class="form-control form-control-sm" accept="image/*" multiple>
-                <div class="form-text small">Có thể chọn nhiều ảnh cho mỗi biến thể.</div>
+              
             </div>
             ${hasStorage() ? storageColHtml(variantIndex) : ''}
             ${stockInputHtml(variantIndex)}
