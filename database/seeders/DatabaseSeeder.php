@@ -2,21 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use App\Models\Brand;
-use App\Models\Category;
-use App\Models\Product;
-use App\Models\Review;
-use App\Models\PointHistory;
-use App\Models\Coupon;
-use App\Models\Banner;
-use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\ProductImage;
-use App\Models\Cart;
-use App\Models\CartItem;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -37,15 +23,55 @@ class DatabaseSeeder extends Seeder
 
             ImeiSeeder::class,
 
+            /*
+            |--------------------------------------------------------------------------
+            | Đơn hàng mẫu cơ bản
+            |--------------------------------------------------------------------------
+            | ORD_TEST_SHIPMENT_001:
+            | - Tạo đơn waiting_pack
+            | - Không gắn IMEI sẵn
+            | - Có thông tin người nhận
+            */
             OrderSeeder::class,
 
-            // Tạo 1 đơn hàng test thực tế từ IMEI + biến thể có sẵn
+            /*
+            |--------------------------------------------------------------------------
+            | Đơn hàng test giống đơn khách vừa đặt
+            |--------------------------------------------------------------------------
+            | ORD_REAL_TEST_001 -> ORD_REAL_TEST_005:
+            | - Tạo đơn pending
+            | - Có biến thể sản phẩm IMEI
+            | - Không gắn IMEI sẵn
+            | - Chờ admin xác nhận rồi đóng gói mới chọn IMEI
+            */
             RealOrderTestSeeder::class,
+
+            /*
+            |--------------------------------------------------------------------------
+            | Đơn hàng test toàn bộ flow admin
+            |--------------------------------------------------------------------------
+            | ORD_FLOW_001 -> ORD_FLOW_008:
+            | - pending: chưa có IMEI
+            | - waiting_pack: chưa có IMEI
+            | - waiting_handover: đã reserved IMEI
+            | - shipping: đã reserved IMEI
+            | - completed: IMEI sold
+            | - failed: IMEI reserved
+            | - cancelled: không giữ IMEI
+            */
+            // OrderFlowTestSeeder::class,
 
             ReviewSeeder::class,
             PointHistorySeeder::class,
             CouponUserSeeder::class,
 
+            /*
+            |--------------------------------------------------------------------------
+            | Seeder bảo hành
+            |--------------------------------------------------------------------------
+            | Seeder này vẫn cần IMEI sold/warranty để test chức năng bảo hành,
+            | nên giữ sau các seeder đơn hàng.
+            */
             WarrantyTestSeeder::class,
         ]);
     }

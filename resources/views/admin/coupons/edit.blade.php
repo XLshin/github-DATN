@@ -7,7 +7,7 @@
 @section('page_subtitle', 'Chỉnh sửa mã voucher và điều kiện áp dụng.')
 
 @section('heading_actions')
-    <a href="{{ route('coupons.index') }}" class="btn btn-light btn-sm">
+    <a href="{{ route('admin.coupons.index') }}" class="btn btn-light btn-sm">
         <i class="bi bi-arrow-left"></i> Quay lại
     </a>
 @endsection
@@ -22,7 +22,7 @@
         </div>
 
         <div class="p-3">
-            <form action="{{ route('coupons.update', $coupon) }}" method="POST" style="max-width: 700px;">
+            <form action="{{ route('admin.coupons.update', $coupon) }}" method="POST" style="max-width: 700px;">
                 @csrf
                 @method('PUT')
 
@@ -85,7 +85,7 @@
 
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary btn-sm">Cập nhật voucher</button>
-                    <a href="{{ route('coupons.index') }}" class="btn btn-light btn-sm">Hủy</a>
+                    <a href="{{ route('admin.coupons.index') }}" class="btn btn-light btn-sm">Hủy</a>
                 </div>
             </form>
         </div>

@@ -45,7 +45,7 @@
                     Chọn khách hàng
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ route('coupons.assign-users-update', $coupon) }}">
+                    <form method="POST" action="{{ route('admin.coupons.assign-users-update', $coupon) }}">
                         @csrf
                         @method('PATCH')
 
@@ -71,7 +71,7 @@
 
                         <div class="mt-4">
                             <button type="submit" class="btn btn-primary">Lưu</button>
-                            <a href="{{ route('coupons.index') }}" class="btn btn-secondary">Hủy</a>
+                            <a href="{{ route('admin.coupons.index') }}" class="btn btn-secondary">Hủy</a>
                         </div>
                     </form>
                 </div>

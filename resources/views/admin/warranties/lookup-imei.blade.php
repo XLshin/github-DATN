@@ -201,9 +201,23 @@
                                     </span>
                                 </div>
 
-                                <div class="col-md-6 d-flex align-items-end">
+                                <div class="col-md-6">
+                                    <div class="text-muted small">Minh chứng</div>
+                                    <div class="small">
+                                        Tiếp nhận: <strong>{{ $currentWarranty->receptionMedia->count() }}</strong>
+                                    </div>
+                                    <div class="small">
+                                        Sau sửa: <strong>{{ $currentWarranty->completionMedia->count() }}</strong>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 d-flex gap-2 flex-wrap">
                                     <a href="{{ route('admin.warranties.show', $currentWarranty) }}" class="btn btn-primary btn-sm">
                                         Xem chi tiết
+                                    </a>
+
+                                    <a href="{{ route('admin.warranties.edit', $currentWarranty) }}" class="btn btn-light btn-sm">
+                                        Cập nhật trạng thái
                                     </a>
                                 </div>
 
@@ -290,6 +304,7 @@
                             @foreach ($warranties as $warranty)
                                 @php
                                     $detail = $warrantyDetails[$warranty->id] ?? null;
+
                                     $isWarrantyExpired = $warranty->warranty_end
                                         ? now()->startOfDay()->gt($warranty->warranty_end->copy()->startOfDay())
                                         : false;
@@ -347,9 +362,17 @@
                                     </td>
 
                                     <td class="text-end">
-                                        <a href="{{ route('admin.warranties.show', $warranty) }}" class="btn btn-light btn-sm">
-                                            Chi tiết
-                                        </a>
+                                        <div class="d-flex justify-content-end gap-2 flex-wrap">
+                                            <a href="{{ route('admin.warranties.show', $warranty) }}" class="btn btn-light btn-sm">
+                                                Chi tiết
+                                            </a>
+
+                                            @if($warranty->status === 'claimed')
+                                                <a href="{{ route('admin.warranties.edit', $warranty) }}" class="btn btn-primary btn-sm">
+                                                    Cập nhật
+                                                </a>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach
