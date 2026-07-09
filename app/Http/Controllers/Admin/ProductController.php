@@ -65,6 +65,7 @@ class ProductController extends Controller
         $categories = Category::all();
         $brands = Brand::all();
         $productGroups = ProductGroup::with(['category', 'brand'])->orderBy('name')->get();
+
         return view('admin.products.create', compact('categories', 'brands', 'productGroups'));
     }
 
@@ -239,6 +240,7 @@ class ProductController extends Controller
             'category',
             'brand',
             'images',
+            'productGroup.specifications',
             'variants.imeis'
         ]);
         return view('admin.products.show', compact('product'));

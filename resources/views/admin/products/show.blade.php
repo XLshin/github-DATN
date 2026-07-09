@@ -78,6 +78,40 @@
             </div>
         </section>
 
+        @php
+            $technicalSpecifications = $product->productGroup?->specifications ?? collect();
+        @endphp
+
+        <section class="panel mb-3">
+            <div class="panel-header">
+                <div>
+                    <h5 class="mb-1">Thông số kỹ thuật</h5>
+                    <div class="text-muted small">{{ $technicalSpecifications->count() }} thông số theo sản phẩm</div>
+                </div>
+            </div>
+            <div class="p-3">
+                @if($technicalSpecifications->isNotEmpty())
+                    @foreach($technicalSpecifications->groupBy(fn ($specification) => $specification->group_name ?: 'Thông số chung') as $groupName => $specifications)
+                        <div class="{{ !$loop->first ? 'mt-3' : '' }}">
+                            <div class="fw-semibold mb-2">{{ $groupName }}</div>
+                            <table class="table table-sm align-middle mb-0">
+                                <tbody>
+                                    @foreach($specifications as $specification)
+                                    <tr>
+                                        <th class="text-muted" style="width:220px;">{{ $specification->name }}</th>
+                                        <td>{{ $specification->value }}</td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endforeach
+                @else
+                    <div class="text-muted small">Chưa có thông số kỹ thuật.</div>
+                @endif
+            </div>
+        </section>
+
         <section class="panel">
             <div class="panel-header">
                 <div>
