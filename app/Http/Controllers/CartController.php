@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Services\CartService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
@@ -39,16 +40,55 @@ class CartController extends Controller
         ]);
 
         $quantity = (int) $request->input('quantity', 1);
+        $product = Product::query()->findOrFail($request->product_id);
 
-        // Tự động gọi hàm add hoặc addItem tùy theo loại CartService bạn đang dùng
+        if ($request->filled('variant_id')) {
+            $variant = ProductVariant::query()->find($request->variant_id);
+
+            if (! $variant || $variant->product_id !== $product->id) {
+                return back()->with('error', 'Biến thể sản phẩm không hợp lệ.');
+            }
+
+            if ($variant->stock_quantity < $quantity) {
+                return back()->with('error', 'Sản phẩm không đủ tồn kho.');
+            }
+        }
+
         if (method_exists($this->cartService, 'addItem')) {
-            $product = Product::query()->findOrFail($request->product_id);
             $this->cartService->addItem(auth()->user(), $product, $quantity, $request->variant_id);
         } else {
             $this->cartService->add((int) $request->product_id, $request->variant_id ? (int) $request->variant_id : null, $quantity);
         }
 
         return redirect()->back()->with('success', 'Sản phẩm đã thêm vào giỏ hàng.');
+    }
+
+    public function buyNow(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|integer',
+            'variant_id' => 'nullable|integer',
+            'quantity'   => 'nullable|integer|min:1',
+        ]);
+
+        $quantity = (int) $request->input('quantity', 1);
+        $product = Product::query()->findOrFail($request->product_id);
+
+        if ($request->filled('variant_id')) {
+            $variant = ProductVariant::query()->find($request->variant_id);
+
+            if (! $variant || $variant->product_id !== $product->id) {
+                return back()->with('error', 'Biến thể sản phẩm không hợp lệ.');
+            }
+
+            if ($variant->stock_quantity < $quantity) {
+                return back()->with('error', 'Sản phẩm không đủ tồn kho.');
+            }
+        }
+
+        $this->cartService->addItem(auth()->user(), $product, $quantity, $request->variant_id);
+
+        return redirect()->route('checkout.show');
     }
 
     public function update(Request $request)
