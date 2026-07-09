@@ -143,9 +143,6 @@
                                     <tr class="text-muted small">
                                         <th>Màu</th>
                                         <th>Bộ nhớ</th>
-                                        @if($product->product_type === 'imei/serial')
-                                        <th class="text-start">Số IMEI</th>
-                                        @endif
                                         <th class="text-end">Giá của biến thể</th>
                                         <th class="text-end">Tồn kho</th>
                                         <th>Trạng thái</th>
@@ -157,23 +154,10 @@
                                     <tr>
                                         <td><span class="badge text-bg-secondary">{{ $v->color }}</span></td>
                                         <td><span class="badge text-bg-info">{{ $v->storage }}</span></td>
-                                        @if($product->product_type === 'imei/serial')
-                                        <td class="text-start">
-                                            @if($v->imeis->isNotEmpty())
-                                                <div class="small text-monospace">
-                                                    @foreach($v->imeis as $imei)
-                                                        <div>{{ $imei->imei }}</div>
-                                                    @endforeach
-                                                </div>
-                                            @else
-                                                <span class="text-muted small">--</span>
-                                            @endif
-                                        </td>
-                                        @endif
                                         <td class="text-end">
                                             {{ $v->additional_price > 0 ? '' . number_format($v->additional_price, 0, ',', '.') : '0' }} đ
                                         </td>
-                                        <td class="text-end">{{ $v->stock_quantity }}</td>s
+                                        <td class="text-end">{{ $v->stock_quantity }}</td>
                                         <td>
                                             @if($v->status)
                                             <span class="badge text-bg-success">Active</span>
@@ -186,6 +170,14 @@
                                                 class="btn btn-sm btn-light">
                                                 <i class="bi bi-eye"></i> Xem
                                             </a>
+                                            <form action="{{ route('admin.variants.destroy', $v) }}" method="POST"
+                                                class="d-inline"
+                                                onsubmit="return confirm('Xóa biến thể này?')">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
                                         </td>
                                     </tr>
                                     @endforeach

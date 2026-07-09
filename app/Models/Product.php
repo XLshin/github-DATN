@@ -67,4 +67,9 @@ public function variants()
     return $this->hasMany(ProductVariant::class);
 }
 
+public function getTotalStockAttribute(): int
+{
+    return $this->variants->sum('stock_quantity');
+}
+
 }
