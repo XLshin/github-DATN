@@ -43,7 +43,7 @@
     </select>
     @if($hasProducts)
     <input type="hidden" name="product_type" value="{{ $editingGroup->product_type }}">
-    <div class="form-text">Khong the doi loai quan ly vi dong nay da co san pham.</div>
+    <div class="form-text">Không thể đổi loại quản lý vì dòng sản phẩm này đã tồn tại.</div>
     @endif
     @error('product_type')<div class="invalid-feedback">{{ $message }}</div>@enderror
 </div>
@@ -55,6 +55,8 @@
         placeholder="Ghi chú nội bộ hoặc mô tả ngắn cho dòng sản phẩm">{{ old('description', $editingGroup->description ?? '') }}</textarea>
     @error('description')<div class="invalid-feedback">{{ $message }}</div>@enderror
 </div>
+
+@include('admin.products.partials.specifications-form', ['productGroup' => $editingGroup])
 
 <div class="mb-3">
     <div class="form-check form-switch">
