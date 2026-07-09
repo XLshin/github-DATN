@@ -140,6 +140,11 @@ class ImeiController extends Controller
             'note' => 'Nhập kho bằng IMEI/Serial',
         ]);
 
+        // Cập nhật stock_quantity theo số IMEI available thực tế
+        $variant->update([
+            'stock_quantity' => $variant->imeis()->where('status', 'available')->count(),
+        ]);
+
         return redirect()
             ->route('admin.stocks')
             ->with(
