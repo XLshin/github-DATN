@@ -20,7 +20,7 @@ class OrderController extends Controller
             'receiver',
             'items.product',
             'items.variant',
-            'items.imei',
+            'items.imeis',
             'payment',
             'shipment',
         ])->latest();
@@ -71,7 +71,7 @@ class OrderController extends Controller
             'receiver',
             'items.product',
             'items.variant',
-            'items.imei',
+            'items.imeis',
             'payment',
             'shipment',
             'proofs.creator',
@@ -128,7 +128,8 @@ class OrderController extends Controller
             'packed_image' => ['required', 'image', 'max:4096'],
             'note' => ['nullable', 'string', 'max:1000'],
             'imei_values' => ['nullable', 'array'],
-            'imei_values.*' => ['nullable', 'string', 'max:20'],
+            'imei_values.*' => ['nullable', 'array'],
+            'imei_values.*.*' => ['nullable', 'string', 'max:20'],
         ], [
             'packed_image.required' => 'Vui lòng tải ảnh minh chứng đã đóng gói.',
             'packed_image.image' => 'File tải lên phải là hình ảnh.',
@@ -137,7 +138,7 @@ class OrderController extends Controller
         $order->load([
             'items.product',
             'items.variant',
-            'items.imei',
+            'items.imeis',
         ]);
 
         $imeiItems = $order->items->filter(fn ($item) => $this->orderItemNeedsImei($item));
@@ -146,36 +147,34 @@ class OrderController extends Controller
 
         DB::transaction(function () use ($request, $order, $imeiItems, $submittedImeis) {
             foreach ($imeiItems as $item) {
-                if ($item->imei_id) {
-                    continue;
+                $imeiValues = $submittedImeis[$item->getKey()] ?? [];
+
+                foreach ($imeiValues as $imeiValue) {
+                    $imei = Imei::query()
+                        ->where('imei', $imeiValue)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$imei) {
+                        throw ValidationException::withMessages([
+                            "imei_values.{$item->getKey()}" => "IMEI {$imeiValue} không tồn tại trong hệ thống.",
+                        ]);
+                    }
+
+                    if ((int) $imei->product_variant_id !== (int) $item->product_variant_id) {
+                        throw ValidationException::withMessages([
+                            "imei_values.{$item->getKey()}" => "IMEI {$imeiValue} không đúng biến thể khách đã đặt.",
+                        ]);
+                    }
+
+                    if ($imei->status !== 'available') {
+                        throw ValidationException::withMessages([
+                            "imei_values.{$item->getKey()}" => "IMEI {$imeiValue} không còn ở trạng thái available.",
+                        ]);
+                    }
+
+                    $imei->reserveForOrderItem($item);
                 }
-
-                $imeiValue = $submittedImeis[$item->getKey()] ?? null;
-
-                $imei = Imei::query()
-                    ->where('imei', $imeiValue)
-                    ->lockForUpdate()
-                    ->first();
-
-                if (!$imei) {
-                    throw ValidationException::withMessages([
-                        "imei_values.{$item->getKey()}" => "IMEI {$imeiValue} không tồn tại trong hệ thống.",
-                    ]);
-                }
-
-                if ((int) $imei->product_variant_id !== (int) $item->product_variant_id) {
-                    throw ValidationException::withMessages([
-                        "imei_values.{$item->getKey()}" => "IMEI {$imeiValue} không đúng biến thể khách đã đặt.",
-                    ]);
-                }
-
-                if ($imei->status !== 'available') {
-                    throw ValidationException::withMessages([
-                        "imei_values.{$item->getKey()}" => "IMEI {$imeiValue} không còn ở trạng thái available.",
-                    ]);
-                }
-
-                $imei->reserveForOrderItem($item);
             }
 
             $path = $request->file('packed_image')->store('order-proofs', 'public');
@@ -238,7 +237,7 @@ class OrderController extends Controller
         ]);
 
         DB::transaction(function () use ($request, $order) {
-            $order->loadMissing('items.imei');
+            $order->loadMissing('items.imeis');
 
             $path = $request->file('delivered_image')->store('order-proofs', 'public');
 
@@ -251,8 +250,10 @@ class OrderController extends Controller
             ]);
 
             foreach ($order->items as $item) {
-                if ($item->imei_id && $item->imei && $item->imei->status === 'reserved') {
-                    $item->imei->markAsSold();
+                foreach ($item->imeis as $imei) {
+                    if ($imei->status === 'reserved') {
+                        $imei->markAsSold();
+                    }
                 }
             }
 
@@ -353,15 +354,13 @@ class OrderController extends Controller
         }
 
         DB::transaction(function () use ($order) {
-            $order->loadMissing('items.product', 'items.variant', 'items.imei', 'shipment');
+            $order->loadMissing('items.product', 'items.variant', 'items.imeis', 'shipment');
 
             foreach ($order->items as $item) {
-                if ($item->imei_id && $item->imei && $item->imei->status === 'reserved') {
-                    $item->imei->releaseReservation();
-
-                    $item->update([
-                        'imei_id' => null,
-                    ]);
+                foreach ($item->imeis as $imei) {
+                    if ($imei->status === 'reserved') {
+                        $imei->releaseReservation();
+                    }
                 }
 
                 if ($item->product && $item->product->product_type === 'quantity' && $item->variant) {
@@ -392,7 +391,7 @@ class OrderController extends Controller
         'user',
         'items.product',
         'items.variant',
-        'items.imei',
+        'items.imeis',
         'payment',
         'receiver',
     ]);
@@ -414,8 +413,7 @@ class OrderController extends Controller
 private function orderHasMissingRequiredImeis(Order $order): bool
 {
     return $order->items->contains(function ($item) {
-        return ($item->product->product_type ?? null) === 'imei/serial'
-            && empty($item->imei_id);
+        return $this->orderItemNeedsImei($item) && !$item->hasFullImeiAssignment();
     });
 }
 
@@ -424,7 +422,7 @@ private function orderHasMissingRequiredImeis(Order $order): bool
         $variantIds = $orders
             ->flatMap(function (Order $order) {
                 return $order->items
-                    ->filter(fn ($item) => $this->orderItemNeedsImei($item) && !$item->imei_id)
+                    ->filter(fn ($item) => $this->orderItemNeedsImei($item) && !$item->hasFullImeiAssignment())
                     ->pluck('product_variant_id');
             })
             ->filter()
@@ -452,35 +450,51 @@ private function orderHasMissingRequiredImeis(Order $order): bool
     {
         $errors = [];
         $submittedImeis = [];
-        $seenImeis = [];
+        $seenImeisInOrder = [];
 
         foreach ($imeiItems as $item) {
-            if ((int) $item->quantity !== 1) {
-                $errors["imei_values.{$item->getKey()}"] = 'Sản phẩm quản lý theo IMEI chỉ nên có số lượng 1 trên mỗi dòng order_item. Nếu khách mua nhiều máy cùng biến thể, hãy tách thành nhiều dòng order_item, mỗi dòng quantity = 1.';
+            $remaining = $item->remainingImeiSlots();
+
+            if ($remaining === 0) {
+                // Item này đã được gán đủ IMEI từ trước, bỏ qua.
                 continue;
             }
 
-            if ($item->imei_id) {
+            $rawValues = (array) $request->input("imei_values.{$item->getKey()}", []);
+
+            // Loại bỏ khoảng trắng và giá trị rỗng.
+            $values = array_values(array_filter(
+                array_map(fn ($v) => trim((string) $v), $rawValues),
+                fn ($v) => $v !== ''
+            ));
+
+            $productName = $item->product->name ?? 'sản phẩm';
+
+            if (count($values) !== $remaining) {
+                $errors["imei_values.{$item->getKey()}"] = "Vui lòng nhập đủ {$remaining} IMEI cho {$productName} (đã nhập " . count($values) . ").";
                 continue;
             }
 
-            $imeiValue = trim((string) $request->input("imei_values.{$item->getKey()}", ''));
+            $seenInItem = [];
 
-            if ($imeiValue === '') {
-                $productName = $item->product->name ?? 'sản phẩm';
-                $errors["imei_values.{$item->getKey()}"] = "Vui lòng nhập IMEI cho {$productName}.";
-                continue;
+            foreach ($values as $imeiValue) {
+                $duplicateKey = strtolower($imeiValue);
+
+                if (isset($seenInItem[$duplicateKey])) {
+                    $errors["imei_values.{$item->getKey()}"] = "IMEI {$imeiValue} bị nhập trùng trong cùng {$productName}.";
+                    continue 2;
+                }
+
+                if (isset($seenImeisInOrder[$duplicateKey])) {
+                    $errors["imei_values.{$item->getKey()}"] = "IMEI {$imeiValue} đang được nhập trùng trong cùng đơn hàng.";
+                    continue 2;
+                }
+
+                $seenInItem[$duplicateKey] = true;
+                $seenImeisInOrder[$duplicateKey] = true;
             }
 
-            $duplicateKey = strtolower($imeiValue);
-
-            if (isset($seenImeis[$duplicateKey])) {
-                $errors["imei_values.{$item->getKey()}"] = "IMEI {$imeiValue} đang được nhập trùng trong cùng đơn hàng.";
-                continue;
-            }
-
-            $seenImeis[$duplicateKey] = true;
-            $submittedImeis[$item->getKey()] = $imeiValue;
+            $submittedImeis[$item->getKey()] = $values;
         }
 
         if (!empty($errors)) {
