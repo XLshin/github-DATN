@@ -7,10 +7,10 @@
 @section('page_subtitle', $category->description ?? 'Chi tiết danh mục')
 
 @section('heading_actions')
-    <a href="{{ route('categories.index') }}" class="btn btn-light btn-sm">
+    <a href="{{ route('admin.categories.index') }}" class="btn btn-light btn-sm">
         <i class="bi bi-arrow-left"></i> Quay lại
     </a>
-    <a href="{{ route('categories.edit', $category) }}" class="btn btn-primary btn-sm">
+    <a href="{{ route('admin.categories.edit', $category) }}" class="btn btn-primary btn-sm">
         <i class="bi bi-pencil"></i> Sửa danh mục
     </a>
 @endsection
@@ -43,12 +43,12 @@
             <p class="text-muted mb-0">Chưa có thương hiệu nào trong danh mục này.</p>
         @else
             <div class="d-flex flex-wrap gap-2">
-                <a href="{{ route('categories.show', $category) }}"
+                <a href="{{ route('admin.categories.show', $category) }}"
                    class="btn btn-sm {{ !request('brand_id') ? 'btn-primary' : 'btn-outline-secondary' }}">
                     Tất cả ({{ $products->total() }})
                 </a>
                 @foreach($brands as $brand)
-                    <a href="{{ route('categories.show', $category) }}?brand_id={{ $brand->id }}"
+                    <a href="{{ route('admin.categories.show', $category) }}?brand_id={{ $brand->id }}"
                        class="btn btn-sm {{ request('brand_id') == $brand->id ? 'btn-primary' : 'btn-outline-secondary' }}">
                         {{ $brand->name }}
                         <span class="badge bg-white text-dark ms-1">{{ $brand->products_count }}</span>
@@ -78,8 +78,7 @@
                     <th>Tên sản phẩm</th>
                     <th>Thương hiệu</th>
                     <th>Biến thể</th>
-                    <th>Giá</th>
-                    <th>Tồn kho</th>
+                    <th>Kiểu loại</th>
                     <th>Trạng thái</th>
                     <th class="text-end">Thao tác</th>
                 </tr>
@@ -128,10 +127,12 @@
                                 <span class="text-muted small">Chưa có</span>
                             @endif
                         </td>
-                        <td>{{ number_format($product->price, 0, ',', '.') }}đ</td>
                         <td>
-                            @php $actual = max(0, (int)($product->total_stock ?? $product->stock_quantity) - (int)($product->sold_quantity ?? 0)); @endphp
-                            {{ $actual }}
+                            @if($product->product_type === 'imei/serial')
+                                <span class="badge bg-info-subtle text-info border">IMEI/Serial</span>
+                            @else
+                                <span class="badge bg-warning-subtle text-warning border">Số lượng</span>
+                            @endif
                         </td>
                         <td>
                             @if($product->status)
@@ -146,7 +147,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">
+                        <td colspan="7" class="text-center text-muted py-4">
                             Chưa có sản phẩm nào trong danh mục này
                         </td>
                     </tr>
