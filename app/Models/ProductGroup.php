@@ -33,4 +33,9 @@ class ProductGroup extends Model
     {
         return $this->hasMany(Product::class);
     }
+
+    public function specifications()
+    {
+        return $this->hasMany(ProductSpecification::class)->orderBy('sort_order')->orderBy('id');
+    }
 }

@@ -155,6 +155,9 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
             ->except(['show'])
             ->parameters(['product-groups' => 'productGroup']);
 
+        Route::get('product-groups/{productGroup}/specifications', [ProductGroupController::class, 'specifications'])
+            ->name('product-groups.specifications');
+
         // AJAX endpoint to quickly create a Product Group from the product create form
         Route::post('products/ajax-group', [AdminProductController::class, 'ajaxStore'])
             ->name('products.ajaxStore');

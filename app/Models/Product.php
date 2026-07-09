@@ -70,6 +70,7 @@ class Product extends Model
     {
         return $this->hasMany(ProductVariant::class);
     }
+
     public function productGroup()
     {
         return $this->belongsTo(ProductGroup::class, 'product_group_id');

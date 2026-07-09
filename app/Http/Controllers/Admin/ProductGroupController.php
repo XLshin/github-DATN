@@ -11,9 +11,44 @@ use Illuminate\Support\Str;
 
 class ProductGroupController extends Controller
 {
+    private function syncSpecifications(ProductGroup $productGroup, array $specifications = []): void
+    {
+        $rows = [];
+
+        foreach (array_values($specifications) as $index => $specification) {
+            $name = trim((string) ($specification['name'] ?? ''));
+            $value = trim((string) ($specification['value'] ?? ''));
+
+            if ($name === '' || $value === '') {
+                continue;
+            }
+
+            $rows[] = [
+                'group_name' => trim((string) ($specification['group_name'] ?? '')) ?: null,
+                'name' => $name,
+                'value' => $value,
+                'sort_order' => $index,
+            ];
+        }
+
+        $productGroup->specifications()->delete();
+
+        if (!empty($rows)) {
+            $productGroup->specifications()->createMany($rows);
+        }
+    }
+
     public function index(Request $request)
     {
-        $query = ProductGroup::with(['category', 'brand'])
+        $query = ProductGroup::with([
+                'category',
+                'brand',
+                'products' => fn ($productQuery) => $productQuery
+                    ->with('variants')
+                    ->withCount('variants')
+                    ->orderBy('storage')
+                    ->orderBy('name'),
+            ])
             ->withCount('products')
             ->orderBy('name');
 
@@ -40,8 +75,11 @@ class ProductGroupController extends Controller
     {
         $categories = Category::orderBy('name')->get();
         $brands = Brand::orderBy('name')->get();
+        $specificationSourceGroups = ProductGroup::whereHas('specifications')
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
-        return view('admin.product-groups.create', compact('categories', 'brands'));
+        return view('admin.product-groups.create', compact('categories', 'brands', 'specificationSourceGroups'));
     }
 
     public function store(Request $request)
@@ -53,12 +91,20 @@ class ProductGroupController extends Controller
             'product_type' => 'required|in:quantity,imei/serial',
             'description' => 'nullable|string',
             'status' => 'boolean',
+            'specifications' => 'nullable|array',
+            'specifications.*.group_name' => 'nullable|string|max:255',
+            'specifications.*.name' => 'nullable|string|max:255',
+            'specifications.*.value' => 'nullable|string',
         ]);
+
+        $specifications = $validated['specifications'] ?? [];
+        unset($validated['specifications']);
 
         $validated['slug'] = Str::slug($validated['name']);
         $validated['status'] = $request->boolean('status', true);
 
-        ProductGroup::create($validated);
+        $productGroup = ProductGroup::create($validated);
+        $this->syncSpecifications($productGroup, $specifications);
 
         return redirect()->route('admin.product-groups.index')
             ->with('success', 'Thêm dòng sản phẩm thành công.');
@@ -68,9 +114,27 @@ class ProductGroupController extends Controller
     {
         $categories = Category::orderBy('name')->get();
         $brands = Brand::orderBy('name')->get();
+        $specificationSourceGroups = ProductGroup::whereHas('specifications')
+            ->whereKeyNot($productGroup->id)
+            ->orderBy('name')
+            ->get(['id', 'name']);
         $productGroup->loadCount('products');
+        $productGroup->load('specifications');
 
-        return view('admin.product-groups.edit', compact('productGroup', 'categories', 'brands'));
+        return view('admin.product-groups.edit', compact('productGroup', 'categories', 'brands', 'specificationSourceGroups'));
+    }
+
+    public function specifications(ProductGroup $productGroup)
+    {
+        $productGroup->load('specifications');
+
+        return response()->json(
+            $productGroup->specifications->map(fn ($specification) => [
+                'group_name' => $specification->group_name,
+                'name' => $specification->name,
+                'value' => $specification->value,
+            ])->values()
+        );
     }
 
     public function update(Request $request, ProductGroup $productGroup)
@@ -82,7 +146,14 @@ class ProductGroupController extends Controller
             'product_type' => 'required|in:quantity,imei/serial',
             'description' => 'nullable|string',
             'status' => 'boolean',
+            'specifications' => 'nullable|array',
+            'specifications.*.group_name' => 'nullable|string|max:255',
+            'specifications.*.name' => 'nullable|string|max:255',
+            'specifications.*.value' => 'nullable|string',
         ]);
+
+        $specifications = $validated['specifications'] ?? [];
+        unset($validated['specifications']);
 
         $validated['slug'] = Str::slug($validated['name']);
         $validated['status'] = $request->boolean('status', false);
@@ -97,6 +168,7 @@ class ProductGroupController extends Controller
         }
 
         $productGroup->update($validated);
+        $this->syncSpecifications($productGroup, $specifications);
         $productGroup->products()->update([
             'category_id' => $productGroup->category_id,
             'brand_id' => $productGroup->brand_id,
