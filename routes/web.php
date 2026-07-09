@@ -43,6 +43,7 @@ Route::get('/thuong-hieu/{brand:id}', [HomeController::class, 'byBrand'])->name(
 Route::middleware('auth')->group(function () {
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+    Route::post('/buy-now', [CartController::class, 'buyNow'])->name('buy.now');
     Route::post('/cart/update', [CartController::class, 'update'])->name('cart.update');
     Route::post('/cart/remove', [CartController::class, 'remove'])->name('cart.remove');
 });

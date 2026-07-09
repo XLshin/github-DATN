@@ -7,19 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class ProductVariant extends Model
 {
     protected $fillable = [
-
         'product_id',
-
         'color',
-
+        'storage',
         'image_path',
-
         'stock_quantity',
-
         'additional_price',
-
         'status'
-
     ];
 
     protected static function booted(): void
