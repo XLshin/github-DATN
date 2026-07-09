@@ -13,9 +13,7 @@
 @endsection
 
 @section('content')
-
-{{-- Form chính: chỉ chứa update, không lồng form nào khác --}}
-<form action="{{ route('admin.products.update', $product) }}" method="POST" enctype="multipart/form-data" id="productForm">
+<form action="{{ route('admin.products.update', $product) }}" method="POST" enctype="multipart/form-data" id="productForm" data-turbo="false">
     @csrf
     @method('PUT')
 
@@ -32,6 +30,29 @@
                 </div>
                 <div class="p-3">
                     <div class="mb-3">
+                        <label class="form-label">Nhóm sản phẩm <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <select name="product_group_id" id="productGroupSelect" class="form-select @error('product_group_id') is-invalid @enderror">
+                                <option value="">-- Chọn nhóm sản phẩm --</option>
+                                @foreach($productGroups as $group)
+                                <option value="{{ $group->id }}"
+                                    data-category-id="{{ $group->category_id }}"
+                                    data-category-name="{{ $group->category->name ?? '' }}"
+                                    data-brand-id="{{ $group->brand_id }}"
+                                    data-brand-name="{{ $group->brand->name ?? '' }}"
+                                    data-product-type="{{ $group->product_type }}"
+                                    @selected(old('product_group_id', $product->product_group_id) == $group->id)>{{ $group->name }}</option>
+                                @endforeach
+                            </select>
+                            <button type="button" class="btn btn-outline-secondary" id="addGroupBtn">+</button>
+                        </div>
+                        @error('product_group_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <div class="form-text">
+                            <a href="{{ route('admin.product-groups.index') }}">Quản lý dòng sản phẩm</a>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">Tên sản phẩm <span class="text-danger">*</span></label>
                         <input type="text" name="name" value="{{ old('name', $product->name) }}"
                             class="form-control @error('name') is-invalid @enderror">
@@ -40,27 +61,42 @@
 
                     <div class="mb-3">
                         <label class="form-label">Loại sản phẩm <span class="text-danger">*</span></label>
-                        <select name="product_type" id="productType" class="form-select">
+                        <select name="product_type_disabled" id="productType" class="form-select" disabled onchange="toggleStorageByProductType()">
                             <option value="quantity" @selected(old('product_type', $product->product_type) == 'quantity')>Theo số lượng</option>
                             <option value="imei/serial" @selected(old('product_type', $product->product_type) == 'imei/serial')>Theo IMEI/Serial</option>
                         </select>
-                        <div class="form-text"><span id="typeHint"></span></div>
+                        <input type="hidden" name="product_type" id="productTypeHidden" value="{{ old('product_type', $product->product_type) }}">
+                        <div class="form-text">
+                            <span id="typeHint">Nhập số lượng tồn kho cho từng biến thể.</span>
+                        </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Tổng tồn kho</label>
-                        <input type="number" name="stock_quantity" value="{{ old('stock_quantity', $product->stock_quantity) }}"
-                            class="form-control" min="0" readonly>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Giá cơ bản (đ)</label>
+                                <input type="number" name="price" value="{{ old('price', $product->price) }}"
+                                    class="form-control @error('price') is-invalid @enderror" min="0" step="0.01">
+                                @error('price')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3 {{ old('product_type', $product->product_type) === 'quantity' ? 'd-none' : '' }}" id="productStorageWrapper">
+                                <label class="form-label">Dung lượng <span class="text-danger">*</span></label>
+                                <input type="text" name="storage" id="productStorage" value="{{ old('storage', $product->storage) }}"
+                                    class="form-control @error('storage') is-invalid @enderror" placeholder="VD: 128GB">
+                                @error('storage')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                        </div>
                     </div>
 
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Danh mục <span class="text-danger">*</span></label>
-                            <select name="category_id" id="categorySelect" class="form-select @error('category_id') is-invalid @enderror">
+                            <select id="categorySelect" class="form-select @error('category_id') is-invalid @enderror" disabled>
                                 <option value="">-- Chọn danh mục --</option>
                                 @foreach($categories as $cat)
                                 <option value="{{ $cat->id }}"
-                                    data-has-storage="{{ strtolower($cat->name) !== 'phụ kiện' ? '1' : '0' }}"
                                     @selected(old('category_id', $product->category_id) == $cat->id)>{{ $cat->name }}</option>
                                 @endforeach
                             </select>
@@ -68,7 +104,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Thương hiệu <span class="text-danger">*</span></label>
-                            <select name="brand_id" class="form-select @error('brand_id') is-invalid @enderror">
+                            <select id="brandSelect" class="form-select @error('brand_id') is-invalid @enderror" disabled>
                                 <option value="">-- Chọn thương hiệu --</option>
                                 @foreach($brands as $brand)
                                 <option value="{{ $brand->id }}" @selected(old('brand_id', $product->brand_id) == $brand->id)>{{ $brand->name }}</option>
@@ -182,12 +218,16 @@
                         <label class="form-label">Ảnh bổ sung hiện có</label>
                         <div class="row g-2">
                             @foreach($product->images as $img)
-                            <div class="col-4 position-relative">
-                                <img src="{{ Storage::url($img->image_path) }}" class="img-fluid rounded border" style="object-fit:cover; max-height:120px; width:100%;">
-                                {{-- Nút xóa ảnh dùng form attribute, không lồng form --}}
-                                <button type="submit" form="delete-image-{{ $img->id }}"
-                                    class="btn btn-sm btn-danger position-absolute top-0 end-0"
-                                    onclick="return confirm('Xóa ảnh này?')" title="Xóa ảnh">×</button>
+                            <div class="col-4">
+                                <div class="position-relative">
+                                    <img src="{{ Storage::url($img->image_path) }}" class="img-fluid rounded border" style="object-fit:cover; max-height:120px; width:100%;">
+                                    <button type="submit" form="delete-product-image-{{ $img->id }}" class="btn btn-sm btn-danger position-absolute top-0 end-0" title="Xoa anh">&times;</button>
+                                    {{--
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-danger" title="Xóa ảnh">×</button>
+                                    --}}
+                                </div>
                             </div>
                             @endforeach
                         </div>
@@ -234,26 +274,108 @@
 
 @endsection
 
+@push('styles')
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+@endpush
+
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
+function toggleStorageByProductType() {
+    const wrapper = document.getElementById('productStorageWrapper');
+    const select = document.getElementById('productType');
+    const input = document.getElementById('productStorage');
+    const hiddenInput = document.querySelector('input[name="product_type"]');
+    const currentValue = (select && select.value) || (hiddenInput && hiddenInput.value) || 'quantity';
+    const shouldShow = currentValue === 'imei/serial';
+
+    if (wrapper) {
+        wrapper.classList.toggle('d-none', !shouldShow);
+    }
+
+    if (input && !shouldShow) {
+        input.value = '';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
 let variantIndex = 0;
 const productTypeSelect = document.getElementById('productType');
-const categorySelect    = document.getElementById('categorySelect');
+const productTypeInput  = document.querySelector('input[name="product_type"]');
+const productGroupSelect = document.getElementById('productGroupSelect');
+const categorySelect = document.getElementById('categorySelect');
+const brandSelect = document.getElementById('brandSelect');
 const typeHint          = document.getElementById('typeHint');
+let productGroupTomSelect = null;
 
-function getProductType() { return productTypeSelect.value; }
+function getProductType() {
+    return (productTypeSelect && productTypeSelect.value) || (productTypeInput && productTypeInput.value) || 'quantity';
+}
 
 function hasStorage() {
-    const opt = categorySelect.options[categorySelect.selectedIndex];
-    return !opt || opt.dataset.hasStorage !== '0';
+    return getProductType() === 'imei/serial';
+}
+
+function syncGroupFields() {
+    const option = productGroupSelect && productGroupSelect.options[productGroupSelect.selectedIndex];
+    if (!option || !option.value) return;
+
+    const productType = option.dataset.productType || 'quantity';
+    if (productTypeSelect) productTypeSelect.value = productType;
+    if (productTypeInput) productTypeInput.value = productType;
+    if (categorySelect) categorySelect.value = option.dataset.categoryId || '';
+    if (brandSelect) brandSelect.value = option.dataset.brandId || '';
+
+    updateTypeHint();
+    updateStorageVisibility();
+}
+
+function initProductGroupSearch() {
+    if (!productGroupSelect || !window.TomSelect) return;
+
+    const productGroupMeta = {};
+    Array.from(productGroupSelect.options).forEach(option => {
+        if (!option.value) return;
+
+        productGroupMeta[option.value] = {
+            category: option.dataset.categoryName || '',
+            brand: option.dataset.brandName || '',
+            type: option.dataset.productType === 'imei/serial' ? 'IMEI/Serial' : 'Theo so luong'
+        };
+    });
+
+    productGroupTomSelect = new TomSelect(productGroupSelect, {
+        allowEmptyOption: true,
+        plugins: ['clear_button'],
+        placeholder: 'Tim dong san pham...',
+        searchField: ['text', 'category', 'brand', 'type'],
+        render: {
+            option: function(data, escape) {
+                if (!data.value) return '<div class="text-muted">' + escape(data.text) + '</div>';
+                const meta = [data.brand, data.category, data.type].filter(Boolean).join(' · ');
+                return '<div><div class="fw-semibold">' + escape(data.text) + '</div><div class="small text-muted">' + escape(meta) + '</div></div>';
+            },
+            item: function(data, escape) {
+                return '<div>' + escape(data.text) + '</div>';
+            }
+        },
+        onInitialize: function() {
+            Object.entries(productGroupMeta).forEach(([value, meta]) => {
+                if (!this.options[value]) return;
+                this.updateOption(value, Object.assign({}, this.options[value], meta));
+            });
+            this.refreshOptions(false);
+        }
+    });
 }
 
 function stockInputHtml(index) {
     if (getProductType() === 'imei/serial') {
         return `<div class="col-12 stock-col">
             <label class="form-label small">Danh sách IMEI / Serial <span class="text-danger">*</span></label>
-            <textarea name="variants[${index}][imeis]" rows="5" class="form-control form-control-sm"
-                placeholder="Mỗi dòng một IMEI hoặc Serial"></textarea>
+            <textarea name="variants[${index}][imeis]" rows="5"
+                class="form-control form-control-sm"
+                placeholder="Mỗi dòng một IMEI hoặc Serial&#10;123456789012345&#10;123456789012346&#10;123456789012347"></textarea>
             <div class="form-text">Mỗi dòng nhập một IMEI hoặc Serial.</div>
             <input type="hidden" name="variants[${index}][stock_quantity]" value="0">
         </div>`;
@@ -303,9 +425,11 @@ function updateStorageCols() {
     });
 }
 
-productTypeSelect.addEventListener('change', updateTypeHint);
-categorySelect.addEventListener('change', updateStorageCols);
+initProductGroupSearch();
+productGroupSelect && productGroupSelect.addEventListener('change', syncGroupFields);
+syncGroupFields();
 updateTypeHint();
+updateStorageVisibility();
 
 document.getElementById('addVariant').addEventListener('click', function () {
     document.getElementById('noVariantMsg').classList.add('d-none');
@@ -325,7 +449,6 @@ document.getElementById('addVariant').addEventListener('click', function () {
                 <input type="file" name="variants[${variantIndex}][images][]"
                     class="form-control form-control-sm" accept="image/*" multiple>
             </div>
-            ${hasStorage() ? storageColHtml(variantIndex) : ''}
             ${stockInputHtml(variantIndex)}
             <div class="col-md-3">
                 <label class="form-label small">Giá của biến thể (đ)</label>
@@ -355,5 +478,116 @@ document.getElementById('thumbnailInput').addEventListener('change', function ()
         preview.classList.remove('d-none');
     }
 });
+
+const addGroupBtn = document.getElementById('addGroupBtn');
+const groupModalEl = document.getElementById('groupModal');
+let groupModal = null;
+if (groupModalEl && window.bootstrap) {
+    groupModal = new bootstrap.Modal(groupModalEl);
+}
+
+addGroupBtn && addGroupBtn.addEventListener('click', function () {
+    if (groupModal) groupModal.show();
+});
+
+const groupForm = document.getElementById('groupForm');
+if (groupForm) {
+    groupForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const url = '{{ route('admin.products.ajaxStore') }}';
+        const fd = new FormData(groupForm);
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: fd
+        }).then(r => r.json())
+        .then(data => {
+            const sel = document.getElementById('productGroupSelect');
+            const opt = document.createElement('option');
+            opt.value = data.id;
+            opt.textContent = data.name;
+            opt.dataset.categoryId = data.category_id || '';
+            opt.dataset.categoryName = data.category ? data.category.name : '';
+            opt.dataset.brandId = data.brand_id || '';
+            opt.dataset.brandName = data.brand ? data.brand.name : '';
+            opt.dataset.productType = data.product_type || 'quantity';
+            sel.appendChild(opt);
+            if (productGroupTomSelect) {
+                productGroupTomSelect.addOption({
+                    value: String(data.id),
+                    text: data.name,
+                    category: data.category ? data.category.name : '',
+                    brand: data.brand ? data.brand.name : '',
+                    type: data.product_type === 'imei/serial' ? 'IMEI/Serial' : 'Theo so luong'
+                });
+                productGroupTomSelect.setValue(String(data.id), true);
+                productGroupTomSelect.refreshOptions(false);
+            } else {
+                sel.value = data.id;
+            }
+            syncGroupFields();
+            if (groupModal) groupModal.hide();
+            groupForm.reset();
+        }).catch(err => {
+            console.error(err);
+            alert('Không thể tạo nhóm sản phẩm.');
+        });
+    });
+}
+});
 </script>
 @endpush
+
+<div class="modal fade" id="groupModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="groupForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Tạo nhóm sản phẩm</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Tên nhóm</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Danh mục</label>
+                        <select name="category_id" class="form-select" required>
+                            <option value="">-- Chọn danh mục --</option>
+                            @foreach($categories as $cat)
+                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Thương hiệu</label>
+                        <select name="brand_id" class="form-select" required>
+                            <option value="">-- Chọn thương hiệu --</option>
+                            @foreach($brands as $brand)
+                            <option value="{{ $brand->id }}">{{ $brand->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Mô tả</label>
+                        <textarea name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Loại quản lý</label>
+                        <select name="product_type" class="form-select" required>
+                            <option value="quantity">Theo số lượng</option>
+                            <option value="imei/serial">Theo IMEI/Serial</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Tạo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
