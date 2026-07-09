@@ -14,20 +14,12 @@ class WarrantyTestSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | 1. Lấy đơn hàng test
+            | 1. Tạo (hoặc lấy lại) đơn hàng RIÊNG cho warranty test
             |--------------------------------------------------------------------------
-            */
-            $order = DB::table('orders')
-                ->where('order_code', 'ORD_TEST_SHIPMENT_001')
-                ->first();
-
-            if (!$order) {
-                $order = DB::table('orders')->first();
-            }
-
-            /*
-            |--------------------------------------------------------------------------
-            | 2. Lấy biến thể sản phẩm hợp lệ
+            | Trước đây seeder này gắn ké 4 order_items vào đơn ORD_TEST_SHIPMENT_001
+            | (vốn dành cho test đóng gói/giao hàng, chỉ nên có đúng 1 dòng chưa gán IMEI),
+            | khiến đơn đó bị phình ra nhiều dòng sản phẩm không liên quan.
+            | Nay tạo hẳn 1 đơn độc lập: ORD_TEST_WARRANTY_001.
             |--------------------------------------------------------------------------
             */
             $variant = DB::table('product_variants')
@@ -42,25 +34,71 @@ class WarrantyTestSeeder extends Seeder
                 ->where('product_variants.status', true)
                 ->first();
 
-            if (!$order || !$variant) {
-                throw new \Exception('Cần có orders và product_variants trước khi seed bảo hành. Hãy chạy ProductSeeder, ProductVariantSeeder và OrderSeeder trước.');
+            if (!$variant) {
+                throw new \Exception('Cần có product_variants trước khi seed bảo hành. Hãy chạy ProductSeeder và ProductVariantSeeder trước.');
             }
 
-            /*
-            |--------------------------------------------------------------------------
-            | 3. Cập nhật đơn hàng thành completed để giống đơn đã bán
-            |--------------------------------------------------------------------------
-            */
+            $customer = DB::table('users')
+                ->where('email', 'customer.test@gmail.com')
+                ->first();
+
+            if (!$customer) {
+                $customer = DB::table('users')->where('role', 'customer')->first();
+            }
+
+            if (!$customer) {
+                throw new \Exception('Cần có ít nhất 1 user customer trước khi seed bảo hành. Hãy chạy UserSeeder/OrderSeeder trước.');
+            }
+
+            $orderData = [
+                'user_id' => $customer->id,
+                'customer_name' => 'Khách hàng test bảo hành',
+                'customer_phone' => '0987650000',
+                'shipping_address' => 'Số 1 Cầu Giấy, Hà Nội',
+                'subtotal' => 0,
+                'membership_discount' => 0,
+                'coupon_discount' => 0,
+                'total_amount' => 0,
+                'status' => 'completed',
+                'fulfillment_status' => 'completed',
+                'confirmed_at' => $now,
+                'packed_at' => $now,
+                'handed_over_at' => $now,
+                'delivered_at' => $now,
+                'cancelled_at' => null,
+                'shipping_label_printed_at' => null,
+                'updated_at' => $now,
+            ];
+
+            if (DB::table('orders')->where('order_code', 'ORD_TEST_WARRANTY_001')->exists()) {
+                DB::table('orders')
+                    ->where('order_code', 'ORD_TEST_WARRANTY_001')
+                    ->update($orderData);
+            } else {
+                $orderData['order_code'] = 'ORD_TEST_WARRANTY_001';
+                $orderData['created_at'] = $now;
+
+                DB::table('orders')->insert($orderData);
+            }
+
+            $order = DB::table('orders')
+                ->where('order_code', 'ORD_TEST_WARRANTY_001')
+                ->first();
+
+            if (!$order) {
+                throw new \Exception('Không tạo được đơn hàng riêng cho warranty test.');
+            }
+
+            $price = (float) $variant->product_price + (float) ($variant->additional_price ?? 0);
+
+            // 4 IMEI test (case 1-4) đều quantity = 1 => tổng tiền đơn = 4 x price.
             DB::table('orders')
                 ->where('id', $order->id)
                 ->update([
-                    'status' => 'completed',
-                    'fulfillment_status' => 'completed',
-                    'delivered_at' => $now,
+                    'subtotal' => $price * 4,
+                    'total_amount' => $price * 4,
                     'updated_at' => $now,
                 ]);
-
-            $price = (float) $variant->product_price + (float) ($variant->additional_price ?? 0);
 
             /*
             |--------------------------------------------------------------------------
@@ -188,7 +226,7 @@ class WarrantyTestSeeder extends Seeder
             $this->command->info('Case 2 - Phiếu cũ expired, có thể tạo phiếu mới: IMEI-TEST-000002');
             $this->command->info('Case 3 - Chưa có phiếu, có thể tạo phiếu mới: IMEI-TEST-000003');
             $this->command->info('Case 4 - Đang bảo hành claimed: IMEI-TEST-000004');
-            $this->command->info('Mã đơn test: ' . $order->order_code);
+            $this->command->info('Mã đơn test (riêng, không còn gắn vào ORD_TEST_SHIPMENT_001): ' . $order->order_code);
         });
     }
 
