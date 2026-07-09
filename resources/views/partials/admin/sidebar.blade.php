@@ -43,7 +43,7 @@
         @endif
 
         @if ($canViewProducts)
-        <a class="nav-link {{ request()->routeIs('admin.products.*', 'admin.variants.*') ? 'active' : '' }}"
+        <a class="nav-link {{ request()->routeIs('admin.products.*', 'admin.product-groups.*', 'admin.variants.*') ? 'active' : '' }}"
             href="{{ route('admin.products.index') }}">
             <span class="nav-icon"><i class="bi bi-box-seam"></i></span>
             <span class="nav-text">Sản phẩm</span>
