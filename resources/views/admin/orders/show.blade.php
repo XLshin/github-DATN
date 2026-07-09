@@ -7,7 +7,7 @@
 
     $missingRequiredImeis = $order->items->contains(function ($item) {
         return ($item->product->product_type ?? null) === 'imei/serial'
-            && empty($item->imei_id);
+            && !$item->hasFullImeiAssignment();
     });
 
     $fulfillmentLabels = [
@@ -435,17 +435,27 @@
                                 </td>
 
                                 <td>
-                                    @if($item->imei)
-                                        <span class="fw-semibold">
-                                            {{ $item->imei->imei ?? $item->imei->serial_number ?? '-' }}
-                                        </span>
+                                    @if($item->imeis && $item->imeis->isNotEmpty())
+                                        <ul class="list-unstyled mb-0">
+                                            @foreach($item->imeis as $assignedImei)
+                                                <li class="mb-1">
+                                                    <span class="fw-semibold">
+                                                        {{ $assignedImei->imei ?? '-' }}
+                                                    </span>
 
-                                        @if(!empty($item->imei->status))
-                                            <div>
-                                                <small class="text-muted">
-                                                    Trạng thái: {{ $item->imei->status }}
-                                                </small>
-                                            </div>
+                                                    @if(!empty($assignedImei->status))
+                                                        <small class="text-muted">
+                                                            ({{ $assignedImei->status }})
+                                                        </small>
+                                                    @endif
+                                                </li>
+                                            @endforeach
+                                        </ul>
+
+                                        @if(($item->product->product_type ?? null) === 'imei/serial' && !$item->hasFullImeiAssignment())
+                                            <span class="text-danger small">
+                                                Còn thiếu {{ $item->remainingImeiSlots() }} IMEI
+                                            </span>
                                         @endif
                                     @elseif(($item->product->product_type ?? null) === 'imei/serial')
                                         <span class="text-danger">Chưa gán IMEI</span>

@@ -203,17 +203,27 @@
                                         </div>
                                     @endif
 
-                                    @if($item->imei)
+                                    @if($item->imeis && $item->imeis->isNotEmpty())
                                         <div class="text-muted small">
                                             IMEI:
-                                            <span class="fw-semibold">
-                                                {{ $item->imei->imei ?? $item->imei->serial_number ?? $item->imei->id }}
-                                            </span>
-
-                                            @if(!empty($item->imei->status))
-                                                <span>- {{ $item->imei->status }}</span>
-                                            @endif
+                                            @foreach($item->imeis as $assignedImei)
+                                                <span class="fw-semibold">
+                                                    {{ $assignedImei->imei ?? $assignedImei->id }}
+                                                </span>
+                                                @if(!empty($assignedImei->status))
+                                                    <span>({{ $assignedImei->status }})</span>
+                                                @endif
+                                                @if(!$loop->last)
+                                                    <span>,</span>
+                                                @endif
+                                            @endforeach
                                         </div>
+
+                                        @if(($item->product->product_type ?? null) === 'imei/serial' && !$item->hasFullImeiAssignment())
+                                            <div class="text-danger small">
+                                                Còn thiếu {{ $item->remainingImeiSlots() }} IMEI
+                                            </div>
+                                        @endif
                                     @elseif(($item->product->product_type ?? null) === 'imei/serial')
                                         <div class="text-danger small">
                                             Chưa gán IMEI
@@ -314,7 +324,7 @@
                                 @php
                                     $missingRequiredImeis = $order->items->contains(function ($item) {
                                         return ($item->product->product_type ?? null) === 'imei/serial'
-                                            && empty($item->imei_id);
+                                            && !$item->hasFullImeiAssignment();
                                     });
                                 @endphp
 
