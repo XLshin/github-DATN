@@ -191,7 +191,7 @@
                             <div class="d-flex flex-wrap gap-1 mb-2">
                                 @foreach($product->variants->take(4) as $v)
                                 <span class="badge text-bg-light border text-dark" style="font-size:10px;">
-                                    {{ $v->color }}{{ $v->storage ? ' · '.$v->storage : '' }}
+                                    {{ $v->color }}{{ $product->storage ? ' · '.$product->storage : '' }}
                                 </span>
                                 @endforeach
                                 @if($product->variants->count() > 4)
