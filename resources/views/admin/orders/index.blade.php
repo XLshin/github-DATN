@@ -401,15 +401,12 @@
                                 @endif
 
                                 @if(!in_array($order->fulfillment_status, ['completed', 'cancelled'], true))
-                                    <form action="{{ route('admin.orders.cancel', $order) }}"
-                                          method="POST"
-                                          onsubmit="return confirm('Bạn chắc chắn muốn hủy đơn hàng này?')">
-                                        @csrf
-
-                                        <button type="submit" class="btn btn-danger btn-sm">
-                                            Hủy
-                                        </button>
-                                    </form>
+                                    <button type="button"
+                                            class="btn btn-danger btn-sm"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#cancelModal-{{ $order->id }}">
+                                        Hủy
+                                    </button>
                                 @endif
                             </div>
                         </td>
@@ -508,6 +505,107 @@
             </form>
         </div>
     </div>
+
+    <div class="modal fade"
+     id="cancelModal-{{ $order->id }}"
+     tabindex="-1"
+     aria-labelledby="cancelModalLabel-{{ $order->id }}"
+     aria-hidden="true">
+
+    <div class="modal-dialog">
+
+        <form action="{{ route('admin.orders.cancel', $order) }}"
+              method="POST"
+              enctype="multipart/form-data"
+              class="modal-content">
+
+            @csrf
+
+            <div class="modal-header">
+
+                <h5 class="modal-title"
+                    id="cancelModalLabel-{{ $order->id }}">
+
+                    Hủy đơn hàng
+
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal">
+                </button>
+
+            </div>
+
+            <div class="modal-body">
+
+                <div class="mb-2">
+
+                    <strong>Mã đơn:</strong>
+
+                    {{ $order->order_code }}
+
+                </div>
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+
+                        Lý do hủy <span class="text-danger">*</span>
+
+                    </label>
+
+                    <textarea
+                        class="form-control"
+                        name="cancel_reason"
+                        rows="3"
+                        required
+                        placeholder="Nhập lý do hủy đơn..."></textarea>
+
+                </div>
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+
+                        Ảnh minh chứng (không bắt buộc)
+
+                    </label>
+
+                    <input
+                        type="file"
+                        class="form-control"
+                        name="cancel_image"
+                        accept="image/*">
+
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="btn btn-light"
+                        data-bs-dismiss="modal">
+
+                    Đóng
+
+                </button>
+
+                <button type="submit"
+                        class="btn btn-danger">
+
+                    Xác nhận hủy đơn
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
 
 @endforeach
 

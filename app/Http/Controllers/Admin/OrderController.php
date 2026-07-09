@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderProof;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -347,43 +348,117 @@ class OrderController extends Controller
         return back()->with('success', 'Đơn hàng đã được chuyển sang giao lại.');
     }
 
-    public function cancel(Order $order)
-    {
-        if (in_array($order->fulfillment_status, ['completed', 'cancelled'], true)) {
-            return back()->with('error', 'Không thể hủy đơn hàng đã hoàn thành hoặc đã hủy.');
+    public function cancel(Request $request, Order $order)
+{
+    $request->validate([
+        'cancel_reason' => [
+            'required',
+            'string',
+            'max:1000',
+        ],
+        'cancel_image' => [
+            'nullable',
+            'image',
+            'mimes:jpg,jpeg,png,webp',
+            'max:4096',
+        ],
+    ], [
+        'cancel_reason.required' => 'Vui lòng nhập lý do hủy đơn.',
+        'cancel_image.image' => 'File tải lên phải là hình ảnh.',
+    ]);
+
+    if (in_array($order->fulfillment_status, ['completed', 'cancelled'], true)) {
+        return back()->with('error', 'Không thể hủy đơn hàng đã hoàn thành hoặc đã hủy.');
+    }
+
+    DB::transaction(function () use ($order, $request) {
+
+        $order->loadMissing(
+            'items.product',
+            'items.variant',
+            'items.imeis',
+            'shipment',
+            'proofs'
+        );
+
+        foreach ($order->items as $item) {
+
+            foreach ($item->imeis as $imei) {
+
+                if ($imei->status === 'reserved') {
+                    $imei->releaseReservation();
+                }
+
+            }
+
+            if (
+                $item->product &&
+                $item->product->product_type === 'quantity' &&
+                $item->variant
+            ) {
+                $item->variant->increment(
+                    'stock_quantity',
+                    $item->quantity
+                );
+            }
+
         }
 
-        DB::transaction(function () use ($order) {
-            $order->loadMissing('items.product', 'items.variant', 'items.imeis', 'shipment');
+        $order->update([
 
-            foreach ($order->items as $item) {
-                foreach ($item->imeis as $imei) {
-                    if ($imei->status === 'reserved') {
-                        $imei->releaseReservation();
-                    }
-                }
+            'status' => 'cancelled',
 
-                if ($item->product && $item->product->product_type === 'quantity' && $item->variant) {
-                    $item->variant->increment('stock_quantity', $item->quantity);
-                }
-            }
+            'fulfillment_status' => 'cancelled',
 
-            $order->update([
+            'cancelled_at' => now(),
+
+            'cancel_reason' => $request->cancel_reason,
+
+            'cancelled_by' => 'admin',
+
+        ]);
+
+        if ($request->hasFile('cancel_image')) {
+
+            $path = $request->file('cancel_image')->store(
+                'order-proofs',
+                'public'
+            );
+
+            OrderProof::create([
+
+                'order_id' => $order->id,
+
+                'type' => 'cancelled',
+
+                'image_path' => $path,
+
+                'note' => $request->cancel_reason,
+
+                'created_by' => Auth::id(),
+
+            ]);
+        }
+
+        if ($order->shipment) {
+
+            $order->shipment->update([
+
+                'shipping_status' => 'failed',
+
                 'status' => 'cancelled',
-                'fulfillment_status' => 'cancelled',
-                'cancelled_at' => now(),
+
             ]);
 
-            if ($order->shipment) {
-                $order->shipment->update([
-                    'shipping_status' => 'failed',
-                    'status' => 'cancelled',
-                ]);
-            }
-        });
+        }
 
-        return back()->with('success', 'Đã hủy đơn hàng và hoàn lại tồn kho/IMEI.');
-    }
+    });
+
+    return back()->with(
+        'success',
+        'Đã hủy đơn hàng và hoàn lại tồn kho/IMEI.'
+    );
+}
 
     public function printShippingLabel(Order $order)
 {
