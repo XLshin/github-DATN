@@ -348,7 +348,7 @@ class ImeiController extends Controller
 
                 })
                 ->orWhere('color', 'like', "%{$keyword}%")
-                ->orWhere('storage', 'like', "%{$keyword}%");
+                ->orWhere('p.storage', 'like', "%{$keyword}%");
 
             });
         }
