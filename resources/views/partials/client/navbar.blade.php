@@ -331,6 +331,7 @@
                                 </li>
 
                                 @guest
+                                <li class="nav-item">
                                     <a href="{{ route('login') }}">
                                         Giỏ hàng
                                     </a>
