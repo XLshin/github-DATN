@@ -281,38 +281,6 @@
         <div class="row align-items-center">
             <div class="col-lg-8 col-md-6 col-12">
                 <div class="nav-inner">
-                    {{-- Category menu --}}
-                    <div class="mega-category-menu">
-                        <span class="cat-button">
-                            <i class="lni lni-menu"></i>
-                            Danh mục
-                        </span>
-
-                        <ul class="sub-category">
-                            <li>
-                                <a href="javascript:void(0)">
-                                    Điện thoại
-                                    <i class="lni lni-chevron-right"></i>
-                                </a>
-
-                                <ul class="inner-sub-category">
-                                    <li><a href="javascript:void(0)">iPhone</a></li>
-                                    <li><a href="javascript:void(0)">Samsung</a></li>
-                                    <li><a href="javascript:void(0)">Xiaomi</a></li>
-                                    <li><a href="javascript:void(0)">OPPO</a></li>
-                                    <li><a href="javascript:void(0)">Vivo</a></li>
-                                </ul>
-                            </li>
-
-                            <li><a href="javascript:void(0)">Máy tính bảng</a></li>
-                            <li><a href="javascript:void(0)">Đồng hồ thông minh</a></li>
-                            <li><a href="javascript:void(0)">Tai nghe</a></li>
-                            <li><a href="javascript:void(0)">Sạc, cáp</a></li>
-                            <li><a href="javascript:void(0)">Ốp lưng</a></li>
-                            <li><a href="javascript:void(0)">Khuyến mãi</a></li>
-                        </ul>
-                    </div>
-
                     {{-- Main menu --}}
                     <nav class="navbar navbar-expand-lg">
                         <button
@@ -338,6 +306,7 @@
                                     </a>
                                 </li>
 
+<<<<<<< HEAD
                                 <li class="nav-item">
                                     <a
                                         href="{{ route('products.index') }}"
@@ -347,7 +316,33 @@
                                 </li>
 
                                 @guest
+=======
+                                {{-- Menu Danh mục --}}
+>>>>>>> origin/main
                                 <li class="nav-item">
+                                    <a href="#" class="{{ request()->routeIs('category.*') ? 'active' : '' }}">
+                                        Danh mục <i class="lni lni-chevron-down" style="font-size:10px"></i>
+                                    </a>
+                                    <ul class="sub-menu">
+                                        @foreach(\App\Models\Category::all() as $cat)
+                                        <li><a href="{{ route('category.products', $cat) }}">{{ $cat->name }}</a></li>
+                                        @endforeach
+                                    </ul>
+                                </li>
+
+                                {{-- Menu Thương hiệu --}}
+                                <li class="nav-item">
+                                    <a href="#" class="{{ request()->routeIs('brand.*') ? 'active' : '' }}">
+                                        Thương hiệu <i class="lni lni-chevron-down" style="font-size:10px"></i>
+                                    </a>
+                                    <ul class="sub-menu">
+                                        @foreach(\App\Models\Brand::all() as $br)
+                                        <li><a href="{{ route('brand.products', $br) }}">{{ $br->name }}</a></li>
+                                        @endforeach
+                                    </ul>
+                                </li>
+
+                                @guest
                                     <a href="{{ route('login') }}">
                                         Giỏ hàng
                                     </a>
