@@ -7,7 +7,7 @@
 @section('page_subtitle', 'Tạo thương hiệu mới cho sản phẩm trong hệ thống.')
 
 @section('heading_actions')
-<a href="{{ route('brands.index') }}" class="btn btn-light btn-sm">
+<a href="{{ route('admin.brands.index') }}" class="btn btn-light btn-sm">
     <i class="bi bi-arrow-left"></i> Quay lại
 </a>
 @endsection
@@ -24,7 +24,7 @@
     </div>
 
     <div class="p-3">
-        <form action="{{ route('brands.store') }}" method="POST" enctype="multipart/form-data" style="max-width: 700px;">
+        <form action="{{ route('admin.brands.store') }}" method="POST" enctype="multipart/form-data" style="max-width: 700px;">
             @csrf
 
             <div class="mb-3">
@@ -87,7 +87,7 @@
                     <i class="bi bi-check-lg"></i> Thêm thương hiệu
                 </button>
 
-                <a href="{{ route('brands.index') }}" class="btn btn-light btn-sm">
+                <a href="{{ route('admin.brands.index') }}" class="btn btn-light btn-sm">
                     Hủy
                 </a>
             </div>

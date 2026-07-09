@@ -19,6 +19,25 @@
     </script>
 
     <script type="module" src="https://unpkg.com/@hotwired/turbo"></script>
+    <style>
+        .media-box {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #f8f9fa;
+            border-radius: 8px;
+            overflow: hidden;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .media-content {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+    </style>
 </head>
 
 <body>

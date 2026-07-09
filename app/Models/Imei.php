@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class Imei extends Model
 {
@@ -14,7 +13,11 @@ class Imei extends Model
         'imei',
         'status',
         'reserved_at',
-        'reserved_by_order_item_id'
+        'reserved_by_order_item_id',
+    ];
+
+    protected $casts = [
+        'reserved_at' => 'datetime',
     ];
 
     public function productVariant()
@@ -34,17 +37,37 @@ class Imei extends Model
 
     public function orderItem()
     {
-        return $this->hasOne(OrderItem::class);
+        return $this->hasOne(OrderItem::class, 'imei_id');
     }
 
-    public function assignToOrderItem(OrderItem $item)
+    public function reserveForOrderItem(OrderItem $item): void
     {
-        $this->status = 'sold';
-        $this->reserved_by_order_item_id = null;
-        $this->reserved_at = null;
-        $this->save();
+        $this->update([
+            'status' => 'reserved',
+            'reserved_at' => now(),
+            'reserved_by_order_item_id' => $item->getKey(),
+        ]);
 
-        $item->imei_id = $this->id;
-        $item->save();
+        $item->update([
+            'imei_id' => $this->getKey(),
+        ]);
+    }
+
+    public function releaseReservation(): void
+    {
+        $this->update([
+            'status' => 'available',
+            'reserved_at' => null,
+            'reserved_by_order_item_id' => null,
+        ]);
+    }
+
+    public function markAsSold(): void
+    {
+        $this->update([
+            'status' => 'sold',
+            'reserved_at' => null,
+            'reserved_by_order_item_id' => null,
+        ]);
     }
 }
