@@ -29,7 +29,7 @@ class ProductController extends Controller
             $query->whereHas('variants', fn($q) => $q->where('color', $request->color));
         }
         if ($request->filled('storage')) {
-            $query->whereHas('variants', fn($q) => $q->where('storage', $request->storage));
+            $query->where('storage', $request->storage);
         }
         if ($request->filled('price_min')) {
             $query->where('price', '>=', $request->price_min);
@@ -52,7 +52,7 @@ class ProductController extends Controller
         $categories = Category::orderBy('name')->get();
         $brands     = Brand::orderBy('name')->get();
         $colors     = ProductVariant::distinct()->pluck('color')->filter()->sort()->values();
-        $storages   = ProductVariant::distinct()->pluck('storage')->filter()->sort()->values();
+        $storages   = Product::distinct()->pluck('storage')->filter()->sort()->values();
 
         return view('client.products.index', compact('products', 'categories', 'brands', 'colors', 'storages'));
     }
@@ -84,7 +84,7 @@ class ProductController extends Controller
             return [
                 'id' => $variant->id,
                 'color' => $variant->color,
-                'storage' => $variant->storage,
+                'storage' => $product->storage,
                 'stock_quantity' => (int) $variant->stock_quantity,
                 'additional_price' => (float) $variant->additional_price,
                 'price' => (float) $product->price + (float) $variant->additional_price,
@@ -102,7 +102,7 @@ class ProductController extends Controller
             ->sort()
             ->values();
 
-        $defaultStorage = $versionOptions->first() ?? '';
+        $defaultStorage = $product->storage ?: ($versionOptions->first() ?? '');
         $defaultVariant = $variantData->firstWhere('storage', $defaultStorage) ?? $variantData->first();
 
         $initialColorOptions = collect();
