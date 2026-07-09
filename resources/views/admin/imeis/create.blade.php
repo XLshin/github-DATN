@@ -6,250 +6,158 @@
 @section('page_title', 'Nhập kho IMEI / Serial')
 @section('page_subtitle', 'Nhập kho cho các sản phẩm quản lý bằng IMEI hoặc Serial.')
 
-@section('heading_actions') <a href="{{ route('admin.stocks') }}" class="btn btn-light btn-sm"> <i class="bi bi-arrow-left"></i>
-Quay lại </a>
+@section('heading_actions')
+<a href="{{ route('admin.stocks') }}" class="btn btn-light btn-sm">
+    <i class="bi bi-arrow-left"></i>
+    Quay lai
+</a>
 @endsection
 
+@push('styles')
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+@endpush
+
 @section('content')
-
 <section class="panel">
-
-<div class="panel-header">
-    <div>
-        <h5 class="mb-1">Thông tin nhập kho</h5>
-        <div class="text-muted small">
-            Chọn biến thể sản phẩm và nhập danh sách IMEI / Serial.
+    <div class="panel-header">
+        <div>
+            <h5 class="mb-1">Thông tin nhập kho</h5>
+            <div class="text-muted small">
+                Chọn biến thể sản phẩm và nhập danh sách IMEI / Serial.
+            </div>
         </div>
     </div>
-</div>
 
-<div class="p-3">
+    <div class="p-3">
+        @if ($errors->any())
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
 
-    @if ($errors->any())
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
+        <form action="{{ route('admin.imeis.store') }}" method="POST" style="max-width:700px;">
+            @csrf
 
-    <form
-        action="{{ route('admin.imeis.store') }}"
-        method="POST"
-        style="max-width:700px;">
+            <div class="mb-3">
+                <label class="form-label">
+                    Chọn biến thể sản phẩm
+                    <span class="text-danger">*</span>
+                </label>
 
-        @csrf
+                <select
+                    id="variantSelect"
+                    name="product_variant_id"
+                    class="form-select @error('product_variant_id') is-invalid @enderror">
+                    <option value="">-- Chọn biến thể sản phẩm --</option>
 
-        <div class="mb-3">
+                    @foreach($imeiVariants as $variant)
+                        <option
+                            value="{{ $variant->id }}"
+                            data-product="{{ $variant->product->name }}"
+                            data-color="{{ $variant->color ?? '' }}"
+                            data-storage="{{ $variant->product->storage ?? '' }}"
+                            {{ old('product_variant_id') == $variant->id ? 'selected' : '' }}>
+                            {{ trim($variant->product->name . ' - ' . ($variant->color ?? '---') . ($variant->product->storage ? ' - ' . $variant->product->storage : '')) }}
+                        </option>
+                    @endforeach
+                </select>
 
-            <label class="form-label">
-                Chọn biến thể sản phẩm
-                <span class="text-danger">*</span>
-            </label>
-
-            <input
-                type="text"
-                id="variantSearchInput"
-                class="form-control mb-2"
-                placeholder="Tìm theo tên sản phẩm, màu sắc hoặc dung lượng">
-
-            <select
-                id="variantSelect"
-                name="product_variant_id"
-                class="form-select"
-                size="5">
-
-                @foreach($imeiVariants as $variant)
-
-<option
-    value="{{ $variant->id }}"
-    data-search="{{ strtolower(
-        $variant->product->name . ' ' .
-        $variant->color . ' ' .
-        $variant->storage
-    ) }}"
->
-{{ trim($variant->product->name . ' - ' . ($variant->color ?? '---') . ' - ' . ($variant->storage ?? '---')) }}
-</option>
-
-                @endforeach
-
-            </select>
-
-            @error('product_variant_id')
-                <div class="invalid-feedback d-block">
-                    {{ $message }}
-                </div>
-            @enderror
-
-        </div>
-
-        <div class="mb-3">
-
-            <label class="form-label">
-                Danh sách IMEI / Serial
-                <span class="text-danger">*</span>
-            </label>
-
-            <textarea
-                name="imeis"
-                rows="5"
-                class="form-control"
-                placeholder="Mỗi dòng một IMEI hoặc Serial
-123456789012345
-123456789012346
-123456789012347">{{ old('imeis') }}</textarea>
-            <div class="form-text">
-                Mỗi dòng nhập một IMEI hoặc Serial.
+                @error('product_variant_id')
+                    <div class="invalid-feedback d-block">
+                        {{ $message }}
+                    </div>
+                @enderror
             </div>
 
-            @error('imeis')
-                <div class="invalid-feedback d-block">
-                    {{ $message }}
+            <div class="mb-3">
+                <label class="form-label">
+                    Danh sách IMEI / Serial
+                    <span class="text-danger">*</span>
+                </label>
+
+                <textarea
+                    name="imeis"
+                    rows="5"
+                    class="form-control @error('imeis') is-invalid @enderror"
+                    placeholder="Mỗi dòng một IMEI hoặc Serial&#10;123456789012345&#10;123456789012346&#10;123456789012347">{{ old('imeis') }}</textarea>
+                <div class="form-text">
+                    Mỗi dòng nhập một IMEI hoặc Serial.
                 </div>
-            @enderror
 
-        </div>
+                @error('imeis')
+                    <div class="invalid-feedback d-block">
+                        {{ $message }}
+                    </div>
+                @enderror
+            </div>
 
-        <div class="d-flex gap-2">
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-check-lg"></i>
+                    Nhập kho
+                </button>
 
-            <button
-                type="submit"
-                class="btn btn-primary btn-sm">
-
-                <i class="bi bi-check-lg"></i>
-                Nhập kho
-
-            </button>
-
-            <a
-                href="{{ route('admin.stocks') }}"
-                class="btn btn-light btn-sm">
-
-                Hủy
-
-            </a>
-
-        </div>
-
-    </form>
-
-</div>
-
+                <a href="{{ route('admin.stocks') }}" class="btn btn-light btn-sm">
+                    Hủy
+                </a>
+            </div>
+        </form>
+    </div>
 </section>
+@endsection
 
 @push('scripts')
-
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
-
 document.addEventListener('DOMContentLoaded', function () {
-
-    const searchInput =
-        document.getElementById('variantSearchInput');
-
-    const select =
-        document.getElementById('variantSelect');
-
-    const options =
-        Array.from(select.options);
-
-    searchInput.addEventListener('input', function () {
-
-        const keyword =
-            this.value.trim().toLowerCase();
-
-        options.forEach(option => {
-
-            const search =
-                option.dataset.search || '';
-
-            option.hidden =
-                keyword &&
-                !search.includes(keyword);
-
-        });
-
-    });
-
-});
-const searchInput =
-    document.getElementById('variantSearchInput');
-
-const select =
-    document.getElementById('variantSelect');
-
-select.addEventListener('change', function () {
-
-    const selectedOption =
-        this.options[this.selectedIndex];
-
-    searchInput.value =
-        selectedOption.textContent.trim();
-
-});
-document.addEventListener('DOMContentLoaded', function () {
-
-    const searchInput = document.getElementById('variantSearchInput');
     const select = document.getElementById('variantSelect');
+    if (!select || !window.TomSelect) return;
 
-    const options = Array.from(select.options);
+    const variantOptions = [];
+    const selectedItems = [];
 
-    // mặc định ẩn
-    select.style.display = 'none';
+    Array.from(select.options).forEach(option => {
+        if (!option.value) return;
 
-    // click vào input thì hiện danh sách
-    searchInput.addEventListener('focus', function () {
-        select.style.display = 'block';
-    });
-
-    // tìm kiếm
-    searchInput.addEventListener('input', function () {
-
-        const keyword = this.value.trim().toLowerCase();
-
-        select.style.display = 'block';
-
-        options.forEach(option => {
-
-            const search = option.dataset.search || '';
-
-            option.hidden =
-                keyword &&
-                !search.includes(keyword);
-
+        variantOptions.push({
+            value: option.value,
+            text: option.textContent.trim(),
+            product: option.dataset.product || '',
+            color: option.dataset.color || '',
+            storage: option.dataset.storage || ''
         });
 
-    });
-
-    // chọn xong thì đưa lên input rồi ẩn select
-    select.addEventListener('change', function () {
-
-        const selectedOption =
-            this.options[this.selectedIndex];
-
-        searchInput.value =
-            selectedOption.textContent.trim();
-
-        select.style.display = 'none';
-
-    });
-
-    // click ra ngoài thì ẩn
-    document.addEventListener('click', function (e) {
-
-        if (
-            !searchInput.contains(e.target) &&
-            !select.contains(e.target)
-        ) {
-            select.style.display = 'none';
+        if (option.selected) {
+            selectedItems.push(option.value);
         }
-
     });
 
+    new TomSelect(select, {
+        allowEmptyOption: true,
+        plugins: ['clear_button'],
+        placeholder: 'Tìm biến thể sản phẩm...',
+        options: variantOptions,
+        items: selectedItems,
+        valueField: 'value',
+        labelField: 'text',
+        searchField: ['text', 'product', 'color', 'storage'],
+        maxOptions: null,
+        openOnFocus: true,
+        render: {
+            option: function(data, escape) {
+                if (!data.value) return '<div class="text-muted">' + escape(data.text) + '</div>';
+                const meta = [data.color, data.storage].filter(Boolean).join(' - ');
+                return '<div><div class="fw-semibold">' + escape(data.product || data.text) + '</div><div class="small text-muted">' + escape(meta) + '</div></div>';
+            },
+            item: function(data, escape) {
+                return '<div>' + escape(data.text) + '</div>';
+            }
+        }
+    });
 });
 </script>
 @endpush
-
-@endsection

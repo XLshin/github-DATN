@@ -306,19 +306,7 @@
                                     </a>
                                 </li>
 
-<<<<<<< HEAD
-                                <li class="nav-item">
-                                    <a
-                                        href="{{ route('products.index') }}"
-                                        class="{{ request()->routeIs('products.*') ? 'active' : '' }}">
-                                        Sản phẩm
-                                    </a>
-                                </li>
-
-                                @guest
-=======
                                 {{-- Menu Danh mục --}}
->>>>>>> origin/main
                                 <li class="nav-item">
                                     <a href="#" class="{{ request()->routeIs('category.*') ? 'active' : '' }}">
                                         Danh mục <i class="lni lni-chevron-down" style="font-size:10px"></i>
@@ -343,6 +331,7 @@
                                 </li>
 
                                 @guest
+                                <li class="nav-item">
                                     <a href="{{ route('login') }}">
                                         Giỏ hàng
                                     </a>

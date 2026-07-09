@@ -16,6 +16,10 @@ class Product extends Model
 
         'name',
 
+        'product_group_id',
+
+        'storage',
+
         'slug',
 
         'description',
@@ -53,19 +57,24 @@ class Product extends Model
     }
 
     public function cartItems()
-{
-    return $this->hasMany(CartItem::class);
-}
+    {
+        return $this->hasMany(CartItem::class);
+    }
 
-public function orderItems()
-{
-    return $this->hasMany(OrderItem::class);
-}
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
 
-public function variants()
-{
-    return $this->hasMany(ProductVariant::class);
-}
+    public function variants()
+    {
+        return $this->hasMany(ProductVariant::class);
+    }
+
+    public function productGroup()
+    {
+        return $this->belongsTo(ProductGroup::class, 'product_group_id');
+    }
 
 public function getTotalStockAttribute(): int
 {
