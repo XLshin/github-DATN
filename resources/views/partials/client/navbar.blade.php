@@ -338,6 +338,14 @@
                                     </a>
                                 </li>
 
+                                <li class="nav-item">
+                                    <a
+                                        href="{{ route('products.index') }}"
+                                        class="{{ request()->routeIs('products.*') ? 'active' : '' }}">
+                                        Sản phẩm
+                                    </a>
+                                </li>
+
                                 @guest
                                 <li class="nav-item">
                                     <a href="{{ route('login') }}">

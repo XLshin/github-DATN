@@ -73,10 +73,15 @@ class ProductController extends Controller
             'variants.*.color'   => 'required|string|max:100',
             'variants.*.storage' => 'nullable|string|max:100',
             'variants.*.stock_quantity'   => 'nullable|integer|min:0',
-            'variants.*.additional_price' => 'nullable|numeric|min:0',
+            'variants.*.additional_price' => 'nullable|numeric|min:1',
             'variants.*.imeis'   => 'nullable|string',
             'variants.*.images'  => 'nullable|array',
             'variants.*.images.*'=> 'nullable|image|max:2048',
+        ], [
+            'variants.required'              => 'Sản phẩm phải có ít nhất một biến thể.',
+            'variants.min'                   => 'Sản phẩm phải có ít nhất một biến thể.',
+            'variants.*.color.required'      => 'Màu sắc biến thể không được để trống.',
+            'variants.*.additional_price.min'=> 'Giá của biến thể phải lớn hơn 0.',
         ]);
 
         $validated['slug']           = Str::slug($request->name);
@@ -220,10 +225,13 @@ class ProductController extends Controller
             'variants.*.color'   => 'required_with:variants|string|max:100',
             'variants.*.storage' => 'nullable|string|max:100',
             'variants.*.stock_quantity'   => 'nullable|integer|min:0',
-            'variants.*.additional_price' => 'nullable|numeric|min:0',
+            'variants.*.additional_price' => 'nullable|numeric|min:1',
             'variants.*.imeis'   => 'nullable|string',
             'variants.*.images'  => 'nullable|array',
             'variants.*.images.*'=> 'nullable|image|max:2048',
+        ], [
+            'variants.*.color.required_with' => 'Màu sắc biến thể không được để trống.',
+            'variants.*.additional_price.min'=> 'Giá của biến thể phải lớn hơn 0.',
         ]);
 
         $validated['slug']   = Str::slug($request->name);
@@ -248,14 +256,15 @@ class ProductController extends Controller
         if (!empty($validated['variants'])) {
             foreach ($validated['variants'] as $variantData) {
                 $variantFiles = $variantData['images'] ?? [];
-                $variantInfo = [
-                    'product_id'       => $product->id,
-                    'color'            => $variantData['color'],
-                    'storage'          => $variantData['storage'] ?? '',
-                    'stock_quantity'   => $variantData['stock_quantity'] ?? 0,
-                    'additional_price' => $variantData['additional_price'] ?? 0,
-                    'status'           => true,
-                ];
+                $color   = $variantData['color'];
+                $storage = $variantData['storage'] ?? '';
+                $addQty  = (int) ($variantData['stock_quantity'] ?? 0);
+
+                // Tìm biến thể đã tồn tại theo color + storage
+                $existingVariant = ProductVariant::where('product_id', $product->id)
+                    ->where('color', $color)
+                    ->where('storage', $storage)
+                    ->first();
 
                 $paths = [];
                 if (!empty($variantFiles) && is_array($variantFiles)) {
@@ -264,20 +273,68 @@ class ProductController extends Controller
                             $paths[] = $file->store('products/variants', 'public');
                         }
                     }
+                }
+
+                if ($existingVariant) {
+                    // Biến thể đã tồn tại: cộng thêm tồn kho
+                    if ($validated['product_type'] === 'quantity' && $addQty > 0) {
+                        $existingVariant->increment('stock_quantity', $addQty);
+                        InventoryTransaction::create([
+                            'product_variant_id' => $existingVariant->id,
+                            'type'               => 'import',
+                            'quantity'           => $addQty,
+                            'note'               => 'Nhập thêm tồn kho qua form sửa sản phẩm',
+                        ]);
+                    }
+
+                    if (!empty($paths)) {
+                        if (!$existingVariant->image_path) {
+                            $existingVariant->update(['image_path' => $paths[0]]);
+                        }
+                        foreach (array_slice($paths, $existingVariant->image_path ? 0 : 1) as $path) {
+                            ProductImage::create([
+                                'product_id'         => $product->id,
+                                'product_variant_id' => $existingVariant->id,
+                                'image_path'         => $path,
+                            ]);
+                        }
+                    }
+
+                    $variant = $existingVariant;
+                } else {
+                    // Biến thể mới: tạo mới
+                    $variantInfo = [
+                        'product_id'       => $product->id,
+                        'color'            => $color,
+                        'storage'          => $storage,
+                        'stock_quantity'   => $validated['product_type'] === 'quantity' ? $addQty : 0,
+                        'additional_price' => $variantData['additional_price'] ?? 0,
+                        'status'           => true,
+                    ];
+
                     if (!empty($paths)) {
                         $variantInfo['image_path'] = $paths[0];
                     }
-                }
 
-                $variant = ProductVariant::create($variantInfo);
+                    $variant = ProductVariant::create($variantInfo);
 
-                if (!empty($paths) && count($paths) > 1) {
-                    foreach (array_slice($paths, 1) as $path) {
-                        ProductImage::create([
-                            'product_id' => $product->id,
+                    if ($validated['product_type'] === 'quantity' && $addQty > 0) {
+                        InventoryTransaction::create([
                             'product_variant_id' => $variant->id,
-                            'image_path' => $path,
+                            'type'               => 'import',
+                            'quantity'           => $addQty,
+                            'note'               => 'Nhập kho ban đầu khi thêm biến thể mới',
                         ]);
+                    }
+
+                    if (count($paths) > 1) {
+                        foreach (array_slice($paths, 1) as $path) {
+                            ProductImage::create([
+                                'product_id'         => $product->id,
+                                'product_variant_id' => $variant->id,
+                                'image_path'         => $path,
+                            ]);
+                        }
                     }
                 }
 
@@ -285,14 +342,15 @@ class ProductController extends Controller
                     $imeiList = array_filter(array_map('trim', explode("\n", $variantData['imeis'])));
                     foreach ($imeiList as $imeiCode) {
                         if ($imeiCode !== '') {
-                            Imei::create([
-                                'product_variant_id' => $variant->id,
-                                'imei'               => $imeiCode,
-                                'status'             => 'available',
-                            ]);
+                            Imei::firstOrCreate(
+                                ['imei' => $imeiCode],
+                                ['product_variant_id' => $variant->id, 'status' => 'available']
+                            );
                         }
                     }
-                    $variant->update(['stock_quantity' => count($imeiList)]);
+                    $variant->update([
+                        'stock_quantity' => $variant->imeis()->where('status', 'available')->count(),
+                    ]);
                 }
             }
         }
@@ -401,6 +459,10 @@ class ProductController extends Controller
 
     public function destroyVariant(ProductVariant $variant)
     {
+        if ($variant->product->variants()->count() <= 1) {
+            return back()->with('error', 'Không thể xóa biến thể duy nhất của sản phẩm.');
+        }
+
         if ($variant->image_path) {
             Storage::disk('public')->delete($variant->image_path);
         }
