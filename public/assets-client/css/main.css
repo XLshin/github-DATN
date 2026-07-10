@@ -1206,9 +1206,8 @@ top: -1px;
 
 /* Pagination CSS */
 .pagination {
-  text-align: left;
-  margin: 40px 0 0 0;
-  display: block;
+    text-align: left;
+    margin-top: 40px;
 }
 
 .pagination.center {
@@ -4890,4 +4889,25 @@ top: 2px;
   .footer .footer-bottom .socila li span {
     display: none;
   }
+}
+
+.order-card{
+    border:1px solid #e5e7eb !important;
+    border-radius:12px;
+    transition:all .2s ease;
+    overflow:hidden;
+}
+
+.order-card:hover{
+    box-shadow:0 8px 24px rgba(0,0,0,.08)!important;
+}
+
+.order-header{
+    background:#fafafa !important;
+    border-bottom:1px solid #ececec;
+}
+
+.order-footer{
+    border-top:1px solid #ececec;
+    background:#fff;
 }
