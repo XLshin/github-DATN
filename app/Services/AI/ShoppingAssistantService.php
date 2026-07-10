@@ -220,7 +220,7 @@ PROMPT;
             return [
                 'variant_id' => $variant->id,
                 'color' => $variant->color,
-                'storage' => $variant->storage,
+                'storage' => $product->storage,
                 'available_stock' => $stock,
             ];
         })->all();
