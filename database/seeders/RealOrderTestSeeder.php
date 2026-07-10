@@ -194,7 +194,7 @@ class RealOrderTestSeeder extends Seeder
                         [
                             'product_slug' => 'iphone-16-pro',
                             'color' => 'Titan Đen',
-                            'storage' => '256GB',
+                            'storage' => '128GB',
                             'quantity' => 1,
                         ],
                     ],
@@ -234,7 +234,7 @@ class RealOrderTestSeeder extends Seeder
                         [
                             'product_slug' => 'iphone-16-pro',
                             'color' => 'Titan Trắng',
-                            'storage' => '256GB',
+                            'storage' => '128GB',
                             'quantity' => 1,
                         ],
                     ],
@@ -588,15 +588,16 @@ class RealOrderTestSeeder extends Seeder
             ->where('product_variants.status', true)
             ->where('products.slug', $productSlug)
             ->where('product_variants.color', $color)
-            ->where('product_variants.storage', $storage)
+            ->where('products.storage', $storage)   // Sửa ở đây
             ->select(
                 'product_variants.id as variant_id',
                 'product_variants.color',
-                'product_variants.storage',
                 'product_variants.additional_price',
+
                 'products.id as product_id',
                 'products.name as product_name',
                 'products.price as product_price',
+                'products.storage',                  // Sửa ở đây
                 'products.product_type'
             )
             ->first();
