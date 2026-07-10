@@ -73,7 +73,7 @@
                     </div>
                     <div class="col-md-12">
                         <div class="text-muted small">Tên sản phẩm</div>
-                        <div class="fw-semibold">{{ $warranty->imei->product->name ?? 'N/A' }}</div>
+                        <div class="fw-semibold">{{ $warranty->imei->productVariant->product->name ?? 'N/A' }}</div>
                     </div>
                 </div>
 
