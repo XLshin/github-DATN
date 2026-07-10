@@ -100,8 +100,7 @@
                     <th>Tên sản phẩm</th>
                     <th>Danh mục</th>
                     <th>Biến thể</th>
-                    <th>Giá</th>
-                    <th>Tồn kho</th>
+                    <th>Kiểu loại</th>
                     <th>Trạng thái</th>
                     <th class="text-end">Thao tác</th>
                 </tr>
@@ -150,10 +149,12 @@
                                 <span class="text-muted small">Chưa có</span>
                             @endif
                         </td>
-                        <td>{{ number_format($product->price, 0, ',', '.') }}đ</td>
                         <td>
-                            @php $actual = max(0, (int)($product->total_stock ?? $product->stock_quantity) - (int)($product->sold_quantity ?? 0)); @endphp
-                            {{ $actual }}
+                            @if($product->product_type === 'imei/serial')
+                                <span class="badge bg-info-subtle text-info border">IMEI/Serial</span>
+                            @else
+                                <span class="badge bg-warning-subtle text-warning border">Số lượng</span>
+                            @endif
                         </td>
                         <td>
                             @if($product->status)
@@ -168,7 +169,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">
+                        <td colspan="7" class="text-center text-muted py-4">
                             Chưa có sản phẩm nào
                         </td>
                     </tr>

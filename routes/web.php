@@ -36,6 +36,8 @@ use App\Http\Controllers\CarrierWebhookController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
+Route::get('/danh-muc/{category:id}', [HomeController::class, 'byCategory'])->name('category.products');
+Route::get('/thuong-hieu/{brand:id}', [HomeController::class, 'byBrand'])->name('brand.products');
 
 Route::middleware('auth')->group(function () {
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
@@ -283,5 +285,12 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
         Route::delete('reviews/{review}', [ReviewController::class, 'destroy'])
             ->middleware('only_admin')
             ->name('reviews.destroy');
+
+        // Banner — chỉ admin
+        Route::middleware('only_admin')->group(function () {
+            Route::resource('banners', \App\Http\Controllers\Admin\BannerController::class);
+            Route::patch('banners/{banner}/toggle', [\App\Http\Controllers\Admin\BannerController::class, 'toggleStatus'])
+                ->name('banners.toggle');
+        });
     });
 });
