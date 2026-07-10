@@ -17,7 +17,7 @@ class OrderController extends Controller
     public function index(Request $request): View
     {
         $status = $request->query('status');
-        $keyword = trim($request->input('keyword', ''));
+        $keyword = trim((string) $request->input('keyword'));
         $fromDate = $request->input('from_date');
         $toDate = $request->input('to_date');
         
