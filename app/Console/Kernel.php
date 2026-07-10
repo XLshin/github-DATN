@@ -14,6 +14,7 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         \App\Console\Commands\ReleaseStaleImeis::class,
+        \App\Console\Commands\SyncBannerSchedule::class,
     ];
 
     /**
@@ -23,6 +24,9 @@ class Kernel extends ConsoleKernel
     {
         // run every 5 minutes to release stale imeis
         $schedule->command('imei:release-stale')->everyFiveMinutes();
+
+        // Đồng bộ lịch hẹn bật/tắt banner mỗi phút
+        $schedule->command('banner:sync-schedule')->everyMinute();
     }
 
     /**
