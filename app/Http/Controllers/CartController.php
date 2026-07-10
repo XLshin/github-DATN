@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Services\CartService;
 use Illuminate\Http\Request;
 
@@ -32,6 +33,18 @@ class CartController extends Controller
         $product  = Product::query()->findOrFail($request->product_id);
         $quantity = (int) $request->input('quantity', 1);
 
+        if ($request->filled('variant_id')) {
+            $variant = ProductVariant::query()->find($request->variant_id);
+
+            if (! $variant || $variant->product_id !== $product->id) {
+                return back()->with('error', 'Biến thể sản phẩm không hợp lệ.');
+            }
+
+            if ($variant->stock_quantity < $quantity) {
+                return back()->with('error', 'Sản phẩm không đủ tồn kho.');
+            }
+        }
+
         // Nếu không chọn variant → tự chọn variant active đầu tiên của sản phẩm
         $variantId = $request->variant_id ? (int) $request->variant_id : null;
         if (! $variantId) {
@@ -50,6 +63,40 @@ class CartController extends Controller
         }
 
         return redirect()->back()->with('success', 'Sản phẩm đã thêm vào giỏ hàng.');
+    }
+
+    public function buyNow(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|integer',
+            'variant_id' => 'nullable|integer',
+            'quantity'   => 'nullable|integer|min:1',
+        ]);
+
+        $quantity = (int) $request->input('quantity', 1);
+        $product = Product::query()->findOrFail($request->product_id);
+
+        if ($request->filled('variant_id')) {
+            $variant = ProductVariant::query()->find($request->variant_id);
+
+            if (! $variant || $variant->product_id !== $product->id) {
+                return back()->with('error', 'Biến thể sản phẩm không hợp lệ.');
+            }
+
+            if ($variant->stock_quantity < $quantity) {
+                return back()->with('error', 'Sản phẩm không đủ tồn kho.');
+            }
+        }
+
+        $variantId = $request->variant_id ? (int) $request->variant_id : null;
+        if (! $variantId) {
+            $firstVariant = $product->variants()->where('status', 1)->first();
+            $variantId = $firstVariant?->id;
+        }
+
+        $this->cartService->addItem(auth()->user(), $product, $quantity, $variantId);
+
+        return redirect()->route('checkout.show');
     }
 
     public function update(Request $request)

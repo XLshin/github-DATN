@@ -140,6 +140,11 @@ class ImeiController extends Controller
             'note' => 'Nhập kho bằng IMEI/Serial',
         ]);
 
+        // Cập nhật stock_quantity theo số IMEI available thực tế
+        $variant->update([
+            'stock_quantity' => $variant->imeis()->where('status', 'available')->count(),
+        ]);
+
         return redirect()
             ->route('admin.stocks')
             ->with(
@@ -272,8 +277,8 @@ class ImeiController extends Controller
                 $query->whereHas('product', function ($q) use ($keyword) {
                     $q->where('name', 'like', "%{$keyword}%");
                 })
-                ->orWhere('color', 'like', "%{$keyword}%")
-                ->orWhere('storage', 'like', "%{$keyword}%");
+                ->orWhere('color', 'like', "%{$keyword}%");
+
 
             }
 
@@ -343,7 +348,7 @@ class ImeiController extends Controller
 
                 })
                 ->orWhere('color', 'like', "%{$keyword}%")
-                ->orWhere('storage', 'like', "%{$keyword}%");
+                ->orWhere('p.storage', 'like', "%{$keyword}%");
 
             });
         }
