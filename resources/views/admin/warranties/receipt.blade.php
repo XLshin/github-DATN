@@ -45,7 +45,7 @@
                 </div>
                 <div class="mb-3">
                     <div class="text-muted small">Sản phẩm / IMEI</div>
-                    <div class="fw-semibold">{{ $warranty->imei->product->name ?? 'N/A' }} - {{ $warranty->imei->imei ?? 'N/A' }}</div>
+                    <div class="fw-semibold">{{ $warranty->imei->productVariant->product->name ?? 'N/A' }} - {{ $warranty->imei->imei ?? 'N/A' }}</div>
                 </div>
             </div>
         </section>
