@@ -9,6 +9,7 @@ use App\Models\Imei;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
+use App\Models\ProductGroup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -16,12 +17,18 @@ use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
+    private function requiresStorage(?string $productType): bool
+    {
+        return strtolower((string) $productType) === 'imei/serial';
+    }
+
     public function index(Request $request)
     {
         $query = Product::with([
+                'productGroup',
                 'category',
                 'brand',
-                'variants.imeis'
+                'variants'
             ])
             ->withCount('variants')
             ->orderBy('id', 'asc');
@@ -36,6 +43,10 @@ class ProductController extends Controller
 
         if ($request->filled('brand_id')) {
             $query->where('brand_id', $request->brand_id);
+        }
+
+        if ($request->filled('product_type')) {
+            $query->where('product_type', $request->product_type);
         }
 
         if ($request->filled('status')) {
@@ -53,41 +64,79 @@ class ProductController extends Controller
     {
         $categories = Category::all();
         $brands = Brand::all();
-        return view('admin.products.create', compact('categories', 'brands'));
+        $productGroups = ProductGroup::with(['category', 'brand'])->orderBy('name')->get();
+
+        return view('admin.products.create', compact('categories', 'brands', 'productGroups'));
     }
 
     public function store(Request $request)
     {
     DB::beginTransaction();
     try{
+        $productGroup = ProductGroup::find($request->input('product_group_id'));
+        $groupProductType = $productGroup?->product_type;
+        $requiresStorage = $this->requiresStorage($groupProductType);
+        $storageRules = ['nullable', 'string', 'max:255'];
+        if ($requiresStorage) {
+            $storageRules = ['required', 'string', 'max:255'];
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:products,name',
-            'category_id'  => 'required|exists:categories,id',
-            'brand_id'     => 'required|exists:brands,id',
+            'product_group_id' => 'required|exists:product_groups,id',
             'description'  => 'required|string',
             'thumbnail'    => 'nullable|image|max:2048',
             'status'       => 'boolean',
             'images.*'     => 'nullable|image|max:2048',
-            'product_type' => 'required|in:quantity,imei/serial',
             'variants'     => 'required|array|min:1',
             'variants.*.color'   => 'required|string|max:100',
-            'variants.*.storage' => 'nullable|string|max:100',
             'variants.*.stock_quantity'   => 'nullable|integer|min:0',
+            'storage' => 'nullable|string|max:255',
+            'price' => 'required|numeric|min:0',
             'variants.*.additional_price' => 'nullable|numeric|min:0',
             'variants.*.imeis'   => 'nullable|string',
             'variants.*.images'  => 'nullable|array',
             'variants.*.images.*'=> 'nullable|image|max:2048',
+            'storage' => $storageRules,
         ]);
+
+        if (!$requiresStorage) {
+            $validated['storage'] = null;
+        }
+        $validated['category_id'] = $productGroup->category_id;
+        $validated['brand_id'] = $productGroup->brand_id;
+        $validated['product_type'] = $productGroup->product_type;
 
         $validated['slug']           = Str::slug($request->name);
         $validated['status']         = $request->boolean('status', false);
-        $validated['price']          = 0;
 
         if ($request->hasFile('thumbnail')) {
             $validated['thumbnail'] = $request->file('thumbnail')->store('products/thumbnails', 'public');
         }
 
-        $product = Product::create($validated);
+        $product = Product::create([
+            'product_group_id' => $validated['product_group_id'],
+
+            'name'=>$validated['name'],
+
+            'category_id'=>$validated['category_id'],
+
+            'storage' => $validated['storage'] ?? null,
+
+            'brand_id'=>$validated['brand_id'],
+
+            'description'=>$validated['description'],
+
+            'thumbnail'=>$validated['thumbnail'] ?? null,
+
+            'slug'=>$validated['slug'],
+
+            'status'=>$validated['status'],
+
+            'price' => $validated['price'] ?? 0,
+
+            'product_type'=>$validated['product_type'],
+        ]);
 
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $image) {
@@ -100,7 +149,6 @@ class ProductController extends Controller
             $variantData = [
                 'product_id'       => $product->id,
                 'color'            => $variant['color'],
-                'storage'          => $variant['storage'] ?? '',
                 'stock_quantity'   => $variant['stock_quantity'] ?? 0,
                 'additional_price' => $variant['additional_price'] ?? 0,
                 'status'           => true,
@@ -188,9 +236,11 @@ class ProductController extends Controller
     public function show(Product $product)
     {
         $product->load([
+            'productGroup',
             'category',
             'brand',
             'images',
+            'productGroup.specifications',
             'variants.imeis'
         ]);
         return view('admin.products.show', compact('product'));
@@ -200,31 +250,45 @@ class ProductController extends Controller
     {
         $categories = Category::all();
         $brands = Brand::all();
+        $productGroups=ProductGroup::with(['category', 'brand'])->orderBy('name')->get();
         $product->load(['images', 'variants']);
-        return view('admin.products.edit', compact('product', 'categories', 'brands'));
+        return view('admin.products.edit', compact('product', 'categories', 'brands', 'productGroups'));
     }
 
     public function update(Request $request, Product $product)
     {
+        $productGroup = ProductGroup::find($request->input('product_group_id'));
+        $groupProductType = $productGroup?->product_type;
+        $requiresStorage = $this->requiresStorage($groupProductType);
+        $storageRules = ['nullable', 'string', 'max:255'];
+        if ($requiresStorage) {
+            $storageRules = ['required', 'string', 'max:255'];
+        }
+
         $validated = $request->validate([
             'name'               => 'required|string|max:255|unique:products,name,' . $product->id,
-            'category_id'        => 'required|exists:categories,id',
-            'brand_id'           => 'required|exists:brands,id',
+            'product_group_id'   => 'required|exists:product_groups,id',
             'description'        => 'required|string',
             'thumbnail'          => 'nullable|image|max:2048',
             'status'             => 'boolean',
             'images.*'           => 'nullable|image|max:2048',
-            'product_type'       => 'required|in:quantity,imei/serial',
-            'stock_quantity'     => 'required|integer|min:0',
+            'price'              =>'required|numeric|min:0',
             'variants'           => 'nullable|array',
             'variants.*.color'   => 'required_with:variants|string|max:100',
-            'variants.*.storage' => 'nullable|string|max:100',
             'variants.*.stock_quantity'   => 'nullable|integer|min:0',
+            'storage'            => $storageRules,
             'variants.*.additional_price' => 'nullable|numeric|min:0',
             'variants.*.imeis'   => 'nullable|string',
             'variants.*.images'  => 'nullable|array',
             'variants.*.images.*'=> 'nullable|image|max:2048',
         ]);
+
+        if (!$requiresStorage) {
+            $validated['storage'] = null;
+        }
+        $validated['category_id'] = $productGroup->category_id;
+        $validated['brand_id'] = $productGroup->brand_id;
+        $validated['product_type'] = $productGroup->product_type;
 
         $validated['slug']   = Str::slug($request->name);
         $validated['status'] = $request->boolean('status', false);
@@ -251,7 +315,6 @@ class ProductController extends Controller
                 $variantInfo = [
                     'product_id'       => $product->id,
                     'color'            => $variantData['color'],
-                    'storage'          => $variantData['storage'] ?? '',
                     'stock_quantity'   => $variantData['stock_quantity'] ?? 0,
                     'additional_price' => $variantData['additional_price'] ?? 0,
                     'status'           => true,
@@ -340,7 +403,6 @@ class ProductController extends Controller
     {
         $validated = $request->validate([
             'color'            => 'required|string|max:100',
-            'storage'          => 'required|string|max:100',
             'stock_quantity'   => 'nullable|integer|min:0',
             'additional_price' => 'nullable|numeric|min:0',
             'status'           => 'boolean',
@@ -414,5 +476,27 @@ class ProductController extends Controller
 
         return redirect()->route('admin.products.index')
             ->with('success', 'Đã xóa biến thể.');
+    }
+
+    public function ajaxStore(Request $request)
+    {
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:product_groups,name',
+            'category_id' => 'required|exists:categories,id',
+            'brand_id' => 'required|exists:brands,id',
+            'product_type' => 'required|in:quantity,imei/serial',
+            'description' => 'nullable|string',
+        ]);
+        $group = ProductGroup::create([
+            'name' => $request->name,
+            'category_id' => $request->category_id,
+            'brand_id' => $request->brand_id,
+            'product_type' => $request->product_type,
+            'description' => $request->description,
+            'slug' => Str::slug($request->name),
+        ]);
+
+        return response()->json($group->load(['category', 'brand']));
     }
 }
