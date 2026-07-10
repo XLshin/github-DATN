@@ -179,6 +179,10 @@ class ShipmentController extends Controller
                 $shipment->order->update([
                     'status' => 'completed',
                 ]);
+                // Cập nhật tổng chi tiêu
+                if ($shipment->order->user && $shipment->order->user->isCustomer()) {
+                    $shipment->order->user->increment('total_spent', $shipment->order->total_amount);
+                }
             } elseif ($status === 'failed') {
                 // Rollback stock and IMEIs (idempotent): trả toàn bộ IMEI đã gán cho order_item về available và tăng lại tồn kho.
                 foreach ($shipment->order->items as $item) {
