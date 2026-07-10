@@ -80,44 +80,15 @@
         <section class="panel h-100">
             <div class="panel-header">
                 <div>
-                    <h5 class="mb-1">Top 5 sản phẩm bán chạy</h5>
+                    <h5 class="mb-1">Doanh thu Top 5 sản phẩm</h5>
                     <div class="text-muted small">
-                        Danh sách sản phẩm có số lượng bán cao nhất.
+                        Biểu đồ doanh thu của 5 sản phẩm có doanh thu cao nhất.
                     </div>
                 </div>
             </div>
 
-            <div class="table-responsive">
-                <table class="table align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Sản phẩm</th>
-                            <th class="text-end">Số lượng bán</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        @forelse($bestSellingProducts as $product)
-                        <tr>
-                            <td class="fw-semibold">
-                                {{ $product->name }}
-                            </td>
-
-                            <td class="text-end">
-                                <span class="badge text-bg-success">
-                                    {{ number_format($product->sold_quantity, 0, ',', '.') }}
-                                </span>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="2" class="text-center text-muted py-4">
-                                Chưa có dữ liệu bán hàng.
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+            <div class="p-4">
+                <canvas id="topRevenueChart" height="280"></canvas>
             </div>
         </section>
     </div>
@@ -126,54 +97,96 @@
         <section class="panel h-100">
             <div class="panel-header">
                 <div>
-                    <h5 class="mb-1">Sản phẩm sắp hết hàng</h5>
+                    <h5 class="mb-1">Tồn kho biến thể thấp</h5>
                     <div class="text-muted small">
-                        Các sản phẩm cần kiểm tra và bổ sung tồn kho.
+                        Biểu đồ các biến thể sản phẩm có tồn kho dưới 10.
                     </div>
                 </div>
             </div>
 
-            <div class="table-responsive">
-                <table class="table align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Sản phẩm</th>
-                            <th class="text-end">Tồn kho</th>
-                            <th>Trạng thái</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        @forelse($lowStockProducts as $product)
-                        <tr>
-                            <td class="fw-semibold">
-                                {{ $product->name }}
-                            </td>
-
-                            <td class="text-end">
-                                {{ number_format($product->stock_quantity, 0, ',', '.') }}
-                            </td>
-
-                            <td>
-                                @if($product->stock_quantity == 0)
-                                    <span class="badge text-bg-danger">Hết hàng</span>
-                                    @else
-                                    <span class="badge text-bg-warning">Sắp hết</span>
-                                    @endif
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="3" class="text-center text-muted py-4">
-                                Không có sản phẩm nào sắp hết hàng.
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+            <div class="p-4">
+                <canvas id="lowStockChart" height="280"></canvas>
             </div>
         </section>
     </div>
 </div>
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const topRevenueLabels = @json($topRevenueProducts->pluck('name'));
+        const topRevenueData = @json($topRevenueProducts->pluck('revenue')->map(fn($value) => round($value, 0)));
+
+        const lowStockLabels = @json($lowStockVariants->map(fn($variant) => ($variant->product?->name ?? 'Sản phẩm') . ' - ' . $variant->color . ' / ' . $variant->storage));
+        const lowStockData = @json($lowStockVariants->pluck('stock_quantity'));
+
+        const topRevenueCtx = document.getElementById('topRevenueChart');
+        if (topRevenueCtx) {
+            new Chart(topRevenueCtx, {
+                type: 'bar',
+                data: {
+                    labels: topRevenueLabels,
+                    datasets: [{
+                        label: 'Doanh thu (đ)',
+                        data: topRevenueData,
+                        backgroundColor: 'rgba(34, 197, 94, 0.75)',
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return context.dataset.label + ': ' + Number(context.parsed.y).toLocaleString('vi-VN') + ' đ';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { callback: value => value.toLocaleString('vi-VN') }
+                        }
+                    }
+                }
+            });
+        }
+
+        const lowStockCtx = document.getElementById('lowStockChart');
+        if (lowStockCtx) {
+            new Chart(lowStockCtx, {
+                type: 'bar',
+                data: {
+                    labels: lowStockLabels,
+                    datasets: [{
+                        label: 'Tồn kho',
+                        data: lowStockData,
+                        backgroundColor: 'rgba(248, 113, 113, 0.75)',
+                        borderColor: 'rgba(248, 113, 113, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+@endpush
 
 @endsection
