@@ -395,7 +395,7 @@ class WarrantyController extends Controller
                     $query->where('i.imei', 'like', "%{$keyword}%")
                         ->orWhere('p.name', 'like', "%{$keyword}%")
                         ->orWhere('pv.color', 'like', "%{$keyword}%")
-                        ->orWhere('pv.storage', 'like', "%{$keyword}%")
+                        ->orWhere('p.storage', 'like', "%{$keyword}%")
                         ->orWhere('o.order_code', 'like', "%{$keyword}%")
                         ->orWhere('o.customer_name', 'like', "%{$keyword}%")
                         ->orWhere('o.customer_phone', 'like', "%{$keyword}%");
@@ -413,7 +413,7 @@ class WarrantyController extends Controller
 
                 'pv.id as product_variant_id',
                 'pv.color',
-                'pv.storage',
+                'p.storage',
                 'pv.additional_price',
 
                 'oi.id as order_item_id',
@@ -459,7 +459,7 @@ class WarrantyController extends Controller
                 'p.price as base_price',
 
                 'pv.color',
-                'pv.storage',
+                'p.storage',
                 'pv.additional_price',
 
                 'oi.price as sold_price',
