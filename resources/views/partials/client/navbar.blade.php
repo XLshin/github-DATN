@@ -196,7 +196,7 @@
                             <div class="cart-items">
                                 <a href="{{ route('cart.index') }}" class="main-btn">
                                     <i class="lni lni-cart"></i>
-                                    <span class="total-items">0</span>
+                                    <span class="total-items" id="nav-cart-count">{{ app(\App\Services\CartService::class)->getCount(auth()->user()) }}</span>
                                 </a>
 
                                 <div class="shopping-item">
