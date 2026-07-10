@@ -30,10 +30,6 @@
                             <td class="text-end">
                                 <a href="{{ route('admin.categories.show', $category) }}" class="btn btn-light btn-sm"><i class="bi bi-eye"></i> Xem</a>
                                 <a href="{{ route('admin.categories.edit', $category) }}" class="btn btn-light btn-sm">Sửa</a>
-                                <form action="{{ route('admin.categories.destroy', $category) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa danh mục?')">
-                                    @csrf @method('DELETE')
-                                    <button class="btn btn-outline-danger btn-sm">Xóa</button>
-                                </form>
                             </td>
                         </tr>
                     @empty
