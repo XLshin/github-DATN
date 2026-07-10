@@ -13,414 +13,350 @@
 @endsection
 
 @section('content')
-@php
-    $isImei    = $product->product_type === 'imei/serial';
-    $variants  = $product->variants;
-    $colors    = $variants->pluck('color')->unique()->filter()->values();
-    $storages  = $variants->pluck('storage')->unique()->filter()->values();
-@endphp
+    @php
+        $defaultPrice = $defaultVariant['price'] ?? (float) $product->price;
+        $defaultStock = $defaultVariant['stock_quantity'] ?? (int) $product->stock_quantity;
+        $defaultAvailable = $defaultVariant['is_available'] ?? $defaultStock > 0;
+    @endphp
 
-<div class="row g-4" id="product-detail">
+    <div class="container py-4">
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body">
+                        <div class="ratio ratio-1x1 mb-3">
+                            @if($productImages->isNotEmpty())
+                                <img id="mainProductImage" src="{{ $productImages->first() }}" alt="{{ $product->name }}"
+                                    class="w-100 h-100 rounded" style="object-fit: cover;">
+                            @else
+                                <div class="w-100 h-100 rounded bg-light d-flex align-items-center justify-content-center text-muted">
+                                    <i class="lni lni-image fs-1"></i>
+                                </div>
+                            @endif
+                        </div>
 
-    {{-- ===== CỘT TRÁI: Thông tin + Mua hàng ===== --}}
-    <div class="col-lg-7">
-        <div class="card shadow-sm border-0">
-            <div class="card-body p-4">
-
-                {{-- Ảnh sản phẩm --}}
-                @if($product->thumbnail)
-                <div class="text-center mb-4">
-                    <img id="product-img"
-                         src="{{ asset('storage/' . $product->thumbnail) }}"
-                         alt="{{ $product->name }}"
-                         class="rounded border"
-                         style="max-height:260px;max-width:100%;object-fit:contain">
+                        @if($productImages->count() > 1)
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach($productImages as $image)
+                                    <button type="button" class="btn btn-outline-secondary p-1" data-image-url="{{ $image }}" onclick="setMainImage(this.dataset.imageUrl)">
+                                        <img src="{{ $image }}" alt="thumb" class="rounded" style="width:72px;height:72px;object-fit:cover;">
+                                    </button>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
                 </div>
-                @endif
+            </div>
 
-                {{-- Mô tả --}}
-                <p class="text-muted mb-3">{{ $product->description }}</p>
+            <div class="col-lg-6">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body">
+                        <div class="text-muted small mb-2">
+                            {{ $product->brand?->name }} @if($product->category) · {{ $product->category->name }} @endif
+                        </div>
+                        <h2 class="h3 mb-3">{{ $product->name }}</h2>
 
-                {{-- Giá --}}
-                <div class="fs-3 fw-bold text-primary mb-4" id="product-price">
-                    {{ number_format($product->price, 0, ',', '.') }} đ
+                        <div class="mb-3">
+                            <div class="text-primary fw-bold fs-3" id="priceText">{{ number_format($defaultPrice, 0, ',', '.') }} đ</div>
+                            @if($versionOptions->isNotEmpty())
+                                <div class="text-muted small" id="variantHint">Phiên bản hiện tại: <strong>{{ $defaultStorage }}</strong></div>
+                            @endif
+                        </div>
+
+                        <div class="mb-3">
+                            <span class="badge rounded-pill px-3 py-2" id="stockBadge" style="background:#e8f7ed;color:#1f8f4d;">
+                                {{ $defaultAvailable ? 'Còn hàng' : 'Hết hàng' }}
+                            </span>
+                        </div>
+
+                        <div class="mb-3">
+                            <p class="text-muted mb-0">{{ $product->description }}</p>
+                        </div>
+
+                        <div class="mb-3">
+                            @if($versionOptions->isNotEmpty())
+                                <label class="form-label fw-semibold">Phiên bản</label>
+                                <div class="d-flex flex-wrap gap-2 mb-3">
+                                    @foreach($versionOptions as $version)
+                                        <button type="button"
+                                            class="btn btn-outline-secondary text-start version-option {{ $defaultStorage === $version ? 'btn-primary text-white' : '' }}"
+                                            data-version="{{ $version }}"
+                                            onclick="selectVersion(this)">
+                                            <div class="fw-semibold">{{ $version }}</div>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            @endif
+
+                            <label class="form-label fw-semibold">Màu sắc</label>
+                            <div id="colorOptionsContainer" class="d-flex flex-wrap gap-2">
+                                @if($initialColorOptions->isNotEmpty())
+                                    @foreach($initialColorOptions as $colorOption)
+                                        <button type="button"
+                                            class="btn btn-outline-secondary text-start color-option {{ $loop->first ? 'btn-primary text-white' : '' }}"
+                                            data-color-name="{{ $colorOption['name'] }}"
+                                            data-variant-id="{{ $colorOption['id'] }}"
+                                            data-price="{{ $colorOption['price'] }}"
+                                            data-stock="{{ $colorOption['stock_quantity'] }}"
+                                            data-available="{{ $colorOption['is_available'] ? '1' : '0' }}"
+                                            data-image-url="{{ $colorOption['image_url'] ?? '' }}"
+                                            onclick="selectColor(this)">
+                                            <div class="fw-semibold">{{ $colorOption['name'] }}</div>
+                                            <div class="small">
+                                                @if((float) $colorOption['additional_price'] > 0)
+                                                    +{{ number_format($colorOption['additional_price'], 0, ',', '.') }} đ
+                                                @else
+                                                    Giá gốc
+                                                @endif
+                                            </div>
+                                        </button>
+                                    @endforeach
+                                @endif
+                            </div>
+                        </div>
+
+                        @auth
+                            <form method="POST" action="{{ route('cart.add') }}" class="d-flex flex-wrap gap-2 mt-4">
+                                @csrf
+                                <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                <input type="hidden" name="variant_id" id="selectedVariantId" value="{{ $defaultVariant['id'] ?? '' }}">
+                                <input type="number" name="quantity" value="1" min="1" class="form-control" style="max-width:120px;">
+                                <button type="submit" class="btn btn-primary" id="addToCartBtn" @disabled(!$defaultAvailable)>
+                                    <i class="bi bi-cart-plus"></i> Thêm vào giỏ
+                                </button>
+                                <button type="submit" formaction="{{ route('buy.now') }}" class="btn btn-outline-primary" id="buyNowBtn" @disabled(!$defaultAvailable)>
+                                    Mua ngay
+                                </button>
+                            </form>
+                        @else
+                            <a href="{{ route('login') }}" class="btn btn-primary mt-4">Đăng nhập để mua hàng</a>
+                        @endauth
+                    </div>
                 </div>
+            </div>
+        </div>
 
-                {{-- ===== Chọn biến thể ===== --}}
-                @if($variants->isNotEmpty())
-                <div id="variant-section" class="mb-4">
-
-                    @if($colors->isNotEmpty())
-                    <div class="mb-3">
-                        <div class="text-muted small fw-semibold mb-2">Màu sắc:</div>
-                        <div class="d-flex flex-wrap gap-2" id="color-options">
-                            @foreach($colors as $color)
-                            <button type="button"
-                                    class="btn btn-outline-secondary btn-sm variant-btn"
-                                    data-type="color" data-value="{{ $color }}">
-                                {{ $color }}
-                            </button>
+        <div class="row g-4 mt-1">
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white"><strong>Thông số kỹ thuật</strong></div>
+                    <div class="card-body">
+                        @if($specifications->isNotEmpty())
+                            @php $groupedSpecs = $specifications->groupBy(fn ($item) => $item->group_name ?: 'Thông tin chung'); @endphp
+                            @foreach($groupedSpecs as $groupName => $items)
+                                <h6 class="fw-semibold mt-3">{{ $groupName }}</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-sm align-middle mb-0">
+                                        <tbody>
+                                            @foreach($items as $item)
+                                                <tr>
+                                                    <td class="fw-semibold" style="width:35%;">{{ $item->name }}</td>
+                                                    <td>{{ $item->value }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
                             @endforeach
-                        </div>
-                    </div>
-                    @endif
-
-                    @if($storages->isNotEmpty())
-                    <div class="mb-3">
-                        <div class="text-muted small fw-semibold mb-2">Dung lượng / Phiên bản:</div>
-                        <div class="d-flex flex-wrap gap-2" id="storage-options">
-                            @foreach($storages as $storage)
-                            <button type="button"
-                                    class="btn btn-outline-secondary btn-sm variant-btn"
-                                    data-type="storage" data-value="{{ $storage }}">
-                                {{ $storage }}
-                            </button>
-                            @endforeach
-                        </div>
-                    </div>
-                    @endif
-
-                    {{-- Tồn kho --}}
-                    <div id="stock-info" class="d-none mt-2">
-                        <span class="badge" id="stock-badge">
-                            <i class="bi bi-box-seam me-1"></i>
-                            <span id="stock-text">...</span>
-                        </span>
+                        @else
+                            <p class="text-muted mb-0">Chưa có thông số kỹ thuật cho sản phẩm này.</p>
+                        @endif
                     </div>
                 </div>
-                @endif
+            </div>
 
-                {{-- ===== Form thêm giỏ ===== --}}
-                @auth
-                @if(auth()->user()->role === 'customer')
+            <div class="col-lg-4">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white"><strong>Đánh giá sản phẩm</strong></div>
+                    <div class="card-body">
+                        @forelse ($product->reviews as $review)
+                            <div class="border-bottom pb-3 mb-3">
+                                <strong>{{ $review->user->name ?? 'Khách' }}</strong>
+                                <div class="text-warning small">{{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }}</div>
+                                <p class="mb-0 small text-muted">{{ $review->comment }}</p>
+                            </div>
+                        @empty
+                            <p class="text-muted mb-0">Chưa có đánh giá.</p>
+                        @endforelse
 
-                <form id="product-add-form"
-                      data-url="{{ route('cart.add') }}"
-                      data-product-id="{{ $product->id }}">
-                    @csrf
-                    <input type="hidden" id="selected-variant-id" name="variant_id" value="">
-
-                    <div class="d-flex gap-3 align-items-center flex-wrap">
-                        {{-- Nút +/- --}}
-                        <div class="input-group" style="width:136px">
-                            <button type="button" class="btn btn-outline-secondary fw-bold fs-5 lh-1"
-                                    id="qty-minus" style="width:40px" title="Giảm">−</button>
-                            <input type="number" id="qty-input" name="quantity"
-                                   value="1" min="1" max="99"
-                                   class="form-control text-center fw-semibold"
-                                   style="width:56px">
-                            <button type="button" class="btn btn-outline-secondary fw-bold fs-5 lh-1"
-                                    id="qty-plus" style="width:40px" title="Tăng">+</button>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary px-4 flex-grow-1" id="add-btn"
-                                {{ $variants->isNotEmpty() ? 'disabled' : '' }}>
-                            <i class="bi bi-cart-plus me-1"></i>Thêm vào giỏ
-                        </button>
+                        @auth
+                            <form action="{{ route('reviews.store', $product) }}" method="POST" class="mt-3 pt-3 border-top">
+                                @csrf
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Điểm đánh giá</label>
+                                    <select name="rating" class="form-select form-select-sm" required>
+                                        @for ($i = 5; $i >= 1; $i--)
+                                            <option value="{{ $i }}">{{ $i }} ★</option>
+                                        @endfor
+                                    </select>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small fw-semibold">Nhận xét</label>
+                                    <textarea name="comment" class="form-control form-control-sm" rows="3" required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-outline-primary btn-sm">Gửi đánh giá</button>
+                            </form>
+                        @endauth
                     </div>
-
-                    @if($variants->isNotEmpty())
-                    <div class="text-muted small mt-2" id="select-hint">
-                        <i class="bi bi-arrow-up-circle me-1"></i>Vui lòng chọn phiên bản trước
-                    </div>
-                    @endif
-                </form>
-
-                @elseif(in_array(auth()->user()->role, ['admin','staff'], true))
-                <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary">
-                    <i class="bi bi-speedometer2 me-1"></i>Vào trang quản trị
-                </a>
-                @endif
-                @else
-                <a href="{{ route('login') }}" class="btn btn-primary">
-                    <i class="bi bi-person me-1"></i>Đăng nhập để mua hàng
-                </a>
-                @endauth
-
+                </div>
             </div>
         </div>
     </div>
-
-    {{-- ===== CỘT PHẢI: Đánh giá ===== --}}
-    <div class="col-lg-5">
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white"><strong>Đánh giá sản phẩm</strong></div>
-            <div class="card-body">
-                @forelse ($product->reviews as $review)
-                    <div class="border-bottom pb-3 mb-3">
-                        <strong>{{ $review->user->name ?? 'Khách' }}</strong>
-                        <div class="text-warning small">{{ str_repeat('★', $review->rating) }}{{ str_repeat('☆', 5 - $review->rating) }}</div>
-                        <p class="mb-0 small text-muted">{{ $review->comment }}</p>
-                    </div>
-                @empty
-                    <p class="text-muted mb-0">Chưa có đánh giá.</p>
-                @endforelse
-
-                @auth
-                    <form action="{{ route('reviews.store', $product) }}" method="POST" class="mt-3 pt-3 border-top">
-                        @csrf
-                        <div class="mb-2">
-                            <label class="form-label small fw-semibold">Điểm đánh giá</label>
-                            <select name="rating" class="form-select form-select-sm" required>
-                                @for ($i = 5; $i >= 1; $i--)
-                                    <option value="{{ $i }}">{{ $i }} ★</option>
-                                @endfor
-                            </select>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label small fw-semibold">Nhận xét</label>
-                            <textarea name="comment" class="form-control form-control-sm" rows="3" required></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-outline-primary btn-sm">Gửi đánh giá</button>
-                    </form>
-                @endauth
-            </div>
-        </div>
-    </div>
-
-</div>{{-- /row --}}
 @endsection
 
 @push('scripts')
 <script>
-(function () {
-    'use strict';
+    const selectedVariantIdInput = document.getElementById('selectedVariantId');
+    const priceText = document.getElementById('priceText');
+    const stockBadge = document.getElementById('stockBadge');
+    const stockText = document.getElementById('stockQuantity');
+    const addToCartBtn = document.getElementById('addToCartBtn');
+    const buyNowBtn = document.getElementById('buyNowBtn');
+    const mainProductImage = document.getElementById('mainProductImage');
+    const versionHint = document.getElementById('variantHint');
+    const colorOptionsContainer = document.getElementById('colorOptionsContainer');
+    const versionButtons = Array.from(document.querySelectorAll('.version-option'));
+    const variantData = @json($variantData);
 
-    /* ---- Dữ liệu biến thể từ PHP ---- */
-    const variants = @json($variants->map(fn($v) => [
-        'id'      => $v->id,
-        'color'   => $v->color,
-        'storage' => $v->storage,
-        'stock'   => $v->available_stock,
-        'image'   => $v->image_path,
-    ]));
+    let selectedVersion = @json($defaultStorage);
+    let selectedColor = '';
 
-    const isImei      = {{ $isImei ? 'true' : 'false' }};
-    const basePrice   = {{ (int) $product->price }};
-    const baseStorage = '{{ asset('storage/') }}/';
-
-    let selectedColor   = null;
-    let selectedStorage = null;
-
-    /* ---- Elements ---- */
-    const addBtn      = document.getElementById('add-btn');
-    const variantInput= document.getElementById('selected-variant-id');
-    const qtyInput    = document.getElementById('qty-input');
-    const qtyMinus    = document.getElementById('qty-minus');
-    const qtyPlus     = document.getElementById('qty-plus');
-    const stockInfo   = document.getElementById('stock-info');
-    const stockText   = document.getElementById('stock-text');
-    const stockBadge  = document.getElementById('stock-badge');
-    const selectHint  = document.getElementById('select-hint');
-    const productImg  = document.getElementById('product-img');
-
-    /* ---- Tìm variant khớp với lựa chọn ---- */
-    function findVariant() {
-        const needColor   = document.getElementById('color-options')   !== null;
-        const needStorage = document.getElementById('storage-options') !== null;
-        return variants.find(v => {
-            const colorOk   = !needColor   || v.color   === selectedColor;
-            const storageOk = !needStorage || v.storage === selectedStorage;
-            return colorOk && storageOk;
-        }) ?? null;
+    function setMainImage(url) {
+        if (!mainProductImage) return;
+        mainProductImage.src = url;
     }
 
-    /* ---- Cập nhật UI sau khi chọn variant ---- */
-    function updateVariantUI() {
-        const v = findVariant();
-        if (!v) {
-            // Chưa đủ lựa chọn
-            if (stockInfo) stockInfo.classList.add('d-none');
-            if (addBtn) { addBtn.disabled = true; }
-            if (selectHint) selectHint.classList.remove('d-none');
-            return;
+    function getColorOptionsForVersion(version) {
+        const matching = variantData.filter((variant) => variant.storage === version);
+        const grouped = matching.reduce((acc, variant) => {
+            if (!acc[variant.color]) {
+                acc[variant.color] = variant;
+            }
+            return acc;
+        }, {});
+
+        return Object.entries(grouped).map(([name, variant]) => ({
+            name,
+            id: variant.id,
+            price: variant.price,
+            stock_quantity: variant.stock_quantity,
+            is_available: variant.is_available,
+            image_url: variant.image_url,
+            additional_price: variant.additional_price,
+        }));
+    }
+
+    function renderColorOptions(version) {
+        const colorOptions = getColorOptionsForVersion(version);
+        if (!colorOptionsContainer) return;
+
+        if (!selectedColor || !colorOptions.some((option) => option.name === selectedColor)) {
+            selectedColor = colorOptions[0]?.name || '';
         }
 
-        /* Variant đã chọn đủ */
-        variantInput.value = v.id;
+        colorOptionsContainer.innerHTML = colorOptions.map((option) => `
+            <button type="button"
+                class="btn btn-outline-secondary text-start color-option ${selectedColor === option.name ? 'btn-primary text-white' : ''}"
+                data-color-name="${option.name}"
+                data-variant-id="${option.id}"
+                data-price="${option.price}"
+                data-stock="${option.stock_quantity}"
+                data-available="${option.is_available ? '1' : '0'}"
+                data-image-url="${option.image_url || ''}">
+                <div class="fw-semibold">${option.name}</div>
+                <div class="small">
+                    ${Number(option.additional_price) > 0 ? `+${Number(option.additional_price).toLocaleString('vi-VN')} đ` : 'Giá gốc'}
+                </div>
+            </button>
+        `).join('');
 
-        /* Cập nhật ảnh nếu có */
-        if (productImg && v.image) {
-            productImg.src = '{{ asset('storage/') }}/' + v.image;
+        document.querySelectorAll('.color-option').forEach((button) => {
+            button.addEventListener('click', () => selectColor(button));
+        });
+
+        updateVariantUiFromSelection();
+    }
+
+    function updateVariantUiFromSelection() {
+        const selectedVariant = variantData.find((variant) => variant.storage === selectedVersion && variant.color === selectedColor)
+            || variantData.find((variant) => variant.storage === selectedVersion)
+            || variantData[0];
+
+        if (!selectedVariant) return;
+
+        if (selectedVariantIdInput) {
+            selectedVariantIdInput.value = selectedVariant.id;
         }
 
-        /* Cập nhật tồn kho */
-        const stock = v.stock ?? 0;
-        if (stockInfo) stockInfo.classList.remove('d-none');
+        if (priceText) {
+            priceText.textContent = Number(selectedVariant.price).toLocaleString('vi-VN') + ' đ';
+        }
 
-        if (stock <= 0) {
-            stockText.textContent = 'Hết hàng';
-            stockBadge.className  = 'badge bg-danger';
-            addBtn.disabled       = true;
-            if (selectHint) selectHint.classList.add('d-none');
-        } else {
-            const maxQty = isImei ? 1 : stock;
-            stockText.textContent = isImei
-                ? `Còn ${stock} máy`
-                : `Còn ${stock} sản phẩm`;
-            stockBadge.className  = stock <= 5 ? 'badge bg-warning text-dark' : 'badge bg-success';
-            addBtn.disabled       = false;
-            if (selectHint) selectHint.classList.add('d-none');
+        if (stockText) {
+            stockText.textContent = selectedVariant.stock_quantity;
+        }
 
-            /* Giới hạn qty --*/
-            qtyInput.max = maxQty;
-            if (isImei) {
-                qtyInput.value = 1;
-                qtyInput.readOnly = true;
-                if (qtyMinus) qtyMinus.disabled = true;
-                if (qtyPlus)  qtyPlus.disabled  = true;
+        if (stockBadge) {
+            if (selectedVariant.is_available) {
+                stockBadge.textContent = 'Còn hàng';
+                stockBadge.style.background = '#e8f7ed';
+                stockBadge.style.color = '#1f8f4d';
             } else {
-                qtyInput.readOnly = false;
-                if (parseInt(qtyInput.value) > maxQty) qtyInput.value = maxQty;
-                updatePlusMinusState();
+                stockBadge.textContent = 'Hết hàng';
+                stockBadge.style.background = '#fef2f2';
+                stockBadge.style.color = '#dc2626';
             }
         }
-    }
 
-    /* ---- Nếu không có variants (sản phẩm đơn giản) ---- */
-    if (variants.length === 0 && addBtn) {
-        addBtn.disabled = false;
-        /* Không giới hạn stock (hoặc dùng product.stock_quantity nếu muốn) */
-    }
-
-    /* ---- +/- buttons ---- */
-    function updatePlusMinusState() {
-        if (!qtyMinus || !qtyPlus) return;
-        const val = parseInt(qtyInput.value) || 1;
-        const max = parseInt(qtyInput.max)   || 99;
-        qtyMinus.disabled = val <= 1;
-        qtyPlus.disabled  = val >= max;
-    }
-
-    if (qtyMinus) {
-        qtyMinus.addEventListener('click', () => {
-            let v = Math.max(1, (parseInt(qtyInput.value) || 1) - 1);
-            qtyInput.value = v;
-            updatePlusMinusState();
-        });
-    }
-    if (qtyPlus) {
-        qtyPlus.addEventListener('click', () => {
-            const max = parseInt(qtyInput.max) || 99;
-            let v = Math.min(max, (parseInt(qtyInput.value) || 1) + 1);
-            qtyInput.value = v;
-            updatePlusMinusState();
-        });
-    }
-    if (qtyInput) {
-        qtyInput.addEventListener('input', () => {
-            let v = parseInt(qtyInput.value);
-            const max = parseInt(qtyInput.max) || 99;
-            if (isNaN(v) || v < 1) v = 1;
-            if (v > max) v = max;
-            qtyInput.value = v;
-            updatePlusMinusState();
-        });
-    }
-    updatePlusMinusState();
-
-    /* ---- Chọn variant buttons ---- */
-    document.querySelectorAll('.variant-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const type  = btn.dataset.type;
-            const value = btn.dataset.value;
-
-            /* Highlight trong group */
-            document.querySelectorAll(`.variant-btn[data-type="${type}"]`).forEach(b => {
-                b.classList.remove('btn-primary', 'active');
-                b.classList.add('btn-outline-secondary');
-            });
-            btn.classList.remove('btn-outline-secondary');
-            btn.classList.add('btn-primary', 'active');
-
-            if (type === 'color')   selectedColor   = value;
-            if (type === 'storage') selectedStorage = value;
-
-            updateVariantUI();
-        });
-    });
-
-    /* ---- Auto-select nếu chỉ có 1 variant ---- */
-    if (variants.length === 1) {
-        const v = variants[0];
-        if (v.color) {
-            const btn = document.querySelector(`.variant-btn[data-type="color"][data-value="${v.color}"]`);
-            btn?.click();
+        if (addToCartBtn) {
+            addToCartBtn.disabled = !selectedVariant.is_available;
         }
-        if (v.storage) {
-            const btn = document.querySelector(`.variant-btn[data-type="storage"][data-value="${v.storage}"]`);
-            btn?.click();
+
+        if (buyNowBtn) {
+            buyNowBtn.disabled = !selectedVariant.is_available;
+        }
+
+        if (versionHint) {
+            versionHint.innerHTML = `Phiên bản hiện tại: <strong>${selectedVersion}</strong>`;
+        }
+
+        if (selectedVariant.image_url) {
+            setMainImage(selectedVariant.image_url);
         }
     }
 
-    /* ---- Toast notification ---- */
-    let toastEl = document.getElementById('ajax-toast-container');
-    if (!toastEl) {
-        toastEl = document.createElement('div');
-        toastEl.id = 'ajax-toast-container';
-        toastEl.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none';
-        document.body.appendChild(toastEl);
-    }
-    function showToast(msg, type) {
-        const el  = document.createElement('div');
-        const bg  = type === 'error' ? '#dc3545' : '#198754';
-        const ico = type === 'error' ? '✕' : '✓';
-        el.style.cssText = `background:${bg};color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:500;
-            box-shadow:0 4px 14px rgba(0,0,0,.25);display:flex;align-items:center;gap:10px;
-            opacity:0;transform:translateY(16px);transition:opacity .25s,transform .25s;pointer-events:auto;min-width:220px`;
-        el.innerHTML = `<span style="font-size:18px;line-height:1">${ico}</span>${msg}`;
-        toastEl.appendChild(el);
-        requestAnimationFrame(() => { el.style.opacity='1'; el.style.transform='translateY(0)'; });
-        setTimeout(() => {
-            el.style.opacity='0'; el.style.transform='translateY(8px)';
-            el.addEventListener('transitionend', () => el.remove());
-        }, 2800);
-    }
+    function selectVersion(button) {
+        if (!button) return;
 
-    /* ---- AJAX add to cart ---- */
-    const form = document.getElementById('product-add-form');
-    if (form) {
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn     = document.getElementById('add-btn');
-            const origHtml= btn.innerHTML;
-            btn.disabled  = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang thêm...';
-
-            try {
-                const csrf = form.querySelector('[name="_token"]').value;
-                const res  = await fetch(form.dataset.url, {
-                    method : 'POST',
-                    headers: { 'Content-Type':'application/json','Accept':'application/json','X-CSRF-TOKEN':csrf },
-                    body   : JSON.stringify({
-                        product_id: form.dataset.productId,
-                        variant_id: document.getElementById('selected-variant-id').value || undefined,
-                        quantity  : parseInt(qtyInput.value) || 1,
-                    }),
-                });
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    const badge = document.getElementById('nav-cart-count');
-                    if (badge) badge.textContent = data.cart_count;
-                    showToast('Đã thêm vào giỏ hàng 🛒', 'success');
-                } else {
-                    showToast(data.message ?? 'Không thể thêm sản phẩm.', 'error');
-                }
-            } catch {
-                showToast('Lỗi kết nối, vui lòng thử lại.', 'error');
-            } finally {
-                btn.disabled  = false;
-                btn.innerHTML = origHtml;
-            }
+        selectedVersion = button.dataset.version;
+        versionButtons.forEach((item) => {
+            item.classList.remove('btn-primary', 'text-white');
+            item.classList.add('btn-outline-secondary');
         });
+
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-primary', 'text-white');
+
+        renderColorOptions(selectedVersion);
     }
 
-    /* ---- Auto-scroll đến phần mua hàng ---- */
-    const detail = document.getElementById('product-detail');
-    if (detail) {
-        setTimeout(() => detail.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+    function selectColor(button) {
+        if (!button) return;
+
+        selectedColor = button.dataset.colorName;
+        document.querySelectorAll('.color-option').forEach((item) => {
+            item.classList.remove('btn-primary', 'text-white');
+            item.classList.add('btn-outline-secondary');
+        });
+
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-primary', 'text-white');
+
+        updateVariantUiFromSelection();
     }
 
-})();
+    if (versionButtons.length) {
+        selectVersion(versionButtons.find((button) => button.classList.contains('btn-primary')) || versionButtons[0]);
+    }
 </script>
 @endpush

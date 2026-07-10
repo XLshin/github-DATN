@@ -43,7 +43,7 @@
         @endif
 
         @if ($canViewProducts)
-        <a class="nav-link {{ request()->routeIs('admin.products.*', 'admin.variants.*') ? 'active' : '' }}"
+        <a class="nav-link {{ request()->routeIs('admin.products.*', 'admin.product-groups.*', 'admin.variants.*') ? 'active' : '' }}"
             href="{{ route('admin.products.index') }}">
             <span class="nav-icon"><i class="bi bi-box-seam"></i></span>
             <span class="nav-text">Sản phẩm</span>
@@ -119,6 +119,13 @@
             href="{{ route('admin.reviews.index') }}">
             <span class="nav-icon"><i class="bi bi-chat-dots"></i></span>
             <span class="nav-text">Đánh giá</span>
+        </a>
+        @endif
+
+        @if ($isAdmin)
+        <a class="nav-link {{ request()->routeIs('admin.banners.*') ? 'active' : '' }}" href="{{ route('admin.banners.index') }}">
+            <span class="nav-icon"><i class="bi bi-image"></i></span>
+            <span class="nav-text">Banner</span>
         </a>
         @endif
 

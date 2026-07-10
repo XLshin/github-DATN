@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Imei;
 use App\Models\Warranty;
+use App\Models\WarrantyMedia;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,16 +13,6 @@ use Illuminate\Validation\Rule;
 
 class WarrantyController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Trạng thái xử lý bảo hành
-    |--------------------------------------------------------------------------
-    | claimed = Đang xử lý bảo hành
-    | active  = Hoàn tất xử lý
-    |
-    | expired vẫn giữ trong DB cũ để không lỗi dữ liệu cũ,
-    | nhưng từ giao diện mới admin không chọn expired nữa.
-    */
     private const OPEN_STATUSES = ['claimed'];
 
     private const ADMIN_ALLOWED_STATUSES = ['claimed', 'active'];
@@ -29,6 +20,7 @@ class WarrantyController extends Controller
     public function index(Request $request)
     {
         $warranties = Warranty::with(['imei', 'order'])
+            ->withCount(['receptionMedia', 'completionMedia'])
             ->when($request->filled('keyword'), function ($query) use ($request) {
                 $keyword = trim($request->keyword);
 
@@ -98,7 +90,21 @@ class WarrantyController extends Controller
             'warranty_start' => ['required', 'date'],
             'warranty_end' => ['required', 'date', 'after_or_equal:warranty_start'],
             'status' => ['required', Rule::in(['claimed'])],
-            'customer_note' => ['nullable', 'string', 'max:2000'],
+            'customer_note' => ['required', 'string', 'max:2000'],
+
+            'reception_media' => ['required', 'array', 'min:1', 'max:12'],
+            'reception_media.*' => [
+                'required',
+                'file',
+                'mimes:jpg,jpeg,png,webp,mp4,mov,avi,webm,mkv',
+                'max:102400',
+            ],
+        ], [
+            'customer_note.required' => 'Vui lòng nhập lỗi khách báo hoặc ghi chú tiếp nhận.',
+            'reception_media.required' => 'Vui lòng upload ít nhất 1 ảnh hoặc video tình trạng máy lúc tiếp nhận.',
+            'reception_media.min' => 'Vui lòng upload ít nhất 1 ảnh hoặc video tình trạng máy lúc tiếp nhận.',
+            'reception_media.*.mimes' => 'File tiếp nhận chỉ được là ảnh jpg, jpeg, png, webp hoặc video mp4, mov, avi, webm, mkv.',
+            'reception_media.*.max' => 'Mỗi file tiếp nhận không được vượt quá 100MB.',
         ]);
 
         $imeiDetail = $this->soldImeiQuery()
@@ -131,15 +137,21 @@ class WarrantyController extends Controller
 
         $warrantyDates = $this->getWarrantyDatesFromOrder($imeiDetail);
 
-        DB::transaction(function () use ($validated, $imeiDetail, $warrantyDates) {
-            Warranty::create([
+        DB::transaction(function () use ($validated, $imeiDetail, $warrantyDates, $request) {
+            $warranty = Warranty::create([
                 'imei_id' => $validated['imei_id'],
                 'order_id' => $imeiDetail->order_id,
                 'warranty_start' => $warrantyDates['start'],
                 'warranty_end' => $warrantyDates['end'],
                 'status' => 'claimed',
-                'customer_note' => $validated['customer_note'] ?? null,
+                'customer_note' => $validated['customer_note'],
             ]);
+
+            $this->storeWarrantyMedia(
+                $warranty,
+                $this->uploadedFiles($request, 'reception_media'),
+                WarrantyMedia::STAGE_RECEPTION
+            );
 
             $this->syncImeiStatus($validated['imei_id'], 'claimed');
         });
@@ -151,7 +163,12 @@ class WarrantyController extends Controller
 
     public function show(Warranty $warranty)
     {
-        $warranty->load(['imei', 'order']);
+        $warranty->load([
+            'imei',
+            'order',
+            'receptionMedia',
+            'completionMedia',
+        ]);
 
         $warrantyDetail = $this->warrantyDetailMap([$warranty->id])->get($warranty->id);
         $histories = $this->buildWarrantyHistory($warranty);
@@ -161,7 +178,12 @@ class WarrantyController extends Controller
 
     public function edit(Warranty $warranty)
     {
-        $warranty->load(['imei', 'order']);
+        $warranty->load([
+            'imei',
+            'order',
+            'receptionMedia',
+            'completionMedia',
+        ]);
 
         $warrantyDetail = $this->warrantyDetailMap([$warranty->id])->get($warranty->id);
 
@@ -171,53 +193,91 @@ class WarrantyController extends Controller
     public function update(Request $request, Warranty $warranty)
     {
         $validated = $request->validate([
-            'warranty_start' => ['required', 'date'],
-            'warranty_end' => ['required', 'date', 'after_or_equal:warranty_start'],
             'status' => ['required', Rule::in(self::ADMIN_ALLOWED_STATUSES)],
-            'customer_note' => ['nullable', 'string', 'max:2000'],
+            'status_update_note' => ['required', 'string', 'max:2000'],
+            'repair_result_note' => ['nullable', 'string', 'max:3000'],
+
+            'completion_images' => ['nullable', 'array', 'max:12'],
+            'completion_images.*' => [
+                'file',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:10240',
+            ],
+
+            'completion_videos' => ['nullable', 'array', 'max:5'],
+            'completion_videos.*' => [
+                'file',
+                'mimes:mp4,mov,avi,webm,mkv',
+                'max:102400',
+            ],
+        ], [
+            'status_update_note.required' => 'Vui lòng nhập ghi chú xác nhận khi cập nhật trạng thái bảo hành.',
+            'completion_images.*.image' => 'File ảnh sau sửa phải là hình ảnh hợp lệ.',
+            'completion_images.*.mimes' => 'Ảnh sau sửa chỉ được là jpg, jpeg, png hoặc webp.',
+            'completion_images.*.max' => 'Mỗi ảnh sau sửa không được vượt quá 10MB.',
+            'completion_videos.*.mimes' => 'Video sau sửa chỉ được là mp4, mov, avi, webm hoặc mkv.',
+            'completion_videos.*.max' => 'Mỗi video sau sửa không được vượt quá 100MB.',
         ]);
 
         if ($validated['status'] === 'claimed') {
-            if (now()->startOfDay()->gt(Carbon::parse($validated['warranty_end'])->startOfDay())) {
+            if ($warranty->warranty_end && now()->startOfDay()->gt($warranty->warranty_end->copy()->startOfDay())) {
                 return back()
                     ->withInput()
                     ->with('error', 'Không thể chuyển sang Đang xử lý bảo hành vì IMEI đã quá thời hạn bảo hành.');
             }
         }
 
-        DB::transaction(function () use ($validated, $warranty) {
-            $warranty->update($validated);
+        if ($validated['status'] === 'active') {
+            if (blank($validated['repair_result_note'] ?? null)) {
+                return back()
+                    ->withInput()
+                    ->with('error', 'Vui lòng nhập kết quả sửa chữa khi hoàn tất bảo hành.');
+            }
+
+            $hasExistingCompletionImage = $warranty->completionMedia()
+                ->where('type', WarrantyMedia::TYPE_IMAGE)
+                ->exists();
+
+            $hasNewCompletionImage = count($this->uploadedFiles($request, 'completion_images')) > 0;
+
+            if (!$hasExistingCompletionImage && !$hasNewCompletionImage) {
+                return back()
+                    ->withInput()
+                    ->with('error', 'Vui lòng upload ít nhất 1 ảnh sau sửa để xác nhận đã bảo hành xong.');
+            }
+        }
+
+        DB::transaction(function () use ($validated, $warranty, $request) {
+            $warranty->update([
+                'status' => $validated['status'],
+                'status_update_note' => $validated['status_update_note'],
+                'repair_result_note' => $validated['status'] === 'active'
+                    ? $validated['repair_result_note']
+                    : $warranty->repair_result_note,
+                'completed_at' => $validated['status'] === 'active'
+                    ? ($warranty->completed_at ?? now())
+                    : null,
+            ]);
+
+            $this->storeWarrantyMedia(
+                $warranty,
+                $this->uploadedFiles($request, 'completion_images'),
+                WarrantyMedia::STAGE_COMPLETION
+            );
+
+            $this->storeWarrantyMedia(
+                $warranty,
+                $this->uploadedFiles($request, 'completion_videos'),
+                WarrantyMedia::STAGE_COMPLETION
+            );
 
             $this->syncImeiStatus($warranty->imei_id, $validated['status']);
         });
 
         return redirect()
             ->route('admin.warranties.show', $warranty)
-            ->with('success', 'Cập nhật bảo hành thành công.');
-    }
-
-    public function updateStatus(Request $request, Warranty $warranty)
-    {
-        $validated = $request->validate([
-            'status' => ['required', Rule::in(self::ADMIN_ALLOWED_STATUSES)],
-        ]);
-
-        if ($validated['status'] === 'claimed') {
-            if ($warranty->warranty_end && now()->startOfDay()->gt($warranty->warranty_end->copy()->startOfDay())) {
-                return back()
-                    ->with('error', 'Không thể chuyển sang Đang xử lý bảo hành vì IMEI đã quá thời hạn bảo hành.');
-            }
-        }
-
-        DB::transaction(function () use ($validated, $warranty) {
-            $warranty->update([
-                'status' => $validated['status'],
-            ]);
-
-            $this->syncImeiStatus($warranty->imei_id, $validated['status']);
-        });
-
-        return back()->with('success', 'Cập nhật trạng thái bảo hành thành công.');
+            ->with('success', 'Cập nhật trạng thái bảo hành thành công.');
     }
 
     public function lookupImei(Request $request)
@@ -237,7 +297,7 @@ class WarrantyController extends Controller
                     ->where('i.id', $imei->id)
                     ->first();
 
-                $currentWarranty = Warranty::with('order')
+                $currentWarranty = Warranty::with(['order', 'receptionMedia', 'completionMedia'])
                     ->where('imei_id', $imei->id)
                     ->whereIn('status', self::OPEN_STATUSES)
                     ->latest()
@@ -264,6 +324,44 @@ class WarrantyController extends Controller
             'warranties',
             'warrantyDetails'
         ));
+    }
+
+    private function uploadedFiles(Request $request, string $key): array
+    {
+        $files = $request->file($key, []);
+
+        if (!$files) {
+            return [];
+        }
+
+        return is_array($files) ? $files : [$files];
+    }
+
+    private function storeWarrantyMedia(Warranty $warranty, array $files, string $stage): void
+    {
+        foreach ($files as $file) {
+            if (!$file || !$file->isValid()) {
+                continue;
+            }
+
+            $mimeType = $file->getMimeType();
+
+            $type = str_starts_with((string) $mimeType, 'video/')
+                ? WarrantyMedia::TYPE_VIDEO
+                : WarrantyMedia::TYPE_IMAGE;
+
+            $path = $file->store("warranties/{$warranty->id}/{$stage}", 'public');
+
+            WarrantyMedia::create([
+                'warranty_id' => $warranty->id,
+                'stage' => $stage,
+                'type' => $type,
+                'file_path' => $path,
+                'original_name' => $file->getClientOriginalName(),
+                'mime_type' => $mimeType,
+                'file_size' => $file->getSize(),
+            ]);
+        }
     }
 
     private function soldImeiQuery(?string $keyword = null)
@@ -297,7 +395,7 @@ class WarrantyController extends Controller
                     $query->where('i.imei', 'like', "%{$keyword}%")
                         ->orWhere('p.name', 'like', "%{$keyword}%")
                         ->orWhere('pv.color', 'like', "%{$keyword}%")
-                        ->orWhere('pv.storage', 'like', "%{$keyword}%")
+                        ->orWhere('p.storage', 'like', "%{$keyword}%")
                         ->orWhere('o.order_code', 'like', "%{$keyword}%")
                         ->orWhere('o.customer_name', 'like', "%{$keyword}%")
                         ->orWhere('o.customer_phone', 'like', "%{$keyword}%");
@@ -315,7 +413,7 @@ class WarrantyController extends Controller
 
                 'pv.id as product_variant_id',
                 'pv.color',
-                'pv.storage',
+                'p.storage',
                 'pv.additional_price',
 
                 'oi.id as order_item_id',
@@ -361,7 +459,7 @@ class WarrantyController extends Controller
                 'p.price as base_price',
 
                 'pv.color',
-                'pv.storage',
+                'p.storage',
                 'pv.additional_price',
 
                 'oi.price as sold_price',
@@ -433,6 +531,38 @@ class WarrantyController extends Controller
             ];
         }
 
+        if ($warranty->receptionMedia && $warranty->receptionMedia->count()) {
+            $histories[] = [
+                'time' => $warranty->created_at ?? now(),
+                'title' => 'Upload minh chứng tiếp nhận',
+                'description' => 'Đã upload ' . $warranty->receptionMedia->count() . ' ảnh/video tình trạng máy lúc tiếp nhận.',
+            ];
+        }
+
+        if ($warranty->status_update_note) {
+            $histories[] = [
+                'time' => $warranty->updated_at ?? now(),
+                'title' => 'Ghi chú cập nhật trạng thái',
+                'description' => $warranty->status_update_note,
+            ];
+        }
+
+        if ($warranty->repair_result_note) {
+            $histories[] = [
+                'time' => $warranty->completed_at ?? $warranty->updated_at ?? now(),
+                'title' => 'Kết quả xử lý bảo hành',
+                'description' => $warranty->repair_result_note,
+            ];
+        }
+
+        if ($warranty->completionMedia && $warranty->completionMedia->count()) {
+            $histories[] = [
+                'time' => $warranty->completed_at ?? $warranty->updated_at ?? now(),
+                'title' => 'Upload minh chứng sau sửa',
+                'description' => 'Đã upload ' . $warranty->completionMedia->count() . ' ảnh/video xác nhận sau khi sửa xong.',
+            ];
+        }
+
         if ($warranty->warranty_start) {
             $histories[] = [
                 'time' => $warranty->warranty_start,
@@ -459,7 +589,7 @@ class WarrantyController extends Controller
 
         if (in_array($warranty->status, ['active', 'expired'], true)) {
             $histories[] = [
-                'time' => $warranty->updated_at,
+                'time' => $warranty->completed_at ?? $warranty->updated_at,
                 'title' => 'Hoàn tất xử lý',
                 'description' => 'Phiếu đã xử lý xong. IMEI có thể tạo phiếu mới nếu vẫn còn thời hạn bảo hành thật sự.',
             ];

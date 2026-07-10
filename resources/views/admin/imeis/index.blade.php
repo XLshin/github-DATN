@@ -43,7 +43,7 @@
                             <td>{{ $imei->id }}</td>
                             <td>{{ $imei->productVariant->product->name ?? 'N/A' }}</td>
                             <td>{{ $imei->productVariant->color ?? 'N/A' }}</td>
-                            <td>{{ $imei->productVariant->storage ?? 'N/A' }}</td>
+                            <td>{{ $imei->productVariant->product->storage ?? 'N/A' }}</td>
                             <td class="fw-semibold">{{ $imei->imei }}</td>
                             <td><span class="badge text-bg-secondary">{{ $imei->status }}</span></td>
                             <td class="text-end">
