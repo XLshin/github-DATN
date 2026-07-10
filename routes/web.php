@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\PointController as AdminPointController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Admin\ProductGroupController;
 use App\Http\Controllers\Admin\ShipmentController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\WarrantyController;
@@ -153,6 +154,16 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
         |--------------------------------------------------------------------------
         */
         Route::resource('products', AdminProductController::class);
+        Route::resource('product-groups', ProductGroupController::class)
+            ->except(['show'])
+            ->parameters(['product-groups' => 'productGroup']);
+
+        Route::get('product-groups/{productGroup}/specifications', [ProductGroupController::class, 'specifications'])
+            ->name('product-groups.specifications');
+
+        // AJAX endpoint to quickly create a Product Group from the product create form
+        Route::post('products/ajax-group', [AdminProductController::class, 'ajaxStore'])
+            ->name('products.ajaxStore');
 
         Route::delete('product-images/{image}', [AdminProductController::class, 'destroyImage'])
             ->middleware('only_admin')

@@ -272,8 +272,8 @@ class ImeiController extends Controller
                 $query->whereHas('product', function ($q) use ($keyword) {
                     $q->where('name', 'like', "%{$keyword}%");
                 })
-                ->orWhere('color', 'like', "%{$keyword}%")
-                ->orWhere('storage', 'like', "%{$keyword}%");
+                ->orWhere('color', 'like', "%{$keyword}%");
+
 
             }
 
