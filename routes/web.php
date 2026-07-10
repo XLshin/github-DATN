@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AddressController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CouponController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\PointController as AdminPointController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Admin\ProductGroupController;
 use App\Http\Controllers\Admin\ShipmentController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\WarrantyController;
@@ -34,6 +36,7 @@ use App\Http\Controllers\CarrierWebhookController;
 */
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
 Route::get('/danh-muc/{category:id}', [HomeController::class, 'byCategory'])->name('category.products');
 Route::get('/thuong-hieu/{brand:id}', [HomeController::class, 'byBrand'])->name('brand.products');
@@ -41,6 +44,7 @@ Route::get('/thuong-hieu/{brand:id}', [HomeController::class, 'byBrand'])->name(
 Route::middleware('auth')->group(function () {
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+    Route::post('/buy-now', [CartController::class, 'buyNow'])->name('buy.now');
     Route::post('/cart/update', [CartController::class, 'update'])->name('cart.update');
     Route::post('/cart/remove', [CartController::class, 'remove'])->name('cart.remove');
 });
@@ -73,7 +77,25 @@ Route::middleware('guest')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', fn() => view('client.profile.dashboard'))->name('dashboard');
+    // Route::get('/dashboard', fn() => view('client.profile.dashboard'))->name('dashboard');
+    // Sửa thành:
+    Route::get('/dashboard', [ProfileController::class, 'dashboard'])->name('dashboard');
+
+    // Giữ nguyên các route profile khác nếu cần
+    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
+    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    // Thêm group quản lý địa chỉ (vẫn trong middleware auth)
+    Route::middleware('auth')->group(function () {
+        // ... các route khác
+
+        // Địa chỉ nhận hàng
+        Route::post('/addresses', [AddressController::class, 'store'])->name('addresses.store');
+        Route::put('/addresses/{address}', [AddressController::class, 'update'])->name('addresses.update');
+        Route::delete('/addresses/{address}', [AddressController::class, 'destroy'])->name('addresses.destroy');
+        Route::patch('/addresses/{address}/default', [AddressController::class, 'setDefault'])->name('addresses.default');
+    });
 
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -152,6 +174,16 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
         |--------------------------------------------------------------------------
         */
         Route::resource('products', AdminProductController::class);
+        Route::resource('product-groups', ProductGroupController::class)
+            ->except(['show'])
+            ->parameters(['product-groups' => 'productGroup']);
+
+        Route::get('product-groups/{productGroup}/specifications', [ProductGroupController::class, 'specifications'])
+            ->name('product-groups.specifications');
+
+        // AJAX endpoint to quickly create a Product Group from the product create form
+        Route::post('products/ajax-group', [AdminProductController::class, 'ajaxStore'])
+            ->name('products.ajaxStore');
 
         Route::delete('product-images/{image}', [AdminProductController::class, 'destroyImage'])
             ->middleware('only_admin')
