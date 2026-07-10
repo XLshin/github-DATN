@@ -96,22 +96,26 @@ class UserController extends Controller
             $orders = $user->orders()
                 ->with(['items.product'])
                 ->latest()
-                ->paginate(10)
+                ->paginate(10, ['*'], 'ordersPage')
+                ->withQueryString();
+
+            $warranties = $user->warranties()
+                ->with(['imei', 'order'])
+                ->latest()
+                ->paginate(10, ['*'], 'warrantiesPage')
                 ->withQueryString();
         } else {
-            $orders = new LengthAwarePaginator(
-                collect(),
-                0,
-                10,
-                request()->query('page', 1),
-                [
-                    'path' => request()->url(),
-                    'query' => request()->query(),
-                ]
-            );
+            $orders = new LengthAwarePaginator(collect(), 0, 10, request()->query('page', 1), [
+                'path' => request()->url(),
+                'query' => request()->query(),
+            ]);
+            $warranties = new LengthAwarePaginator(collect(), 0, 10, request()->query('page', 1), [
+                'path' => request()->url(),
+                'query' => request()->query(),
+            ]);
         }
 
-        return view('admin.users.show', compact('user', 'orders'));
+        return view('admin.users.show', compact('user', 'orders', 'warranties'));
     }
 
     public function toggleLock(User $user)

@@ -66,7 +66,6 @@
                     <th>Sản phẩm</th>
                     <th>Thương hiệu</th>
                     <th>Màu</th>
-                    <th>Dung lượng</th>
                     <th>Loại giao dịch</th>
                     <th class="text-end">Số lượng</th>
                     <th>Ghi chú</th>
@@ -92,9 +91,6 @@
                         {{ $item->productVariant?->color ?? 'N/A' }}
                     </td>
 
-                    <td>
-                        {{ $item->productVariant?->storage ?? 'N/A' }}
-                    </td>
 
                     <td>
                         @if($item->type === 'import')
