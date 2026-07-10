@@ -254,6 +254,9 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
             Route::get('warranties/lookup-imei', [WarrantyController::class, 'lookupImei'])
                 ->name('warranties.lookupImei');
 
+            Route::get('warranties/{warranty}/receipt', [App\Http\Controllers\Admin\WarrantyController::class, 'receipt'])->name('warranties.receipt');
+            Route::put('warranties/{warranty}/receipt', [App\Http\Controllers\Admin\WarrantyController::class, 'updateReceipt'])->name('warranties.updateReceipt');
+
             Route::resource('warranties', WarrantyController::class)->except([
                 'destroy',
             ]);

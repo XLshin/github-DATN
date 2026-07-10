@@ -19,6 +19,7 @@ class Warranty extends Model
         'customer_note',
         'status_update_note',
         'repair_result_note',
+        'customer_receipt_note',
         'completed_at',
     ];
 
@@ -54,6 +55,13 @@ class Warranty extends Model
     {
         return $this->hasMany(WarrantyMedia::class)
             ->where('stage', WarrantyMedia::STAGE_COMPLETION)
+            ->orderBy('id');
+    }
+
+    public function receiptMedia()
+    {
+        return $this->hasMany(WarrantyMedia::class)
+            ->where('stage', WarrantyMedia::STAGE_CUSTOMER_RECEIPT)
             ->orderBy('id');
     }
 
