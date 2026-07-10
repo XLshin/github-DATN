@@ -13,7 +13,6 @@
     @include('partials.client.styles')
     @stack('styles')
 
-
 </head>
 
 <body class="client-body d-flex flex-column min-vh-100">

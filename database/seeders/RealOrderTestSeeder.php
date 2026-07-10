@@ -55,6 +55,26 @@ class RealOrderTestSeeder extends Seeder
                 ->get();
 
             foreach ($oldOrders as $oldOrder) {
+                $oldOrderItemIds = DB::table('order_items')
+                    ->where('order_id', $oldOrder->id)
+                    ->pluck('id')
+                    ->all();
+
+                // Từ bản cập nhật hỗ trợ nhiều IMEI/order_item, nguồn liên kết chính là
+                // imeis.reserved_by_order_item_id (1 order_item có thể có nhiều IMEI).
+                // Cột order_items.imei_id cũ vẫn được dọn kèm để tương thích ngược với dữ liệu cũ.
+                if (! empty($oldOrderItemIds)) {
+                    DB::table('imeis')
+                        ->whereIn('reserved_by_order_item_id', $oldOrderItemIds)
+                        ->whereIn('status', ['reserved'])
+                        ->update([
+                            'status' => 'available',
+                            'reserved_at' => null,
+                            'reserved_by_order_item_id' => null,
+                            'updated_at' => $now,
+                        ]);
+                }
+
                 $oldImeiIds = DB::table('order_items')
                     ->where('order_id', $oldOrder->id)
                     ->whereNotNull('imei_id')
@@ -309,6 +329,66 @@ class RealOrderTestSeeder extends Seeder
                         ],
                     ],
                 ],
+
+                /*
+                |--------------------------------------------------------------------------
+                | Case 8: 1 dòng order_items IMEI với quantity > 1 (test tính năng gán NHIỀU
+                | IMEI cho cùng 1 dòng order_items khi đóng gói).
+                |--------------------------------------------------------------------------
+                */
+                [
+                    'order_code' => 'ORD_REAL_TEST_008_MULTI_IMEI',
+                    'customer_name' => 'Khách Test Mua 3 Máy Cùng Biến Thể',
+                    'customer_phone' => '0911111108',
+                    'shipping_address' => '108 Test Multi IMEI, Hà Nội',
+                    'receiver_name' => 'Người nhận Multi IMEI',
+                    'receiver_phone' => '0988111108',
+                    'receiver_address' => 'Phòng 108, Chung cư Test, Hà Nội',
+                    'receiver_note' => 'Đơn test 1 dòng order_items có quantity = 3, cần admin nhập đủ 3 IMEI khi đóng gói.',
+                    'payment_method' => 'cod',
+                    'payment_status' => 'pending',
+                    'items' => [
+                        [
+                            'product_slug' => 'iphone-16-pro',
+                            'color' => 'Titan Đen',
+                            'storage' => '128GB',
+                            'quantity' => 3,
+                        ],
+                    ],
+                ],
+
+                /*
+                |--------------------------------------------------------------------------
+                | Case 9: đơn mixed có dòng IMEI quantity > 1 xen với phụ kiện quantity > 1,
+                | test admin nhập nhiều IMEI cho 1 dòng trong khi các dòng khác không cần IMEI.
+                |--------------------------------------------------------------------------
+                */
+                [
+                    'order_code' => 'ORD_REAL_TEST_009_MULTI_IMEI_MIXED',
+                    'customer_name' => 'Khách Test Combo Nhiều Máy Và Phụ Kiện',
+                    'customer_phone' => '0911111109',
+                    'shipping_address' => '109 Test Multi IMEI Mixed, Hà Nội',
+                    'receiver_name' => 'Người nhận Multi IMEI Mixed',
+                    'receiver_phone' => '0988111109',
+                    'receiver_address' => 'Phòng 109, Chung cư Test, Hà Nội',
+                    'receiver_note' => 'Đơn mixed: 1 dòng điện thoại quantity = 2 cần 2 IMEI, phụ kiện quantity = 3 không cần IMEI.',
+                    'payment_method' => 'momo',
+                    'payment_status' => 'paid',
+                    'items' => [
+                        [
+                            'product_slug' => 'iphone-16-pro',
+                            'color' => 'Titan Trắng',
+                            'storage' => '128GB',
+                            'quantity' => 2,
+                        ],
+                        [
+                            'product_slug' => 'xiaomi-65w-charger',
+                            'color' => 'Trắng',
+                            'storage' => '65W',
+                            'quantity' => 3,
+                        ],
+                    ],
+                ],
             ];
 
             /*
@@ -321,9 +401,11 @@ class RealOrderTestSeeder extends Seeder
             }
 
             $this->command->info('Đã tạo dữ liệu test đơn hàng theo flow mới.');
-            $this->command->info('ORD_REAL_TEST_001 -> ORD_REAL_TEST_005: đơn chỉ có sản phẩm cần IMEI.');
+            $this->command->info('ORD_REAL_TEST_001 -> ORD_REAL_TEST_005: đơn chỉ có sản phẩm cần IMEI, quantity = 1.');
             $this->command->info('ORD_REAL_TEST_006_QUANTITY_ONLY: đơn chỉ có sản phẩm không cần IMEI.');
             $this->command->info('ORD_REAL_TEST_007_MIXED: đơn có cả sản phẩm cần IMEI và không cần IMEI.');
+            $this->command->info('ORD_REAL_TEST_008_MULTI_IMEI: 1 dòng order_items IMEI, quantity = 3 -> test gán nhiều IMEI cho 1 dòng.');
+            $this->command->info('ORD_REAL_TEST_009_MULTI_IMEI_MIXED: dòng IMEI quantity = 2 xen với phụ kiện quantity = 3.');
             $this->command->info('Customer: real.customer@gmail.com / 12345678');
         });
     }
@@ -364,21 +446,15 @@ class RealOrderTestSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | Một dòng order_items chỉ có 1 imei_id.
-            | Vì vậy sản phẩm imei/serial nên có quantity = 1 cho mỗi dòng.
+            | Từ bản cập nhật mới: 1 dòng order_items có thể cần NHIỀU IMEI (quantity > 1).
+            | Admin sẽ nhập đủ `quantity` IMEI khi đóng gói, không còn giới hạn quantity = 1.
             |--------------------------------------------------------------------------
             */
-            if ($variantData->product_type === 'imei/serial' && $quantity !== 1) {
-                throw new \Exception(
-                    'Sản phẩm quản lý theo IMEI chỉ nên có quantity = 1 cho mỗi dòng order_items: '
-                    . $variantData->product_name
-                );
-            }
 
             /*
             |--------------------------------------------------------------------------
-            | Nếu là sản phẩm cần IMEI thì chỉ kiểm tra kho có IMEI available.
-            | Không gắn IMEI ở bước tạo đơn.
+            | Nếu là sản phẩm cần IMEI thì kiểm tra kho có đủ số lượng IMEI available
+            | tương ứng với quantity đã đặt. Không gắn IMEI ở bước tạo đơn.
             |--------------------------------------------------------------------------
             */
             if ($variantData->product_type === 'imei/serial') {
@@ -387,13 +463,13 @@ class RealOrderTestSeeder extends Seeder
                     ->where('status', 'available')
                     ->count();
 
-                if ($availableImeiCount < 1) {
+                if ($availableImeiCount < $quantity) {
                     throw new \Exception(
                         'Biến thể '
                         . $variantData->product_name . ' - '
                         . $variantData->color . ' - '
                         . $variantData->storage
-                        . ' không còn IMEI available để test đóng gói.'
+                        . " chỉ còn {$availableImeiCount} IMEI available, không đủ cho quantity = {$quantity}."
                     );
                 }
             }
@@ -469,6 +545,8 @@ class RealOrderTestSeeder extends Seeder
                 'price' => $item['price'],
                 'quantity' => $item['quantity'],
                 'total' => $item['total'],
+                // Cột imei_id vẫn còn trong DB nhưng app không còn dùng nữa (đã chuyển sang
+                // liên kết nhiều-IMEI qua imeis.reserved_by_order_item_id). Để null cho đúng flow mới.
                 'imei_id' => null,
                 'created_at' => $now,
                 'updated_at' => $now,

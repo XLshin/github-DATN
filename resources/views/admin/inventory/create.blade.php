@@ -4,204 +4,170 @@
 @section('page_icon', 'bi-box-arrow-in-down')
 @section('page_eyebrow', 'Kho hàng')
 @section('page_title', 'Nhập kho')
-@section('page_subtitle', 'Tạo giao dịch nhập kho cho biến thể sản phẩm.')
+@section('page_subtitle', 'Nhập kho cho các sản phẩm quản lý bằng số lượng.')
 
-@section('heading_actions') <a href="{{ route('admin.inventory.index') }}" class="btn btn-light btn-sm"> <i class="bi bi-arrow-left"></i> Quay lại </a>
+@section('heading_actions')
+<a href="{{ route('admin.inventory.index') }}" class="btn btn-light btn-sm">
+    <i class="bi bi-arrow-left"></i>
+    Quay lai
+</a>
 @endsection
 
-@section('content')
+@push('styles')
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+@endpush
 
+@section('content')
 <section class="panel">
     <div class="panel-header">
         <div>
             <h5 class="mb-1">Thông tin nhập kho</h5>
             <div class="text-muted small">
-                Nhập Product Variant ID, số lượng và ghi chú cho giao dịch nhập kho.
+                Chọn biến thể phụ kiện, nhập số lượng và ghi chú.
             </div>
         </div>
     </div>
 
-    <form action="{{ route('admin.inventory.store') }}" method="POST" style="max-width:700px;">
-        @csrf
+    <div class="p-3">
+        <form action="{{ route('admin.inventory.store') }}" method="POST" style="max-width:700px;">
+            @csrf
 
-        <div class="mb-3">
+            <div class="mb-3">
+                <label class="form-label">
+                    Chọn biến thể phụ kiện
+                    <span class="text-danger">*</span>
+                </label>
 
-            <label class="form-label">
-                Chọn biến thể phụ kiện
-                <span class="text-danger">*</span>
-            </label>
+                <select
+                    id="variantSelect"
+                    name="product_variant_id"
+                    class="form-select @error('product_variant_id') is-invalid @enderror">
+                    <option value="">-- Chọn biến thể phụ kiện --</option>
 
-            <input
-                type="text"
-                id="variantSearchInput"
-                class="form-control mb-2"
-                placeholder="Tìm theo tên sản phẩm, màu sắc hoặc dung lượng">
+                    @foreach($quantityVariants as $variant)
+                        <option
+                            value="{{ $variant->id }}"
+                            data-product="{{ $variant->product->name }}"
+                            data-color="{{ $variant->color ?? '' }}"
+                            data-stock="{{ $variant->stock_quantity }}"
+                            {{ old('product_variant_id') == $variant->id ? 'selected' : '' }}>
+                            {{ trim(
+                                $variant->product->name .
+                                ' - ' .
+                                ($variant->color ?? '---') .
+                                ' (Hiện còn: ' . $variant->stock_quantity . ')'
+                            ) }}
+                        </option>
+                    @endforeach
+                </select>
 
-            <select
-                id="variantSelect"
-                name="product_variant_id"
-                class="form-select @error('product_variant_id') is-invalid @enderror"
-                size="5">
-
-                @foreach($quantityVariants as $variant)
-
-                <option
-                    value="{{ $variant->id }}"
-                    data-search="{{ strtolower(
-                        $variant->product->name . ' ' .
-                        ($variant->color ?? '') . ' ' .
-                        ($variant->storage ?? '')
-                    ) }}"
-                    {{ old('product_variant_id') == $variant->id ? 'selected' : '' }}>
-
-                    {{ trim(
-                        $variant->product->name .
-                        ' - ' .
-                        ($variant->color ?? '---') .
-                        ($variant->storage ? ' - ' . $variant->storage : '') .
-                        ' (Hiện có: ' . $variant->stock_quantity . ')'
-                    ) }}
-
-                </option>
-
-                @endforeach
-
-            </select>
-
-            @error('product_variant_id')
-            <div class="invalid-feedback d-block">
-                {{ $message }}
+                @error('product_variant_id')
+                    <div class="invalid-feedback d-block">
+                        {{ $message }}
+                    </div>
+                @enderror
             </div>
-            @enderror
 
-        </div>
+            <div class="mb-3">
+                <label class="form-label">
+                    Số lượng <span class="text-danger">*</span>
+                </label>
 
-        <div class="mb-3">
-            <label class="form-label">
-                Số lượng <span class="text-danger">*</span>
-            </label>
+                <input
+                    type="number"
+                    name="quantity"
+                    value="{{ old('quantity') }}"
+                    class="form-control @error('quantity') is-invalid @enderror"
+                    placeholder="Nhập số lượng">
 
-            <input
-                type="number"
-                name="quantity"
-                value="{{ old('quantity') }}"
-                class="form-control @error('quantity') is-invalid @enderror"
-                placeholder="Nhập số lượng">
-
-            @error('quantity')
-            <div class="invalid-feedback d-block">
-                {{ $message }}
+                @error('quantity')
+                    <div class="invalid-feedback d-block">
+                        {{ $message }}
+                    </div>
+                @enderror
             </div>
-            @enderror
-        </div>
 
-        <div class="mb-3">
-            <label class="form-label">
-                Ghi chú
-            </label>
+            <div class="mb-3">
+                <label class="form-label">
+                    Ghi chú
+                </label>
 
-            <textarea
-                name="note"
-                rows="4"
-                class="form-control @error('note') is-invalid @enderror"
-                placeholder="Nhập ghi chú nếu có">{{ old('note') }}</textarea>
+                <textarea
+                    name="note"
+                    rows="4"
+                    class="form-control @error('note') is-invalid @enderror"
+                    placeholder="Nhập ghi chú">{{ old('note') }}</textarea>
 
-            @error('note')
-            <div class="invalid-feedback d-block">
-                {{ $message }}
+                @error('note')
+                    <div class="invalid-feedback d-block">
+                        {{ $message }}
+                    </div>
+                @enderror
             </div>
-            @enderror
-        </div>
 
-        <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary btn-sm">
-                <i class="bi bi-check-lg"></i>
-                Lưu nhập kho
-            </button>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-check-lg"></i>
+                    Luu nhap kho
+                </button>
 
-            <a href="{{ route('admin.inventory.index') }}" class="btn btn-light btn-sm">
-                Hủy
-            </a>
-        </div>
-
-    </form>
-
-</div>
-
+                <a href="{{ route('admin.inventory.index') }}" class="btn btn-light btn-sm">
+                    Huy
+                </a>
+            </div>
+        </form>
+    </div>
 </section>
 @endsection
 
 @push('scripts')
-
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
-
 document.addEventListener('DOMContentLoaded', function () {
-
-    const searchInput = document.getElementById('variantSearchInput');
     const select = document.getElementById('variantSelect');
-    const options = Array.from(select.options);
+    if (!select || !window.TomSelect) return;
 
-    // Ẩn select lúc đầu
-    select.style.display = 'none';
+    const variantOptions = [];
+    const selectedItems = [];
 
-    // Giữ lại dữ liệu sau validate lỗi
-    const selectedOption = select.options[select.selectedIndex];
+    Array.from(select.options).forEach(option => {
+        if (!option.value) return;
 
-    if (selectedOption && selectedOption.value) {
-        searchInput.value = selectedOption.textContent.trim();
-    }
-
-    // Focus input -> hiện danh sách
-    searchInput.addEventListener('focus', function () {
-        select.style.display = 'block';
-    });
-
-    // Tìm kiếm
-    searchInput.addEventListener('input', function () {
-
-        const keyword = this.value.trim().toLowerCase();
-
-        select.style.display = 'block';
-
-        options.forEach(option => {
-
-            const search = option.dataset.search || '';
-
-            option.hidden =
-                keyword &&
-                !search.includes(keyword);
-
+        variantOptions.push({
+            value: option.value,
+            text: option.textContent.trim(),
+            product: option.dataset.product || '',
+            color: option.dataset.color || '',
+            stock: option.dataset.stock || '0'
         });
 
-    });
-
-    // Chọn sản phẩm
-    select.addEventListener('change', function () {
-
-        const selectedOption =
-            this.options[this.selectedIndex];
-
-        searchInput.value =
-            selectedOption.textContent.trim();
-
-        select.style.display = 'none';
-
-    });
-
-    // Click ngoài -> ẩn danh sách
-    document.addEventListener('click', function (e) {
-
-        if (
-            !searchInput.contains(e.target) &&
-            !select.contains(e.target)
-        ) {
-            select.style.display = 'none';
+        if (option.selected) {
+            selectedItems.push(option.value);
         }
-
     });
 
+    new TomSelect(select, {
+        allowEmptyOption: true,
+        plugins: ['clear_button'],
+        placeholder: 'Tìm biến thể phụ kiện...',
+        options: variantOptions,
+        items: selectedItems,
+        valueField: 'value',
+        labelField: 'text',
+        searchField: ['text', 'product', 'color'],
+        maxOptions: null,
+        openOnFocus: true,
+        render: {
+            option: function(data, escape) {
+                if (!data.value) return '<div class="text-muted">' + escape(data.text) + '</div>';
+                const meta = [data.color].filter(Boolean).join(' - ');
+                return '<div><div class="fw-semibold">' + escape(data.product || data.text) + '</div><div class="small text-muted">' + escape(meta) + '</div></div>';
+            },
+            item: function(data, escape) {
+                return '<div>' + escape(data.text) + '</div>';
+            }
+        }
+    });
 });
-
 </script>
-
 @endpush
