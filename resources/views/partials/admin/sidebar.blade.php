@@ -122,6 +122,13 @@
         </a>
         @endif
 
+        @if ($isAdmin)
+        <a class="nav-link {{ request()->routeIs('admin.banners.*') ? 'active' : '' }}" href="{{ route('admin.banners.index') }}">
+            <span class="nav-icon"><i class="bi bi-image"></i></span>
+            <span class="nav-text">Banner</span>
+        </a>
+        @endif
+
         @if ($canManageUsers)
         <a class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}"
             href="{{ route('admin.users.index') }}">
