@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\BrandController;
+use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\CouponUserController;
@@ -88,12 +89,18 @@ Route::middleware('auth')->group(function () {
     Route::post('/checkout', [CheckoutController::class, 'process'])->name('checkout.process');
     Route::post('/checkout/preview', [CheckoutController::class, 'preview'])->name('checkout.preview');
     Route::get('/checkout/success/{order}', [CheckoutController::class, 'success'])->name('checkout.success');
+    Route::get('/checkout/payment/{order}', [CheckoutController::class, 'showPayment'])->name('checkout.payment');
+    Route::post('/checkout/payment/{order}/confirm', [CheckoutController::class, 'confirmPayment'])->name('checkout.payment.confirm');
+    Route::post('/checkout/payment/{order}/retry', [CheckoutController::class, 'retryPayment'])->name('checkout.payment.retry');
 
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
 
     Route::get('/my-points', [PointController::class, 'index'])->name('points.index');
     Route::get('/point-history', [PointController::class, 'history'])->name('points.history');
+
+    Route::post('/assistant/chat', [AssistantController::class, 'chat'])->name('assistant.chat');
+    Route::post('/assistant/reset', [AssistantController::class, 'reset'])->name('assistant.reset');
 });
 
 /*
@@ -183,6 +190,9 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
 
         Route::post('orders/{order}/confirm', [AdminOrderController::class, 'confirm'])
             ->name('orders.confirm');
+
+        Route::post('orders/{order}/confirm-bank-transfer', [AdminOrderController::class, 'confirmBankTransfer'])
+            ->name('orders.confirmBankTransfer');
 
         Route::post('orders/{order}/mark-packed', [AdminOrderController::class, 'markPacked'])
             ->name('orders.markPacked');

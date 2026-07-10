@@ -15,7 +15,7 @@ class OrderController extends Controller
 
     public function show($id)
     {
-        $order = Order::with(['items.product'])->findOrFail($id);
+        $order = Order::with(['items.product', 'payment'])->findOrFail($id);
 
         if ($order->user_id !== auth()->id()) {
             abort(403);
