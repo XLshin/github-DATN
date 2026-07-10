@@ -4,7 +4,7 @@
 @section('page_icon', 'bi-box-seam')
 @section('page_eyebrow', 'Quản lý sản phẩm')
 @section('page_title', $product->name)
-@section('page_subtitle', 'Chi tiết sản phẩm và danh sách biến thể.')
+@section('page_subtitle', 'Chi tiết sản phẩm, giá base và giá bán cuối theo từng biến thể.')
 
 @section('heading_actions')
 <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-primary btn-sm">
@@ -17,7 +17,6 @@
 
 @section('content')
 <div class="row g-3">
-    {{-- Cột trái: thông tin + biến thể --}}
     <div class="col-lg-8">
         <section class="panel mb-3">
             <div class="panel-header">
@@ -28,12 +27,24 @@
             <div class="p-3">
                 <table class="table table-borderless align-middle mb-0">
                     <tr>
-                        <th style="width:160px;">Danh mục</th>
+                        <th style="width:180px;">Dòng sản phẩm</th>
+                        <td>{{ $product->productGroup->name ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Danh mục</th>
                         <td>{{ $product->category->name ?? '-' }}</td>
                     </tr>
                     <tr>
                         <th>Thương hiệu</th>
                         <td>{{ $product->brand->name ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Dung lượng</th>
+                        <td>{{ $product->storage ?: '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Giá base</th>
+                        <td class="fw-semibold">{{ number_format($product->price ?? 0, 0, ',', '.') }} đ</td>
                     </tr>
                     <tr>
                         <th>Loại sản phẩm</th>
@@ -67,7 +78,40 @@
             </div>
         </section>
 
-        {{-- Bảng biến thể --}}
+        @php
+            $technicalSpecifications = $product->productGroup?->specifications ?? collect();
+        @endphp
+
+        <section class="panel mb-3">
+            <div class="panel-header">
+                <div>
+                    <h5 class="mb-1">Thông số kỹ thuật</h5>
+                    <div class="text-muted small">{{ $technicalSpecifications->count() }} thông số theo sản phẩm</div>
+                </div>
+            </div>
+            <div class="p-3">
+                @if($technicalSpecifications->isNotEmpty())
+                    @foreach($technicalSpecifications->groupBy(fn ($specification) => $specification->group_name ?: 'Thông số chung') as $groupName => $specifications)
+                        <div class="{{ !$loop->first ? 'mt-3' : '' }}">
+                            <div class="fw-semibold mb-2">{{ $groupName }}</div>
+                            <table class="table table-sm align-middle mb-0">
+                                <tbody>
+                                    @foreach($specifications as $specification)
+                                    <tr>
+                                        <th class="text-muted" style="width:220px;">{{ $specification->name }}</th>
+                                        <td>{{ $specification->value }}</td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endforeach
+                @else
+                    <div class="text-muted small">Chưa có thông số kỹ thuật.</div>
+                @endif
+            </div>
+        </section>
+
         <section class="panel">
             <div class="panel-header">
                 <div>
@@ -75,13 +119,13 @@
                     <div class="text-muted small">{{ $product->variants->count() }} biến thể</div>
                 </div>
             </div>
-<div class="table-responsive">
+            <div class="table-responsive">
                 <table class="table align-middle mb-0">
                     <thead>
                         <tr>
                             <th>Màu</th>
-                            <th>Bộ nhớ</th>
-                            <th class="text-end">Giá của biến thể</th>
+                            <th class="text-end">Giá cộng thêm</th>
+                            <th class="text-end">Giá bán cuối</th>
                             <th class="text-end">
                                 @if($product->product_type === 'imei/serial') Số IMEI @else Tồn kho @endif
                             </th>
@@ -91,23 +135,19 @@
                     </thead>
                     <tbody>
                         @forelse($product->variants as $v)
+                        @php
+                            $additionalPrice = $v->additional_price ?? 0;
+                            $finalPrice = ($product->price ?? 0) + $additionalPrice;
+                        @endphp
                         <tr>
                             <td><span class="badge text-bg-secondary">{{ $v->color }}</span></td>
-                            <td><span class="badge text-bg-info">{{ $v->storage }}</span></td>
-                            <td class="text-end fw-semibold">
-                                {{ $v->additional_price > 0 ? '+'.number_format($v->additional_price, 0, ',', '.') : '0' }} đ
+                            <td class="text-end">
+                                {{ $additionalPrice > 0 ? '+' . number_format($additionalPrice, 0, ',', '.') : '0' }} đ
                             </td>
+                            <td class="text-end fw-semibold">{{ number_format($finalPrice, 0, ',', '.') }} đ</td>
                             <td class="text-end">
                                 @if($product->product_type === 'imei/serial')
-                                    @if($v->imeis->isNotEmpty())
-                                        <div class="small text-monospace text-start">
-                                            @foreach($v->imeis as $imei)
-                                            <div>{{ $imei->imei }}</div>
-                                            @endforeach
-                                        </div>
-                                    @else
-                                        <span class="text-muted small">--</span>
-                                    @endif
+                                    {{ $v->imeis->count() }}
                                 @else
                                     {{ $v->stock_quantity }}
                                 @endif
@@ -129,14 +169,13 @@
                         <tr>
                             <td colspan="6" class="text-center text-muted py-3">Chưa có biến thể nào.</td>
                         </tr>
-@endforelse
+                        @endforelse
                     </tbody>
                 </table>
             </div>
         </section>
     </div>
 
-    {{-- Cột phải: ảnh --}}
     <div class="col-lg-4">
         <section class="panel mb-3">
             <div class="panel-header">
@@ -169,5 +208,4 @@
         @endif
     </div>
 </div>
-
 @endsection
