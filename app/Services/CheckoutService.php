@@ -16,14 +16,22 @@ use Illuminate\Validation\ValidationException;
 
 class CheckoutService
 {
-    public function __construct(
-    private readonly CartService $cartService,
-    private readonly PointService $pointService,
-) {}
+    /** Phương thức thanh toán qua cổng có phiên giao dịch giới hạn thời gian, giống thực tế (QR/thẻ hết hạn). */
+    private const EXPIRING_METHODS = ['card', 'momo', 'vnpay'];
 
-    public function process(User $user, array $data): Order
+    private const PAYMENT_EXPIRY_MINUTES = 15;
+
+    public function __construct(
+        private readonly CartService $cartService,
+        private readonly PointService $pointService,
+    ) {}
+
+    /**
+     * @param  array<int, int>|null  $itemIds  Chỉ thanh toán đúng các dòng giỏ hàng này (null = toàn bộ giỏ).
+     */
+    public function process(User $user, array $data, ?array $itemIds = null): Order
     {
-        $items = $this->cartService->getItems($user);
+        $items = $this->cartService->getItems($user, $itemIds);
 
         if ($items->isEmpty()) {
             throw ValidationException::withMessages([
@@ -31,7 +39,7 @@ class CheckoutService
             ]);
         }
 
-        return DB::transaction(function () use ($user, $data, $items) {
+        return DB::transaction(function () use ($user, $data, $items, $itemIds) {
             $subtotal = $this->cartService->calculateTotal($items);
             $coupon = null;
             $couponDiscount = 0;
@@ -61,6 +69,9 @@ class CheckoutService
                 'customer_name' => $data['customer_name'],
                 'customer_phone' => $data['customer_phone'],
                 'shipping_address' => $data['shipping_address'],
+                'buyer_type' => $data['buyer_type'] ?? 'self',
+                'buyer_name' => ($data['buyer_type'] ?? 'self') === 'proxy' ? ($data['buyer_name'] ?? null) : null,
+                'buyer_phone' => ($data['buyer_type'] ?? 'self') === 'proxy' ? ($data['buyer_phone'] ?? null) : null,
                 'subtotal' => $subtotal,
                 'membership_discount' => 0,
                 'coupon_discount' => $couponDiscount,
@@ -75,19 +86,6 @@ class CheckoutService
 
             foreach ($items as $item) {
                 $product = $item->product;
-
-                $price = (float) $item->product->price;
-
-                OrderItem::query()->create([
-                    'order_id' => $order->id,
-                    'product_id' => $item->product_id,
-                    'product_variant_id' => $item->product_variant_id,
-                    'price' => $price,
-                    'quantity' => $item->quantity,
-                    'total' => $price * $item->quantity,
-                ]);
-
-                // Cập nhật kho dựa trên loại sản phẩm
                 $variant = $item->productVariant;
 
                 if (! $product) {
@@ -106,27 +104,32 @@ class CheckoutService
                 $price = (float) $product->price;
                 $productType = $product->product_type;
 
-                if ($productType === 'imei/serial' && $quantity > 1) {
-                    throw ValidationException::withMessages([
-                        'inventory' => 'Sản phẩm điện thoại chỉ được đặt số lượng 1 cho mỗi dòng sản phẩm.',
-                    ]);
-                }
-
-                $orderItem = OrderItem::query()->create([
-                    'order_id' => $order->id,
-                    'product_id' => $product->id,
-                    'product_variant_id' => $variant->id,
-                    'price' => $price,
-                    'quantity' => $quantity,
-                    'total' => $price * $quantity,
-                    'imei_id' => null,
-                ]);
-
                 if ($productType === 'imei/serial') {
-                    $this->reserveImeiForOrderItem($orderItem, $variant->id, $product->name);
-                }
+                    // Mỗi đơn vị điện thoại gắn với đúng 1 IMEI riêng biệt
+                    for ($i = 0; $i < $quantity; $i++) {
+                        $orderItem = OrderItem::query()->create([
+                            'order_id' => $order->id,
+                            'product_id' => $product->id,
+                            'product_variant_id' => $variant->id,
+                            'price' => $price,
+                            'quantity' => 1,
+                            'total' => $price,
+                            'imei_id' => null,
+                        ]);
 
-                if ($productType === 'quantity') {
+                        $this->reserveImeiForOrderItem($orderItem, $variant->id, $product->name);
+                    }
+                } else {
+                    $orderItem = OrderItem::query()->create([
+                        'order_id' => $order->id,
+                        'product_id' => $product->id,
+                        'product_variant_id' => $variant->id,
+                        'price' => $price,
+                        'quantity' => $quantity,
+                        'total' => $price * $quantity,
+                        'imei_id' => null,
+                    ]);
+
                     $this->decreaseVariantStock($variant, $quantity, $product->name);
                 }
 
@@ -139,25 +142,32 @@ class CheckoutService
             }
 
             Payment::query()->create([
-                'order_id' => $order->id,
-                'payment_method' => $data['payment_method'],
-                'amount' => $order->total_amount,
-                'payment_status' => $data['payment_method'] === 'cod' ? 'pending' : 'paid',
+                'order_id'         => $order->id,
+                'payment_method'   => $data['payment_method'],
+                'amount'           => $order->total_amount,
+                'payment_status'   => 'pending',   // Luôn pending, xác nhận sau qua trang thanh toán
                 'transaction_code' => null,
-                'paid_at' => $data['payment_method'] === 'cod' ? null : now(),
+                'paid_at'          => null,
+                'expires_at'       => in_array($data['payment_method'], self::EXPIRING_METHODS, true)
+                    ? now()->addMinutes(self::PAYMENT_EXPIRY_MINUTES)
+                    : null,
             ]);
 
-$pointsEarned = $this->pointService->calculatePointsFromOrder($order->total_amount);
+            $pointsEarned = $this->pointService->calculatePointsFromOrder($order->total_amount);
 
-if ($pointsEarned > 0) {
-    $this->pointService->addPoints(
-        $user,
-        $pointsEarned,
-        'purchase',
-        "Mua hàng - Đơn hàng #{$order->order_code}"
-    );
-}
-            $this->cartService->clear($user);
+            if ($pointsEarned > 0) {
+                $this->pointService->addPoints(
+                    $user,
+                    $pointsEarned,
+                    'purchase',
+                    "Mua hàng - Đơn hàng #{$order->order_code}"
+                );
+            }
+            if ($itemIds === null) {
+                $this->cartService->clear($user);
+            } else {
+                $this->cartService->removeItems($user, $itemIds);
+            }
 
             return $order;
         });
@@ -202,6 +212,93 @@ if ($pointsEarned > 0) {
         }
 
         $freshVariant->decrement('stock_quantity', $quantity);
+    }
+
+    /**
+     * Đánh dấu giao dịch hết hạn (quá thời gian giữ chỗ) và hoàn lại tồn kho/IMEI đã tạm giữ.
+     */
+    public function expirePayment(Payment $payment): void
+    {
+        if (! $payment->isExpired()) {
+            return;
+        }
+
+        DB::transaction(function () use ($payment) {
+            $this->restoreInventory($payment->order);
+
+            $payment->update([
+                'payment_status' => 'failed',
+                'payer_note'     => 'Giao dịch hết hạn do quá thời gian thanh toán.',
+            ]);
+        });
+    }
+
+    /**
+     * Thử thanh toán lại: cấp lại tồn kho/IMEI và mở phiên giao dịch mới (transaction_code + hạn mới).
+     *
+     * @throws ValidationException nếu không còn đủ tồn kho/IMEI để giữ chỗ lại
+     */
+    public function retryPayment(Payment $payment): void
+    {
+        if ($payment->payment_status === 'paid' || ! in_array($payment->payment_method, self::EXPIRING_METHODS, true)) {
+            return;
+        }
+
+        DB::transaction(function () use ($payment) {
+            $this->reallocateInventory($payment->order);
+
+            $payment->update([
+                'payment_status'   => 'pending',
+                'transaction_code' => null,
+                'payer_name'       => null,
+                'payer_note'       => null,
+                'expires_at'       => now()->addMinutes(self::PAYMENT_EXPIRY_MINUTES),
+            ]);
+        });
+    }
+
+    /**
+     * Hoàn lại tồn kho/IMEI đã tạm giữ cho 1 đơn hàng (khi giao dịch hết hạn/thất bại), không hủy đơn.
+     */
+    private function restoreInventory(Order $order): void
+    {
+        foreach ($order->items()->with(['product', 'variant'])->get() as $item) {
+            if ($item->imei_id) {
+                $imei = Imei::find($item->imei_id);
+
+                if ($imei && $imei->status === 'reserved') {
+                    $imei->update([
+                        'status'                    => 'available',
+                        'reserved_at'                => null,
+                        'reserved_by_order_item_id' => null,
+                    ]);
+                }
+
+                $item->update(['imei_id' => null]);
+            } elseif ($item->product?->product_type === 'quantity' && $item->variant) {
+                $item->variant->increment('stock_quantity', $item->quantity);
+            }
+        }
+    }
+
+    /**
+     * Ngược lại với restoreInventory(): giữ chỗ lại tồn kho/IMEI cho đơn đã có sẵn (dùng khi thử lại thanh toán).
+     */
+    private function reallocateInventory(Order $order): void
+    {
+        foreach ($order->items()->with(['product', 'variant'])->get() as $item) {
+            $product = $item->product;
+
+            if (! $product) {
+                continue;
+            }
+
+            if ($product->product_type === 'imei/serial') {
+                $this->reserveImeiForOrderItem($item, $item->product_variant_id, $product->name);
+            } elseif ($item->variant) {
+                $this->decreaseVariantStock($item->variant, $item->quantity, $product->name);
+            }
+        }
     }
 
     private function generateOrderCode(): string

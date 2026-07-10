@@ -5,8 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Services\CartService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Redirect;
-use Illuminate\Support\Facades\View;
 
 class CartController extends Controller
 {
@@ -16,18 +14,11 @@ class CartController extends Controller
 
     public function index()
     {
-        // Lấy danh sách sản phẩm trong giỏ (truyền user nếu dùng DB, bỏ trống nếu dùng Session)
-        $items = method_exists($this->cartService, 'getItems')
-            ? $this->cartService->getItems(auth()->user())
-            : $this->cartService->all();
+        $user  = auth()->user();
+        $items = $this->cartService->getItems($user);
+        $total = $this->cartService->calculateTotal($items);
 
-        // Tính tổng tiền (nếu Service có hàm calculateTotal)
-        $total = method_exists($this->cartService, 'calculateTotal')
-            ? $this->cartService->calculateTotal($items)
-            : 0;
-
-        // Lưu ý: Đổi tên view thành 'cart.index' hoặc 'client.cart.index' tùy theo cấu trúc thư mục của bạn
-        return view('cart.index', compact('items', 'total'));
+        return view('client.cart.index', compact('items', 'total'));
     }
 
     public function add(Request $request)
@@ -38,14 +29,24 @@ class CartController extends Controller
             'quantity'   => 'nullable|integer|min:1',
         ]);
 
+        $product  = Product::query()->findOrFail($request->product_id);
         $quantity = (int) $request->input('quantity', 1);
 
-        // Tự động gọi hàm add hoặc addItem tùy theo loại CartService bạn đang dùng
-        if (method_exists($this->cartService, 'addItem')) {
-            $product = Product::query()->findOrFail($request->product_id);
-            $this->cartService->addItem(auth()->user(), $product, $quantity, $request->variant_id);
-        } else {
-            $this->cartService->add((int) $request->product_id, $request->variant_id ? (int) $request->variant_id : null, $quantity);
+        // Nếu không chọn variant → tự chọn variant active đầu tiên của sản phẩm
+        $variantId = $request->variant_id ? (int) $request->variant_id : null;
+        if (! $variantId) {
+            $firstVariant = $product->variants()->where('status', 1)->first();
+            $variantId = $firstVariant?->id;
+        }
+
+        $this->cartService->addItem(auth()->user(), $product, $quantity, $variantId);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success'    => true,
+                'message'    => 'Sản phẩm đã thêm vào giỏ hàng.',
+                'cart_count' => $this->cartService->getCount(auth()->user()),
+            ]);
         }
 
         return redirect()->back()->with('success', 'Sản phẩm đã thêm vào giỏ hàng.');
@@ -54,12 +55,34 @@ class CartController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-            'key'      => 'required|string',
-            'quantity' => 'required|integer|min:0',
+            'cart_item_id' => 'required|integer',
+            'quantity'     => 'required|integer|min:1',
         ]);
 
-        if (method_exists($this->cartService, 'update')) {
-            $this->cartService->update($request->key, (int) $request->quantity);
+        $result = $this->cartService->updateItem(
+            auth()->user(),
+            (int) $request->cart_item_id,
+            (int) $request->quantity
+        );
+
+        if ($request->expectsJson()) {
+            if (! $result['success']) {
+                return response()->json([
+                    'success'      => false,
+                    'message'      => $result['message'],
+                    'max_quantity' => $result['max_quantity'] ?? null,
+                ], 422);
+            }
+
+            $items = $this->cartService->getItems(auth()->user());
+            return response()->json([
+                'success' => true,
+                'total'   => $this->cartService->calculateTotal($items),
+            ]);
+        }
+
+        if (! $result['success']) {
+            return redirect()->route('cart.index')->with('error', $result['message']);
         }
 
         return redirect()->route('cart.index')->with('success', 'Đã cập nhật giỏ hàng.');
@@ -67,16 +90,18 @@ class CartController extends Controller
 
     public function remove(Request $request)
     {
-        // Validate để nhận cả key (Session) hoặc product_id/cart_item_id (DB)
         $request->validate([
-            'key'        => 'nullable|string',
-            'product_id' => 'nullable|integer'
+            'cart_item_id' => 'required|integer',
         ]);
 
-        if ($request->filled('key') && method_exists($this->cartService, 'remove')) {
-            $this->cartService->remove($request->key);
-        } elseif ($request->filled('product_id') && method_exists($this->cartService, 'removeItem')) {
-            $this->cartService->removeItem(auth()->user(), (int) $request->product_id);
+        $this->cartService->removeItem(auth()->user(), (int) $request->cart_item_id);
+
+        if ($request->expectsJson()) {
+            $items = $this->cartService->getItems(auth()->user());
+            return response()->json([
+                'success' => true,
+                'total'   => $this->cartService->calculateTotal($items),
+            ]);
         }
 
         return redirect()->route('cart.index')->with('success', 'Đã xóa khỏi giỏ hàng.');

@@ -83,6 +83,22 @@ class OrderController extends Controller
         return back()->with('success', 'Đã xác nhận đơn hàng. Đơn đã chuyển sang chờ đóng gói.');
     }
 
+    public function confirmBankTransfer(Order $order)
+    {
+        $payment = $order->payment;
+
+        if (! $payment || $payment->payment_method !== 'bank_transfer' || $payment->payment_status === 'paid') {
+            return back()->with('error', 'Đơn hàng không ở trạng thái chờ xác nhận chuyển khoản.');
+        }
+
+        $payment->update([
+            'payment_status' => 'paid',
+            'paid_at'        => now(),
+        ]);
+
+        return back()->with('success', 'Đã xác nhận nhận được tiền chuyển khoản.');
+    }
+
     public function markPacked(Request $request, Order $order)
     {
         if ($order->fulfillment_status !== 'waiting_pack') {
