@@ -7,7 +7,7 @@
 
     $missingRequiredImeis = $order->items->contains(function ($item) {
         return ($item->product->product_type ?? null) === 'imei/serial'
-            && empty($item->imei_id);
+            && !$item->hasFullImeiAssignment();
     });
 
     $fulfillmentLabels = [
@@ -328,15 +328,15 @@
                 @endif
 
                 @if(!in_array($order->fulfillment_status, ['completed', 'cancelled'], true))
-                    <form action="{{ route('admin.orders.cancel', $order) }}"
-                          method="POST"
-                          onsubmit="return confirm('Bạn có chắc muốn hủy đơn hàng này không?');">
-                        @csrf
 
-                        <button type="submit" class="btn btn-outline-danger">
-                            Hủy đơn
-                        </button>
-                    </form>
+                    <button
+                        type="button"
+                        class="btn btn-outline-danger"
+                        data-bs-toggle="modal"
+                        data-bs-target="#cancelOrderModal">
+                        Hủy đơn
+                    </button>
+
                 @endif
             </div>
         </div>
@@ -391,6 +391,88 @@
                 </div>
             </div>
         </div>
+
+        @if($order->fulfillment_status === 'cancelled')
+
+        @php
+            $cancelProof = $order->proofs
+                ->where('type','cancelled')
+                ->first();
+        @endphp
+
+        <div class="card border-0 shadow-sm mb-4">
+
+            <div class="card-body">
+
+                <h5 class="text-danger mb-4">
+                    Thông tin hủy đơn
+                </h5>
+
+                <div class="row">
+
+                    <div class="col-md-4">
+
+                        <div class="text-muted small">
+                            Người hủy
+                        </div>
+
+                        <div class="fw-semibold">
+                            {{ $order->cancelled_by == 'admin' ? 'Admin' : 'Khách hàng' }}
+                        </div>
+
+                    </div>
+
+                    <div class="col-md-4">
+
+                        <div class="text-muted small">
+                            Thời gian hủy
+                        </div>
+
+                        <div class="fw-semibold">
+                            {{ optional($order->cancelled_at)->format('d/m/Y H:i') }}
+                        </div>
+
+                    </div>
+
+                    <div class="col-md-4">
+
+                        <div class="text-muted small">
+                            Lý do
+                        </div>
+
+                        <div class="fw-semibold">
+                            {{ $order->cancel_reason }}
+                        </div>
+
+                    </div>
+
+                </div>
+
+                @if($cancelProof)
+
+                    <hr>
+
+                    <h6 class="mb-3">
+                        Ảnh minh chứng
+                    </h6>
+
+                    <a href="{{ asset('storage/'.$cancelProof->image_path) }}"
+                    target="_blank">
+
+                        <img
+                            src="{{ asset('storage/'.$cancelProof->image_path) }}"
+                            class="img-thumbnail"
+                            style="max-width:300px">
+
+                    </a>
+
+                @endif
+
+            </div>
+
+        </div>
+
+        @endif
     </div>
 
     <div class="card border-0 shadow-sm mb-4">
@@ -435,17 +517,27 @@
                                 </td>
 
                                 <td>
-                                    @if($item->imei)
-                                        <span class="fw-semibold">
-                                            {{ $item->imei->imei ?? $item->imei->serial_number ?? '-' }}
-                                        </span>
+                                    @if($item->imeis && $item->imeis->isNotEmpty())
+                                        <ul class="list-unstyled mb-0">
+                                            @foreach($item->imeis as $assignedImei)
+                                                <li class="mb-1">
+                                                    <span class="fw-semibold">
+                                                        {{ $assignedImei->imei ?? '-' }}
+                                                    </span>
 
-                                        @if(!empty($item->imei->status))
-                                            <div>
-                                                <small class="text-muted">
-                                                    Trạng thái: {{ $item->imei->status }}
-                                                </small>
-                                            </div>
+                                                    @if(!empty($assignedImei->status))
+                                                        <small class="text-muted">
+                                                            ({{ $assignedImei->status }})
+                                                        </small>
+                                                    @endif
+                                                </li>
+                                            @endforeach
+                                        </ul>
+
+                                        @if(($item->product->product_type ?? null) === 'imei/serial' && !$item->hasFullImeiAssignment())
+                                            <span class="text-danger small">
+                                                Còn thiếu {{ $item->remainingImeiSlots() }} IMEI
+                                            </span>
                                         @endif
                                     @elseif(($item->product->product_type ?? null) === 'imei/serial')
                                         <span class="text-danger">Chưa gán IMEI</span>
@@ -505,6 +597,8 @@
                                         Ảnh giao hàng thành công
                                     @elseif($proof->type === 'failed_delivery')
                                         Ảnh giao hàng thất bại
+                                    @elseif($proof->type === 'cancelled')
+                                         Ảnh hủy đơn
                                     @else
                                         {{ $proof->type }}
                                     @endif
@@ -606,4 +700,100 @@
     </div>
 </div>
 
+<div class="modal fade" id="cancelOrderModal" tabindex="-1">
+
+    <div class="modal-dialog">
+
+        <form action="{{ route('admin.orders.cancel', $order) }}"
+                method="POST"
+                enctype="multipart/form-data">
+
+            @csrf
+
+            <div class="modal-content">
+
+                <div class="modal-header">
+
+                    <h5 class="modal-title">
+                        Hủy đơn hàng
+                    </h5>
+
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal">
+                    </button>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+
+                            Lý do hủy <span class="text-danger">*</span>
+
+                        </label>
+
+                        <textarea
+                            class="form-control"
+                            name="cancel_reason"
+                            rows="4"
+                            required>{{ old('cancel_reason') }}</textarea>
+
+                            <div class="mt-3">
+
+                                <label class="form-label">
+
+                                    Ảnh minh chứng
+
+                                </label>
+
+                                <input
+                                    type="file"
+                                    class="form-control"
+                                    name="cancel_image"
+                                    accept="image/*">
+
+                            </div>
+
+                        @error('cancel_reason')
+                            <div class="text-danger mt-1">
+                                {{ $message }}
+                            </div>
+                        @enderror
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-bs-dismiss="modal">
+
+                        Đóng
+
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-danger">
+
+                        Xác nhận hủy đơn
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
 @endsection
