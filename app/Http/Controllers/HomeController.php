@@ -15,11 +15,13 @@ class HomeController extends Controller
     {
         $banners = Banner::where('status', true)->orderBy('id')->get();
 
-        $categories = Category::withCount(['products' => fn($q) => $q->where('status', true)])
-            ->having('products_count', '>', 0)->get();
+        $categories = Category::whereHas('products', fn($q) => $q->where('status', true))
+            ->withCount(['products' => fn($q) => $q->where('status', true)])
+            ->get();
 
-        $brands = Brand::withCount(['products' => fn($q) => $q->where('status', true)])
-            ->having('products_count', '>', 0)->get();
+        $brands = Brand::whereHas('products', fn($q) => $q->where('status', true))
+            ->withCount(['products' => fn($q) => $q->where('status', true)])
+            ->get();
 
         $newProducts = Product::with(['images', 'brand', 'category', 'variants'])
             ->where('status', true)->latest()->take(8)->get();
