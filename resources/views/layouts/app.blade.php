@@ -13,15 +13,7 @@
     @include('partials.client.styles')
     @stack('styles')
 
-    <script type="module" src="https://unpkg.com/@hotwired/turbo"></script>
 
-    <style>
-        .turbo-progress-bar {
-            height: 3px;
-            background-color: #0d6efd;
-            /* Đổi mã màu này theo theme thực tế của cửa hàng */
-        }
-    </style>
 </head>
 
 <body class="client-body d-flex flex-column min-vh-100">
