@@ -279,6 +279,53 @@ class OrderController extends Controller
                 ]);
             }
         });
+        DB::transaction(function () use ($request, $order) {
+            $order->loadMissing('items.imeis');
+
+            $path = $request->file('delivered_image')->store('order-proofs', 'public');
+
+            OrderProof::create([
+                'order_id' => $order->getKey(),
+                'type' => 'delivered',
+                'image_path' => $path,
+                'note' => $request->note,
+                'created_by' => $request->user()?->getAuthIdentifier(),
+            ]);
+
+            foreach ($order->items as $item) {
+                foreach ($item->imeis as $imei) {
+                    if ($imei->status === 'reserved') {
+                        $imei->markAsSold();
+                    }
+                }
+            }
+
+            $order->update([
+                'status' => 'completed',
+                'fulfillment_status' => 'completed',
+                'delivered_at' => now(),
+            ]);
+
+            // Cập nhật tổng chi tiêu của khách hàng
+            if ($order->user && $order->user->isCustomer()) {
+                $order->user->increment('total_spent', $order->total_amount);
+            }
+
+            if ($order->payment) {
+                $order->payment->update([
+                    'payment_status' => 'paid',
+                    'paid_at' => $order->payment->paid_at ?? now(),
+                ]);
+            }
+
+            if ($order->shipment) {
+                $order->shipment->update([
+                    'shipping_status' => 'delivered',
+                    'status' => 'delivered',
+                    'delivered_at' => now(),
+                ]);
+            }
+        });
 
         return back()->with('success', 'Đã xác nhận giao hàng thành công. Đơn hàng đã hoàn thành.');
     }
