@@ -8,6 +8,11 @@
 @section('page_subtitle', 'Thông tin chi tiết thiết bị theo IMEI')
 
 @section('heading_actions')
+<a href="{{ route('admin.imeis.edit', $imei->id) }}"
+   class="btn btn-primary btn-sm">
+    <i class="bi bi-sliders"></i>
+    Điều chỉnh
+</a>
 <a href="{{ route('admin.stocks') }}"
    class="btn btn-light btn-sm">
     <i class="bi bi-arrow-left"></i>

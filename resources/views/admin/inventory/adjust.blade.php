@@ -1,10 +1,10 @@
 @extends('layouts.admin')
 
-@section('title', 'Nhập kho')
-@section('page_icon', 'bi-box-arrow-in-down')
+@section('title', 'Điều chỉnh kho')
+@section('page_icon', 'bi-sliders')
 @section('page_eyebrow', 'Kho hàng')
-@section('page_title', 'Nhập kho phụ kiện')
-@section('page_subtitle', 'Nhập kho cho các sản phẩm quản lý bằng số lượng.')
+@section('page_title', 'Điều chỉnh kho phụ kiện')
+@section('page_subtitle', 'Dùng khi kiểm kê lệch, nhập nhầm thừa hoặc nhập thiếu số lượng phụ kiện.')
 
 @section('heading_actions')
 <a href="{{ route('admin.stocks.accessories') }}" class="btn btn-light btn-sm">
@@ -21,21 +21,25 @@
 <section class="panel">
     <div class="panel-header">
         <div>
-            <h5 class="mb-1">Thông tin nhập kho</h5>
+            <h5 class="mb-1">Phiếu điều chỉnh kho</h5>
             <div class="text-muted small">
-                Chọn biến thể phụ kiện, nhập số lượng cần cộng thêm và ghi chú nếu cần.
+                Nhập số dương để cộng tồn, số âm để trừ tồn. Mỗi lần điều chỉnh sẽ được lưu vào lịch sử kho.
             </div>
         </div>
     </div>
 
     <div class="p-3">
-        <form action="{{ route('admin.inventory.store') }}" method="POST" style="max-width:760px;">
+        <div class="alert alert-info">
+            <div class="fw-semibold">Lưu ý khi điều chỉnh</div>
+            <div>Không sửa phiếu nhập cũ. Nếu nhập nhầm, tạo phiếu điều chỉnh mới kèm lý do để lịch sử kho không bị mất dấu.</div>
+        </div>
+
+        <form action="{{ route('admin.inventory.adjustments.store') }}" method="POST" style="max-width:760px;">
             @csrf
 
             <div class="mb-3">
                 <label class="form-label">
-                    Biến thể phụ kiện
-                    <span class="text-danger">*</span>
+                    Biến thể phụ kiện <span class="text-danger">*</span>
                 </label>
 
                 <select
@@ -48,6 +52,7 @@
                         @php
                             $product = $variant->product;
                             $label = trim(($product?->name ?? 'Sản phẩm') . ' - ' . ($variant->color ?: 'Không màu'));
+                            $selected = (string) old('product_variant_id', $selectedVariantId) === (string) $variant->id;
                         @endphp
                         <option
                             value="{{ $variant->id }}"
@@ -55,7 +60,7 @@
                             data-storage="{{ $product?->storage }}"
                             data-color="{{ $variant->color ?? '' }}"
                             data-stock="{{ $variant->stock_quantity }}"
-                            {{ old('product_variant_id') == $variant->id ? 'selected' : '' }}>
+                            {{ $selected ? 'selected' : '' }}>
                             {{ $label }} (Hiện còn: {{ $variant->stock_quantity }})
                         </option>
                     @endforeach
@@ -68,16 +73,15 @@
 
             <div class="mb-3">
                 <label class="form-label">
-                    Số lượng nhập <span class="text-danger">*</span>
+                    Số lượng điều chỉnh <span class="text-danger">*</span>
                 </label>
 
                 <input
                     type="number"
                     name="quantity"
                     value="{{ old('quantity') }}"
-                    min="1"
                     class="form-control @error('quantity') is-invalid @enderror"
-                    placeholder="Nhập số lượng cần cộng thêm">
+                    placeholder="Ví dụ: 5 nếu nhập thiếu, -5 nếu nhập thừa">
 
                 @error('quantity')
                     <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -85,13 +89,15 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Ghi chú</label>
+                <label class="form-label">
+                    Lý do điều chỉnh <span class="text-danger">*</span>
+                </label>
 
                 <textarea
                     name="note"
                     rows="4"
                     class="form-control @error('note') is-invalid @enderror"
-                    placeholder="Ví dụ: Nhập kho từ nhà cung cấp A, phiếu nhập PN001">{{ old('note') }}</textarea>
+                    placeholder="Ví dụ: Kiểm kê lệch ngày 11/07, nhập thừa 2 chiếc">{{ old('note') }}</textarea>
 
                 @error('note')
                     <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -101,7 +107,7 @@
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary btn-sm">
                     <i class="bi bi-check-lg"></i>
-                    Lưu nhập kho
+                    Lưu điều chỉnh
                 </button>
 
                 <a href="{{ route('admin.stocks.accessories') }}" class="btn btn-light btn-sm">
@@ -120,13 +126,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const select = document.getElementById('variantSelect');
     if (!select || !window.TomSelect) return;
 
-    const variantOptions = [];
+    const options = [];
     const selectedItems = [];
 
     Array.from(select.options).forEach(option => {
         if (!option.value) return;
 
-        variantOptions.push({
+        options.push({
             value: option.value,
             text: option.textContent.trim(),
             product: option.dataset.product || '',
@@ -135,16 +141,14 @@ document.addEventListener('DOMContentLoaded', function () {
             stock: option.dataset.stock || '0'
         });
 
-        if (option.selected) {
-            selectedItems.push(option.value);
-        }
+        if (option.selected) selectedItems.push(option.value);
     });
 
     new TomSelect(select, {
         allowEmptyOption: true,
         plugins: ['clear_button'],
         placeholder: 'Tìm biến thể phụ kiện...',
-        options: variantOptions,
+        options: options,
         items: selectedItems,
         valueField: 'value',
         labelField: 'text',

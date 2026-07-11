@@ -7,7 +7,7 @@
 @section('page_subtitle', 'Chi tiết sản phẩm, giá base và giá bán cuối theo từng biến thể.')
 
 @section('heading_actions')
-<a href="{{ route('admin.products.edit', $product) }}" class="btn btn-primary btn-sm">
+<a href="{{ route('admin.product-versions.edit', $product) }}" class="btn btn-primary btn-sm">
     <i class="bi bi-pencil"></i> Sửa sản phẩm
 </a>
 <a href="{{ route('admin.products.index') }}" class="btn btn-light btn-sm">
