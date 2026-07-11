@@ -154,13 +154,19 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
         | Sản phẩm
         |--------------------------------------------------------------------------
         */
-        Route::resource('products', AdminProductController::class);
-        Route::resource('product-groups', ProductGroupController::class)
-            ->except(['show'])
-            ->parameters(['product-groups' => 'productGroup']);
+        Route::resource('products', ProductGroupController::class)
+            ->parameters(['products' => 'productGroup']);
+
+        Route::resource('product-versions', AdminProductController::class)
+            ->except(['index', 'create', 'store'])
+            ->parameters(['product-versions' => 'product']);
 
         Route::get('product-groups/{productGroup}/specifications', [ProductGroupController::class, 'specifications'])
             ->name('product-groups.specifications');
+
+        Route::patch('products/variants/{variant}/price', [ProductGroupController::class, 'updateVariantPrice'])
+            ->middleware('only_admin')
+            ->name('products.variants.price.update');
 
         // AJAX endpoint to quickly create a Product Group from the product create form
         Route::post('products/ajax-group', [AdminProductController::class, 'ajaxStore'])
@@ -268,6 +274,12 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
         |--------------------------------------------------------------------------
         */
         Route::resource('imeis', ImeiController::class);
+
+        Route::get('inventory/adjustments/create', [InventoryController::class, 'createAdjustment'])
+            ->name('inventory.adjustments.create');
+        Route::post('inventory/adjustments', [InventoryController::class, 'storeAdjustment'])
+            ->name('inventory.adjustments.store');
+
         Route::resource('inventory', InventoryController::class);
 
         Route::get('/stocks', [ImeiController::class, 'stock'])

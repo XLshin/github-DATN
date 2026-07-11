@@ -10,6 +10,9 @@
     <a href="{{ route('admin.inventory.create') }}" class="btn btn-primary btn-sm">
         <i class="bi bi-box-arrow-in-down"></i> Nhập kho phụ kiện
     </a>
+    <a href="{{ route('admin.inventory.adjustments.create') }}" class="btn btn-warning btn-sm">
+        <i class="bi bi-sliders"></i> Điều chỉnh kho
+    </a>
     <a href="{{ route('admin.stocks') }}" class="btn btn-secondary btn-sm">
         <i class="bi bi-phone"></i> Kho IMEI/Serial
     </a>
@@ -19,78 +22,66 @@
 @endsection
 
 @section('content')
-
 <section class="panel mb-4">
     <div class="panel-header">
-<form method="GET" class="row g-2 flex-grow-1">
+        <form method="GET" class="row g-2 flex-grow-1">
+            <div class="col-md-5">
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ request('search') }}"
+                    class="form-control form-control-sm"
+                    placeholder="Tên sản phẩm, màu sắc hoặc dung lượng">
+            </div>
 
-    <div class="col-md-5">
-        <input
-            type="text"
-            name="search"
-            value="{{ request('search') }}"
-            class="form-control form-control-sm"
-            placeholder="Tên sản phẩm, màu sắc hoặc dung lượng">
-    </div>
+            <div class="col-md-3">
+                <select name="brand_id" class="form-select form-select-sm">
+                    <option value="">-- Tất cả hãng --</option>
+                    @foreach($brands as $brand)
+                        <option
+                            value="{{ $brand->id }}"
+                            {{ request('brand_id') == $brand->id ? 'selected' : '' }}>
+                            {{ $brand->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
 
-    <div class="col-md-3">
-        <select
-            name="brand_id"
-            class="form-select form-select-sm">
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                    Tìm kiếm
+                </button>
+            </div>
 
-            <option value="">
-                -- Tất cả hãng --
-            </option>
-
-            @foreach($brands as $brand)
-                <option
-                    value="{{ $brand->id }}"
-                    {{ request('brand_id') == $brand->id ? 'selected' : '' }}>
-                    {{ $brand->name }}
-                </option>
-            @endforeach
-
-        </select>
-    </div>
-
-    <div class="col-md-2">
-        <button
-            type="submit"
-            class="btn btn-outline-primary btn-sm w-100">
-
-            Tìm kiếm
-
-        </button>
-    </div>
-
-    <div class="col-md-2">
-        <a
-            href="{{ route('admin.stocks.accessories') }}"
-            class="btn btn-light btn-sm w-100">
-
-            Làm mới
-
-        </a>
-    </div>
-
-</form>
+            <div class="col-md-2">
+                <a href="{{ route('admin.stocks.accessories') }}" class="btn btn-light btn-sm w-100">
+                    Làm mới
+                </a>
+            </div>
+        </form>
     </div>
 </section>
 
 <div class="row g-3 mb-4">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="panel p-3">
             <div class="text-muted small">Tổng biến thể phụ kiện</div>
             <div class="fs-4 fw-semibold">{{ $stocks->count() }}</div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
+        <div class="panel p-3">
+            <div class="text-muted small">Tổng tồn</div>
+            <div class="fs-4 fw-semibold">{{ $stocks->sum('stock_quantity') }}</div>
+        </div>
+    </div>
+    <div class="col-md-3">
         <div class="panel p-3">
             <div class="text-muted small">Hết hàng</div>
             <div class="fs-4 fw-semibold">{{ $stocks->where('stock_quantity', 0)->count() }}</div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="panel p-3">
             <div class="text-muted small">Sắp hết</div>
             <div class="fs-4 fw-semibold">
@@ -112,17 +103,18 @@
                     <th>Số lượng</th>
                     <th>Trạng thái</th>
                     <th>Ghi chú</th>
+                    <th class="text-end">Thao tác</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($stocks as $stock)
                     <tr>
                         <td>{{ $stock->id }}</td>
-                        <td>{{ $stock->product->name ?? '-' }}</td>
-                        <td>{{ $stock->product->brand->name ?? '-' }}</td>
+                        <td>{{ $stock->product?->name ?? '-' }}</td>
+                        <td>{{ $stock->product?->brand?->name ?? '-' }}</td>
                         <td>
-                            {{ $stock->color ? 'Loại: ' . $stock->color : '' }}
-                            {{ $stock->storage ? ' - ' . $stock->storage : '' }}
+                            {{ $stock->color ? 'Loại: ' . $stock->color : 'Không màu' }}
+                            {{ $stock->product?->storage ? ' - ' . $stock->product->storage : '' }}
                         </td>
                         <td class="fw-semibold">{{ $stock->stock_quantity }}</td>
                         <td>
@@ -136,22 +128,30 @@
                         </td>
                         <td>
                             @if($stock->stock_quantity <= 0)
-                                Kho phụ kiện cần nhập thêm
+                                Cần nhập thêm
                             @elseif($stock->stock_quantity < 5)
                                 Số lượng thấp, ưu tiên tiếp hàng
                             @else
                                 Kho ổn định
                             @endif
                         </td>
+                        <td class="text-end">
+                            <a
+                                href="{{ route('admin.inventory.adjustments.create', ['product_variant_id' => $stock->id]) }}"
+                                class="btn btn-sm btn-outline-warning">
+                                Điều chỉnh
+                            </a>
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">Không có dữ liệu phụ kiện</td>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            Không có dữ liệu phụ kiện
+                        </td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 </section>
-
 @endsection

@@ -49,7 +49,7 @@
                         </div>
                         @error('product_group_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         <div class="form-text">
-                            <a href="{{ route('admin.product-groups.index') }}">Quản lý dòng sản phẩm</a>
+                            <a href="{{ route('admin.products.index') }}">Quản lý sản phẩm</a>
                         </div>
                     </div>
                     <div class="mb-3">
