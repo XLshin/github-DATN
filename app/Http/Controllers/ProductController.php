@@ -12,6 +12,7 @@ class ProductController extends Controller
         $product->load([
             'reviews' => fn ($query) => $query->where('status', true),
             'reviews.user',
+            'variants' => fn ($query) => $query->where('status', true),
         ]);
 
         return view('client.products.show', compact('product'));

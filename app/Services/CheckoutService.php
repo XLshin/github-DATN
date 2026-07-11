@@ -8,8 +8,10 @@ use App\Models\Imei;
 use App\Models\InventoryTransaction;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderReceiver;
 use App\Models\Payment;
 use App\Models\User;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -21,9 +23,9 @@ class CheckoutService
     private readonly PointService $pointService,
 ) {}
 
-    public function process(User $user, array $data): Order
+    public function process(User $user, array $data, ?Collection $items = null): Order
     {
-        $items = $this->cartService->getItems($user);
+        $items ??= $this->cartService->getItems($user);
 
         if ($items->isEmpty()) {
             throw ValidationException::withMessages([
@@ -55,8 +57,13 @@ class CheckoutService
                 $couponDiscount = $coupon->discountAmount($subtotal);
             }
 
+            $buyerType = $data['buyer_type'] ?? 'self';
+
             $order = Order::query()->create([
                 'user_id' => $user->id,
+                'buyer_type' => $buyerType,
+                'buyer_name' => $buyerType === 'proxy' ? $data['buyer_name'] : null,
+                'buyer_phone' => $buyerType === 'proxy' ? $data['buyer_phone'] : null,
                 'order_code' => $this->generateOrderCode(),
                 'customer_name' => $data['customer_name'],
                 'customer_phone' => $data['customer_phone'],
@@ -73,19 +80,18 @@ class CheckoutService
                 'fulfillment_status' => 'pending',
             ]);
 
+            OrderReceiver::query()->create([
+                'order_id' => $order->id,
+                'receiver_name' => $data['customer_name'],
+                'receiver_phone' => $data['customer_phone'],
+                'receiver_address' => $data['shipping_address'],
+                'receiver_note' => $buyerType === 'proxy'
+                    ? 'Đặt hộ bởi: ' . $data['buyer_name'] . ' (' . $data['buyer_phone'] . ')'
+                    : null,
+            ]);
+
             foreach ($items as $item) {
                 $product = $item->product;
-
-                $price = (float) $item->product->price;
-
-                OrderItem::query()->create([
-                    'order_id' => $order->id,
-                    'product_id' => $item->product_id,
-                    'product_variant_id' => $item->product_variant_id,
-                    'price' => $price,
-                    'quantity' => $item->quantity,
-                    'total' => $price * $item->quantity,
-                ]);
 
                 // Cập nhật kho dựa trên loại sản phẩm
                 $variant = $item->productVariant;
@@ -103,7 +109,7 @@ class CheckoutService
                 }
 
                 $quantity = (int) $item->quantity;
-                $price = (float) $product->price;
+                $price = $this->cartService->unitPrice($item);
                 $productType = $product->product_type;
 
                 if ($productType === 'imei/serial' && $quantity > 1) {
@@ -157,7 +163,7 @@ if ($pointsEarned > 0) {
         "Mua hàng - Đơn hàng #{$order->order_code}"
     );
 }
-            $this->cartService->clear($user);
+            $this->cartService->clearItems($user, $items->pluck('id')->all());
 
             return $order;
         });
