@@ -18,13 +18,36 @@
             <div class="card shadow-sm border-0">
                 <div class="card-body">
                     <p class="text-muted">{{ $product->description }}</p>
-                    <div class="price-tag fs-4">{{ number_format($product->price, 0, ',', '.') }} đ</div>
+                    <div class="price-tag fs-4" id="product-price">{{ number_format($product->price, 0, ',', '.') }} đ</div>
+
                     @auth
-                        <form method="POST" action="{{ route('cart.add') }}" class="d-flex gap-2 mt-3">
+                        <form method="POST" action="{{ route('cart.add') }}" class="add-to-cart-form mt-3" id="add-to-cart-form">
                             @csrf
                             <input type="hidden" name="product_id" value="{{ $product->id }}">
-                            <input type="number" name="quantity" value="1" min="1" class="form-control" style="max-width:100px">
-                            <button type="submit" class="btn btn-primary"><i class="bi bi-cart-plus"></i> Thêm vào giỏ</button>
+                            <input type="hidden" name="variant_id" id="selected-variant-id" value="{{ $product->variants->first()->id ?? '' }}">
+
+                            @if($product->variants->isNotEmpty())
+                                <div class="mb-3">
+                                    <label class="form-label d-block">Màu sắc</label>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        @foreach($product->variants as $variant)
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-secondary btn-sm variant-option {{ $loop->first ? 'active' : '' }}"
+                                                data-variant-id="{{ $variant->id }}"
+                                                data-extra-price="{{ (float) $variant->additional_price }}">
+                                                {{ $variant->color }}
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                            <div class="d-flex gap-2">
+                                <input type="number" name="quantity" value="1" min="1" class="form-control" style="max-width:100px">
+                                <button type="submit" class="btn btn-primary"><i class="bi bi-cart-plus"></i> Thêm vào giỏ</button>
+                                <button type="button" class="btn btn-outline-primary" id="buy-now-btn">Mua ngay</button>
+                            </div>
                         </form>
                     @else
                         <a href="{{ route('login') }}" class="btn btn-primary mt-3">Đăng nhập để mua hàng</a>
@@ -68,4 +91,57 @@
             </div>
         </div>
     </div>
+
+    @auth
+    @push('scripts')
+    <script>
+    (function () {
+        const basePrice = {{ (float) $product->price }};
+        const priceEl = document.getElementById('product-price');
+        const variantInput = document.getElementById('selected-variant-id');
+        const buttons = document.querySelectorAll('.variant-option');
+
+        function formatVND(num) {
+            return new Intl.NumberFormat('vi-VN').format(Math.round(num)) + ' đ';
+        }
+
+        buttons.forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                buttons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                variantInput.value = btn.dataset.variantId;
+                priceEl.textContent = formatVND(basePrice + parseFloat(btn.dataset.extraPrice || 0));
+            });
+        });
+
+        const buyNowBtn = document.getElementById('buy-now-btn');
+        if (buyNowBtn) {
+            buyNowBtn.addEventListener('click', function () {
+                const form = document.getElementById('add-to-cart-form');
+                const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+                const token = tokenMeta ? tokenMeta.getAttribute('content') : null;
+
+                buyNowBtn.disabled = true;
+
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': token,
+                        'Accept': 'application/json',
+                    },
+                    body: new FormData(form),
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = '{{ route('checkout.show') }}?items[]=' + data.item.id;
+                        }
+                    })
+                    .finally(() => { buyNowBtn.disabled = false; });
+            });
+        }
+    })();
+    </script>
+    @endpush
+    @endauth
 @endsection

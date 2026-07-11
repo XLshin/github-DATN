@@ -17,6 +17,27 @@
                     <div class="card-body">
                         <form method="POST" action="{{ route('checkout.process') }}" class="needs-validation" novalidate>
                             @csrf
+
+                            @foreach($selectedIds ?? [] as $selectedId)
+                                <input type="hidden" name="cart_item_ids[]" value="{{ $selectedId }}">
+                            @endforeach
+
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="buyer-proxy-toggle" name="buyer_type" value="proxy" {{ old('buyer_type') === 'proxy' ? 'checked' : '' }}>
+                                <label class="form-check-label" for="buyer-proxy-toggle">Đặt hộ cho người khác</label>
+                            </div>
+
+                            <div id="buyer-proxy-fields" class="d-none border rounded p-3 mb-3 bg-light">
+                                <div class="mb-3">
+                                    <label class="form-label">Họ tên người đặt (bạn)</label>
+                                    <input type="text" name="buyer_name" class="form-control" value="{{ old('buyer_name', auth()->user()->name ?? '') }}">
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label">SĐT người đặt (bạn)</label>
+                                    <input type="text" name="buyer_phone" class="form-control" value="{{ old('buyer_phone', auth()->user()->phone ?? '') }}">
+                                </div>
+                            </div>
+
                             <div class="mb-3">
                                 <label class="form-label">Họ tên người nhận</label>
                                 <input type="text" name="customer_name" class="form-control" value="{{ old('customer_name', auth()->user()->name ?? '') }}" required>
@@ -117,6 +138,16 @@
     @push('scripts')
     <script>
     (function(){
+        const proxyToggle = document.getElementById('buyer-proxy-toggle');
+        const proxyFields = document.getElementById('buyer-proxy-fields');
+        if (proxyToggle) {
+            proxyToggle.addEventListener('change', function () {
+                proxyFields.classList.toggle('d-none', !proxyToggle.checked);
+            });
+            proxyFields.classList.toggle('d-none', !proxyToggle.checked);
+        }
+
+        const selectedItemIds = @json($selectedIds ?? []);
         const couponSelect = document.querySelector('select[name="coupon_id"]');
         const pointsInput = document.querySelector('input[name="points_to_use"]');
         const couponRow = document.getElementById('coupon-row');
@@ -137,6 +168,7 @@
             const payload = new URLSearchParams();
             payload.append('coupon_id', couponSelect ? couponSelect.value : '');
             payload.append('points_to_use', pointsInput ? pointsInput.value : 0);
+            selectedItemIds.forEach(id => payload.append('cart_item_ids[]', id));
 
             fetch('{{ route('checkout.preview') }}', {
                 method: 'POST',

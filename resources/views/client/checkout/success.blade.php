@@ -1,16 +1,5 @@
 @extends('layouts.app')
 
-@section('content')
-<div class="container">
-    <h2>Thanh toán hoàn tất</h2>
-
-    <p>Mã đơn: {{ $order->order_code }}</p>
-    <p>Trạng thái: {{ $order->status }}</p>
-    <a class="btn btn-primary" href="{{ route('home') }}">Quay về trang chủ</a>
-</div>
-@endsection
-@extends('layouts.app')
-
 @section('title', 'Đặt hàng thành công')
 
 @section('header')
