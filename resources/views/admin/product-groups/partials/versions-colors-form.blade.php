@@ -49,6 +49,8 @@
             ['name' => ''],
         ]);
     }
+
+    $showColorPreviewColumn = $editingGroup !== null;
 @endphp
 
 <section class="panel mb-3">
@@ -189,7 +191,7 @@
         </div>
     </div>
 
-    <div class="px-3 pb-3" id="colorsContainer">
+    <div class="px-3 pb-3" id="colorsContainer" data-show-preview="{{ $showColorPreviewColumn ? '1' : '0' }}">
         @foreach($colorRows as $index => $color)
         @php($isExistingColor = !empty($color['original_name']))
         @php($colorHasImeis = !empty($color['has_imeis']))
@@ -213,7 +215,7 @@
                 @endif
             </div>
 
-            <div class="col-md-5">
+            <div class="{{ $showColorPreviewColumn ? 'col-md-5' : 'col-md-6' }}">
                 <label class="form-label small">Ảnh màu</label>
                 <input type="file"
                     name="colors[{{ $index }}][image]"
@@ -222,6 +224,7 @@
                 @error("colors.$index.image")<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
+            @if($showColorPreviewColumn)
             <div class="col-md-1">
                 @if(!empty($color['image_path']))
                     <div class="position-relative color-image-preview" style="width: 44px; height: 44px;">
@@ -243,6 +246,7 @@
                     </div>
                 @endif
             </div>
+            @endif
 
             <div class="col-md-1 d-grid">
                 <button type="button"
@@ -272,6 +276,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const colorsContainer = document.getElementById('colorsContainer');
     const addVersionButton = document.getElementById('addVersion');
     const addColorButton = document.getElementById('addColor');
+    const showColorPreviewColumn = colorsContainer?.dataset.showPreview === '1';
 
     let versionIndex = versionsContainer ? versionsContainer.querySelectorAll('.version-row').length : 0;
     let colorIndex = colorsContainer ? colorsContainer.querySelectorAll('.color-row').length : 0;
@@ -371,12 +376,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 <input type="text" name="colors[${index}][name]"
                     class="form-control form-control-sm" placeholder="VD: Titan Đen">
             </div>
-            <div class="col-md-5">
+            <div class="${showColorPreviewColumn ? 'col-md-5' : 'col-md-6'}">
                 <label class="form-label small">Ảnh màu</label>
                 <input type="file" name="colors[${index}][image]"
                     class="form-control form-control-sm" accept="image/*">
             </div>
-            <div class="col-md-1"></div>
+            ${showColorPreviewColumn ? '<div class="col-md-1"></div>' : ''}
             <div class="col-md-1 d-grid">
                 <button type="button" class="btn btn-light btn-sm remove-color" title="Xóa màu">
                     <i class="bi bi-x-lg"></i>

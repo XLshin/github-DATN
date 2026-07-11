@@ -270,6 +270,12 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
         |--------------------------------------------------------------------------
         */
         Route::resource('imeis', ImeiController::class);
+
+        Route::get('inventory/adjustments/create', [InventoryController::class, 'createAdjustment'])
+            ->name('inventory.adjustments.create');
+        Route::post('inventory/adjustments', [InventoryController::class, 'storeAdjustment'])
+            ->name('inventory.adjustments.store');
+
         Route::resource('inventory', InventoryController::class);
 
         Route::get('/stocks', [ImeiController::class, 'stock'])

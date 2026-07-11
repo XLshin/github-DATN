@@ -3,12 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\InventoryTransaction;
 use App\Models\Order;
 use App\Models\Shipment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\Imei;
-use App\Models\ProductVariant;
 use Illuminate\Validation\Rule;
 
 class ShipmentController extends Controller
@@ -33,9 +32,9 @@ class ShipmentController extends Controller
             ->paginate(10);
 
         $ordersCanCreateShipment = Order::where(function ($query) {
-                $query->where('status', 'processing')
-                    ->whereDoesntHave('shipment');
-            })
+            $query->where('status', 'processing')
+                ->whereDoesntHave('shipment');
+        })
             ->orWhere(function ($query) {
                 $query->where('status', 'returned')
                     ->whereHas('shipment', function ($q) {
@@ -50,11 +49,12 @@ class ShipmentController extends Controller
 
     public function createFromOrder(Order $order)
     {
-        if (in_array($order->status, ['completed', 'cancelled', 'shipping'])) {
-            return back()->with('error', 'Không thể tạo vận đơn cho đơn đã hoàn tất hoặc đã hủy.');
+        if (in_array($order->status, ['completed', 'cancelled', 'shipping'], true)) {
+            return back()->with('error', 'Không thể tạo vận đơn cho đơn đã hoàn tất, đang vận chuyển hoặc đã hủy.');
         }
 
         $existingShipment = Shipment::where('order_id', $order->id)->first();
+
         if ($existingShipment && $existingShipment->shipping_status !== 'failed') {
             return back()->with('error', 'Đơn hàng này đã có vận đơn hợp lệ.');
         }
@@ -69,7 +69,7 @@ class ShipmentController extends Controller
             'tracking_code' => ['nullable', 'string', 'max:255'],
         ]);
 
-        if (in_array($order->status, ['completed', 'cancelled', 'shipping'])) {
+        if (in_array($order->status, ['completed', 'cancelled', 'shipping'], true)) {
             return back()->with('error', 'Không thể tạo vận đơn cho đơn đã hoàn tất, đang vận chuyển hoặc đã hủy.');
         }
 
@@ -129,8 +129,11 @@ class ShipmentController extends Controller
 
         $validated = $request->validate($rules);
 
-        if (in_array($shipment->shipping_status, ['delivered', 'failed']) && $validated['shipping_status'] !== $shipment->shipping_status) {
-            return back()->with('error', 'Không thể thay đổi trạng thái vận đơn khi đã giao hoặc đã thất bại.');
+        if (
+            in_array($shipment->shipping_status, ['delivered', 'failed'], true)
+            && $validated['shipping_status'] !== $shipment->shipping_status
+        ) {
+            return back()->with('error', 'Không thể thay đổi trạng thái vận đơn đã giao hoặc đã thất bại.');
         }
 
         DB::transaction(function () use ($validated, $request, $shipment) {
@@ -140,36 +143,21 @@ class ShipmentController extends Controller
                 'shipping_status' => $status,
             ];
 
-            if ($status === 'shipping' && is_null($shipment->shipped_at)) {
-                $data['shipped_at'] = now();
-                if ($request->hasFile('shipped_image')) {
-                    $path = $request->file('shipped_image')->store('shipments', 'public');
-                    $data['shipped_image'] = $path;
+            if ($status === 'shipping') {
+                if (is_null($shipment->shipped_at)) {
+                    $data['shipped_at'] = now();
                 }
-            } elseif ($status === 'shipping' && !is_null($shipment->shipped_at)) {
+
                 if ($request->hasFile('shipped_image')) {
-                    $path = $request->file('shipped_image')->store('shipments', 'public');
-                    $data['shipped_image'] = $path;
+                    $data['shipped_image'] = $request->file('shipped_image')->store('shipments', 'public');
                 }
             }
 
             if ($status === 'delivered') {
                 $data['delivered_at'] = now();
-                if ($request->hasFile('delivered_image')) {
-                    $path = $request->file('delivered_image')->store('shipments', 'public');
-                    $data['delivered_image'] = $path;
-                }
 
-                // decrement stock safely for each order item only when status is delivered
-                foreach ($shipment->order->items as $item) {
-                    $variant = $item->variant()->lockForUpdate()->first();
-                    if ($variant) {
-                        if ($variant->stock_quantity < $item->quantity) {
-                            throw new \RuntimeException('Không đủ tồn kho để chuyển đơn hàng.');
-                        }
-                        $variant->stock_quantity -= $item->quantity;
-                        $variant->save();
-                    }
+                if ($request->hasFile('delivered_image')) {
+                    $data['delivered_image'] = $request->file('delivered_image')->store('shipments', 'public');
                 }
             }
 
@@ -179,37 +167,58 @@ class ShipmentController extends Controller
                 $shipment->order->update([
                     'status' => 'completed',
                 ]);
-            } elseif ($status === 'failed') {
-                // Rollback stock and IMEIs (idempotent): trả toàn bộ IMEI đã gán cho order_item về available và tăng lại tồn kho.
+
+                return;
+            }
+
+            if ($status === 'failed') {
+                $shipment->order->loadMissing('items.product', 'items.variant', 'items.imeis');
+
                 foreach ($shipment->order->items as $item) {
-                    $itemImeis = $item->imeis()->lockForUpdate()->get();
+                    $returnedImeis = 0;
 
-                    if ($itemImeis->isNotEmpty()) {
-                        foreach ($itemImeis as $imei) {
-                            $imei->status = 'available';
-                            $imei->reserved_by_order_item_id = null;
-                            $imei->reserved_at = null;
-                            $imei->save();
+                    foreach ($item->imeis as $imei) {
+                        if ($imei->status === 'reserved') {
+                            $imei->releaseReservation();
+                            $returnedImeis++;
                         }
+                    }
 
-                        // increment variant stock
-                        $variant = ProductVariant::lockForUpdate()->find($item->product_variant_id);
-                        if ($variant) {
-                            $variant->stock_quantity += $item->quantity;
-                            $variant->save();
-                        }
+                    if ($returnedImeis > 0) {
+                        InventoryTransaction::create([
+                            'product_variant_id' => $item->product_variant_id,
+                            'type' => 'return',
+                            'quantity' => $returnedImeis,
+                            'note' => 'Trả IMEI về kho do giao thất bại: ' . $shipment->order->order_code,
+                        ]);
+                    }
+
+                    if (
+                        $item->product &&
+                        $item->product->product_type === 'quantity' &&
+                        $item->variant
+                    ) {
+                        $item->variant->increment('stock_quantity', (int) $item->quantity);
+
+                        InventoryTransaction::create([
+                            'product_variant_id' => $item->product_variant_id,
+                            'type' => 'return',
+                            'quantity' => (int) $item->quantity,
+                            'note' => 'Trả hàng về kho do giao thất bại: ' . $shipment->order->order_code,
+                        ]);
                     }
                 }
 
-                // mark order as returned so admin can handle restocking/notifications
                 $shipment->order->update([
                     'status' => 'returned',
                 ]);
-            } else {
-                $shipment->order->update([
-                    'status' => 'shipping',
-                ]);
+
+                return;
             }
+
+            $shipment->order->update([
+                'status' => 'shipping',
+            ]);
         });
 
         return back()->with('success', 'Cập nhật trạng thái giao hàng thành công.');

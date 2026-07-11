@@ -1,6 +1,11 @@
 @php
     $editingGroup = $productGroup ?? null;
     $hasProducts = $editingGroup && ($editingGroup->products_count ?? $editingGroup->products()->count()) > 0;
+    $hasLockedInventory = $editingGroup && $editingGroup->products()
+        ->whereHas('variants', fn ($query) => $query
+            ->where('stock_quantity', '>', 0)
+            ->orWhereHas('imeis'))
+        ->exists();
     $includeExtraSections = $includeExtraSections ?? true;
 @endphp
 
@@ -44,13 +49,18 @@
 
 <div class="mb-3 mt-3">
     <label class="form-label">Loại quản lý <span class="text-danger">*</span></label>
-    <select name="product_type" class="form-select @error('product_type') is-invalid @enderror" @disabled($hasProducts)>
-        <option value="quantity" @selected(old('product_type', $editingGroup->product_type ?? 'quantity') === 'quantity')>Theo số lượng</option>
-        <option value="imei/serial" @selected(old('product_type', $editingGroup->product_type ?? 'quantity') === 'imei/serial')>Theo IMEI/Serial</option>
+    <select name="product_type"
+        class="form-select @error('product_type') is-invalid @enderror"
+        required
+        @disabled($hasLockedInventory)>
+        <option value="imei/serial" @selected(old('product_type', $editingGroup->product_type ?? 'imei/serial') === 'imei/serial')>Theo IMEI/Serial</option>
+        <option value="quantity" @selected(old('product_type', $editingGroup->product_type ?? 'imei/serial') === 'quantity')>Theo số lượng</option>
     </select>
-    @if($hasProducts)
+    @if($hasLockedInventory)
     <input type="hidden" name="product_type" value="{{ $editingGroup->product_type }}">
-    <div class="form-text">Không thể đổi loại quản lý vì sản phẩm này đã có phiên bản.</div>
+    <div class="form-text">Không thể đổi loại quản lý vì sản phẩm đã có IMEI hoặc tồn kho.</div>
+    @else
+    <div class="form-text">Có thể đổi loại quản lý khi sản phẩm chưa có IMEI và chưa có tồn kho.</div>
     @endif
     @error('product_type')<div class="invalid-feedback">{{ $message }}</div>@enderror
 </div>
