@@ -7,7 +7,7 @@
 @section('page_subtitle', 'Bấm mũi tên để xem biến thể, giá cộng thêm và giá bán cuối.')
 
 @section('heading_actions')
-<a href="{{ route('admin.product-groups.index') }}" class="btn btn-light btn-sm">
+<a href="{{ route('admin.products.index') }}" class="btn btn-light btn-sm">
     <i class="bi bi-collection"></i> Dòng sản phẩm
 </a>
 <a href="{{ route('admin.imeis.create') }}" class="btn btn-light btn-sm">
@@ -196,7 +196,7 @@
                         @endif
                     </td>
                     <td class="fw-semibold">
-                        <a href="{{ route('admin.products.show', $product) }}" class="text-decoration-none text-dark">
+                        <a href="{{ route('admin.product-versions.show', $product) }}" class="text-decoration-none text-dark">
                             {{ $product->name }}
                         </a>
                         <div class="text-muted small">{{ $product->variants_count }} biến thể</div>
@@ -228,13 +228,13 @@
                                 <i class="bi bi-chevron-down"></i>
                             </button>
                             @endif
-                            <a href="{{ route('admin.products.show', $product) }}" class="btn btn-light btn-sm" title="Xem chi tiết">
+                            <a href="{{ route('admin.product-versions.show', $product) }}" class="btn btn-light btn-sm" title="Xem chi tiết">
                                 <i class="bi bi-eye"></i>
                             </a>
-                            <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-light btn-sm" title="Sửa">
+                            <a href="{{ route('admin.product-versions.edit', $product) }}" class="btn btn-light btn-sm" title="Sửa">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            <form action="{{ route('admin.products.destroy', $product) }}" method="POST"
+                            <form action="{{ route('admin.product-versions.destroy', $product) }}" method="POST"
                                 class="d-inline" onsubmit="return confirm('Xóa sản phẩm này?')">
                                 @csrf @method('DELETE')
                                 <button type="submit" class="btn btn-outline-danger btn-sm" title="Xóa">
