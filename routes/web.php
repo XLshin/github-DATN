@@ -276,7 +276,11 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
         Route::post('inventory/adjustments', [InventoryController::class, 'storeAdjustment'])
             ->name('inventory.adjustments.store');
 
-        Route::resource('inventory', InventoryController::class);
+        Route::resource('inventory', InventoryController::class)->only([
+            'index',
+            'create',
+            'store',
+        ]);
 
         Route::get('/stocks', [ImeiController::class, 'stock'])
             ->name('stocks');
