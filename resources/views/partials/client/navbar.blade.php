@@ -195,8 +195,8 @@
 
                             <div class="cart-items">
                                 <a href="{{ route('cart.index') }}" class="main-btn">
-                                    <i class="lni lni-cart"></i>
-                                    <span class="total-items">0</span>
+                                    <i class="lni lni-cart" id="cart-fly-target"></i>
+                                    <span class="total-items">{{ app(\App\Services\CartService::class)->getCartCount(auth()->user()) }}</span>
                                 </a>
 
                                 <div class="shopping-item">
@@ -331,6 +331,7 @@
                                 </li>
 
                                 @guest
+                                <li class="nav-item">
                                     <a href="{{ route('login') }}">
                                         Giỏ hàng
                                     </a>

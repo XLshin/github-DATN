@@ -26,7 +26,12 @@ class CheckoutController extends Controller
             abort(403);
         }
 
-        $items = $this->cartService->getItems($user);
+        $selectedIds = array_map('intval', (array) $request->query('items', []));
+
+        $items = $selectedIds
+            ? $this->cartService->getSelectedItems($user, $selectedIds)
+            : $this->cartService->getItems($user);
+
         $total = $this->cartService->calculateTotal($items);
 
         // Load danh sách voucher được cấp cho user này
@@ -36,7 +41,7 @@ class CheckoutController extends Controller
             ->where('end_date', '>=', now())
             ->get();
 
-        return view('client.checkout.index', compact('items', 'total', 'availableCoupons'));
+        return view('client.checkout.index', compact('items', 'total', 'availableCoupons', 'selectedIds'));
     }
 
     public function process(Request $request)
@@ -55,16 +60,26 @@ class CheckoutController extends Controller
             'payment_method' => ['required', 'string', 'in:cod,card,bank_transfer,momo,vnpay'],
             'coupon_id' => ['nullable', 'integer', 'exists:coupons,id'],
             'points_to_use' => ['nullable', 'integer', 'min:0'],
+            'cart_item_ids' => ['nullable', 'array'],
+            'cart_item_ids.*' => ['integer'],
+            'buyer_type' => ['nullable', 'string', 'in:self,proxy'],
+            'buyer_name' => ['nullable', 'required_if:buyer_type,proxy', 'string', 'max:255'],
+            'buyer_phone' => ['nullable', 'required_if:buyer_type,proxy', 'string', 'max:20'],
         ]);
 
-        if ($this->cartService->isEmpty($user)) {
+        $selectedIds = array_map('intval', $validated['cart_item_ids'] ?? []);
+        $items = $selectedIds
+            ? $this->cartService->getSelectedItems($user, $selectedIds)
+            : $this->cartService->getItems($user);
+
+        if ($items->isEmpty()) {
             return redirect()
                 ->route('cart.index')
-                ->with('error', 'Giỏ hàng trống.');
+                ->with('error', 'Vui lòng chọn ít nhất một sản phẩm để thanh toán.');
         }
 
         try {
-            $order = $this->checkoutService->process($user, $validated);
+            $order = $this->checkoutService->process($user, $validated, $items);
         } catch (ValidationException $e) {
             return redirect()
                 ->route('cart.index')
@@ -87,10 +102,15 @@ class CheckoutController extends Controller
         $data = $request->validate([
             'coupon_id' => ['nullable', 'integer', 'exists:coupons,id'],
             'points_to_use' => ['nullable', 'integer', 'min:0'],
+            'cart_item_ids' => ['nullable', 'array'],
+            'cart_item_ids.*' => ['integer'],
         ]);
 
         $user = auth()->user();
-        $items = $this->cartService->getItems($user);
+        $selectedIds = array_map('intval', $data['cart_item_ids'] ?? []);
+        $items = $selectedIds
+            ? $this->cartService->getSelectedItems($user, $selectedIds)
+            : $this->cartService->getItems($user);
 
         if ($items->isEmpty()) {
             throw ValidationException::withMessages(['cart' => 'Giỏ hàng trống.']);
