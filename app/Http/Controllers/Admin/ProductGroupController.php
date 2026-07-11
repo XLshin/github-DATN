@@ -128,6 +128,10 @@ class ProductGroupController extends Controller
 
     public function store(Request $request)
     {
+        $request->merge([
+            'product_type' => trim((string) $request->input('product_type')),
+        ]);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:product_groups,name',
             'category_id' => 'required|exists:categories,id',
@@ -210,6 +214,14 @@ class ProductGroupController extends Controller
 
         DB::transaction(function () use ($request, $validated, $specifications, $versions, $colors) {
             $productGroup = ProductGroup::create($validated);
+            $productGroup->refresh();
+
+            if ($productGroup->product_type !== $validated['product_type']) {
+                throw ValidationException::withMessages([
+                    'product_type' => 'Loại quản lý lưu xuống cơ sở dữ liệu không khớp với lựa chọn. Vui lòng thử lại.',
+                ]);
+            }
+
             $this->syncSpecifications($productGroup, $specifications);
 
             if ($request->hasFile('product_thumbnail')) {
@@ -238,7 +250,7 @@ class ProductGroupController extends Controller
                     'product_group_id' => $productGroup->id,
                     'category_id' => $productGroup->category_id,
                     'brand_id' => $productGroup->brand_id,
-                    'product_type' => $productGroup->product_type,
+                    'product_type' => $validated['product_type'],
                     'storage' => $version['storage'],
                     'name' => $version['name'],
                     'slug' => Str::slug($version['name']),
@@ -313,6 +325,10 @@ class ProductGroupController extends Controller
 
     public function update(Request $request, ProductGroup $productGroup)
     {
+        $request->merge([
+            'product_type' => trim((string) $request->input('product_type')),
+        ]);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:product_groups,name,' . $productGroup->id,
             'category_id' => 'required|exists:categories,id',
@@ -393,10 +409,10 @@ class ProductGroupController extends Controller
 
         if (
             $validated['product_type'] !== $productGroup->product_type
-            && $productGroup->products()->exists()
+            && $this->productGroupHasInventory($productGroup)
         ) {
             return back()
-                ->withErrors(['product_type' => 'Không thể đổi loại quản lý khi sản phẩm đã có phiên bản.'])
+                ->withErrors(['product_type' => 'Không thể đổi loại quản lý vì sản phẩm đã có IMEI hoặc tồn kho.'])
                 ->withInput();
         }
 
@@ -404,6 +420,14 @@ class ProductGroupController extends Controller
 
         DB::transaction(function () use ($request, $productGroup, $validated, $specifications, $versions, $colors) {
             $productGroup->update($validated);
+            $productGroup->refresh();
+
+            if ($productGroup->product_type !== $validated['product_type']) {
+                throw ValidationException::withMessages([
+                    'product_type' => 'Loại quản lý lưu xuống cơ sở dữ liệu không khớp với lựa chọn. Vui lòng thử lại.',
+                ]);
+            }
+
             $this->syncSpecifications($productGroup, $specifications);
 
             if ($request->hasFile('product_thumbnail')) {
@@ -457,7 +481,7 @@ class ProductGroupController extends Controller
                     'product_group_id' => $productGroup->id,
                     'category_id' => $productGroup->category_id,
                     'brand_id' => $productGroup->brand_id,
-                    'product_type' => $productGroup->product_type,
+                    'product_type' => $validated['product_type'],
                     'storage' => $version['storage'],
                     'name' => $version['name'],
                     'slug' => Str::slug($version['name']),
@@ -560,7 +584,7 @@ class ProductGroupController extends Controller
             $productGroup->products()->update([
                 'category_id' => $productGroup->category_id,
                 'brand_id' => $productGroup->brand_id,
-                'product_type' => $productGroup->product_type,
+                'product_type' => $validated['product_type'],
             ]);
         });
 
@@ -720,6 +744,16 @@ class ProductGroupController extends Controller
             Storage::disk('public')->delete($image->image_path);
             $image->delete();
         }
+    }
+
+    private function productGroupHasInventory(ProductGroup $productGroup): bool
+    {
+        return ProductVariant::whereHas('product', fn ($query) => $query->where('product_group_id', $productGroup->id))
+            ->where(function ($query) {
+                $query->where('stock_quantity', '>', 0)
+                    ->orWhereHas('imeis');
+            })
+            ->exists();
     }
 
     public function destroy(ProductGroup $productGroup)
