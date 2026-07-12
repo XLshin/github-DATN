@@ -33,7 +33,12 @@ class ProductController extends Controller
         ]);
 
         $relatedProducts = Product::query()
-            ->with(['brand', 'variants'])
+            ->with([
+                'brand',
+                'images',
+                'productGroup.images',
+                'variants.images',
+            ])
             ->where('status', true)
             ->where('brand_id', $product->brand_id)
             ->whereKeyNot($product->id)
