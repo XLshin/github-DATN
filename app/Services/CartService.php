@@ -20,7 +20,7 @@ class CartService
     {
         return $this->getOrCreateCart($user)
             ->items()
-            ->with('product')
+            ->with(['product', 'productVariant'])
             ->get();
     }
 
@@ -45,17 +45,28 @@ class CartService
         }
     }
 
-    public function removeItem(User $user, int $productId): void
+    public function removeItem(User $user, int $productId, ?int $variantId = null): void
     {
-        $this->getOrCreateCart($user)
+        $query = $this->getOrCreateCart($user)
             ->items()
-            ->where('product_id', $productId)
-            ->delete();
+            ->where('product_id', $productId);
+
+        if ($variantId) {
+            $query->where('product_variant_id', $variantId);
+        }
+
+        $query->delete();
     }
 
     public function calculateTotal(Collection $items): float
     {
-        return $items->sum(fn ($item) => (float) $item->product->price * $item->quantity);
+        return $items->sum(fn ($item) => $this->itemUnitPrice($item) * (int) $item->quantity);
+    }
+
+    public function itemUnitPrice($item): float
+    {
+        return (float) ($item->product?->price ?? 0)
+            + (float) ($item->productVariant?->additional_price ?? 0);
     }
 
     public function clear(User $user): void
