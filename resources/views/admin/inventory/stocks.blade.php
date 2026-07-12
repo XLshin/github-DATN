@@ -172,7 +172,7 @@
                 </td>
 
                 <td>
-                    {{ $stock->storage ?? '-' }}
+                    {{ $stock->product->storage ?? '-' }}
                 </td>
 
                 <td>

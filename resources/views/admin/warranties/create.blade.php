@@ -255,7 +255,7 @@
             </div>
 
             <div class="p-3">
-                <form method="POST" action="{{ route('admin.warranties.store') }}" style="max-width: 760px;">
+                <form method="POST" action="{{ route('admin.warranties.store') }}" enctype="multipart/form-data" style="max-width: 760px;">
                     @csrf
 
                     <input type="hidden" name="imei_id" value="{{ $selectedImei->imei_id }}">
@@ -318,7 +318,7 @@
 
                         <div class="col-12">
                             <label class="form-label">
-                                Lỗi khách báo / ghi chú tiếp nhận
+                                Lỗi khách báo / ghi chú tiếp nhận <span class="text-danger">*</span>
                             </label>
 
                             <textarea
@@ -335,6 +335,35 @@
 
                             <div class="form-text">
                                 Nhập tình trạng máy hoặc lỗi khách báo khi tiếp nhận bảo hành.
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">
+                                Ảnh/video tình trạng máy lúc tiếp nhận <span class="text-danger">*</span>
+                            </label>
+
+                            <input
+                                type="file"
+                                name="reception_media[]"
+                                class="form-control @error('reception_media') is-invalid @enderror @error('reception_media.*') is-invalid @enderror"
+                                accept="image/*,video/*"
+                                multiple>
+
+                            @error('reception_media')
+                            <div class="invalid-feedback d-block">
+                                {{ $message }}
+                            </div>
+                            @enderror
+
+                            @error('reception_media.*')
+                            <div class="invalid-feedback d-block">
+                                {{ $message }}
+                            </div>
+                            @enderror
+
+                            <div class="form-text">
+                                Có thể chọn nhiều ảnh/video. Mỗi file tối đa 100MB.
                             </div>
                         </div>
                     </div>

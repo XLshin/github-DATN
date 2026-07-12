@@ -17,11 +17,16 @@ class Warranty extends Model
         'warranty_end',
         'status',
         'customer_note',
+        'status_update_note',
+        'repair_result_note',
+        'customer_receipt_note',
+        'completed_at',
     ];
 
     protected $casts = [
         'warranty_start' => 'date',
         'warranty_end' => 'date',
+        'completed_at' => 'datetime',
     ];
 
     public function imei()
@@ -34,6 +39,32 @@ class Warranty extends Model
         return $this->belongsTo(Order::class);
     }
 
+    public function media()
+    {
+        return $this->hasMany(WarrantyMedia::class);
+    }
+
+    public function receptionMedia()
+    {
+        return $this->hasMany(WarrantyMedia::class)
+            ->where('stage', WarrantyMedia::STAGE_RECEPTION)
+            ->orderBy('id');
+    }
+
+    public function completionMedia()
+    {
+        return $this->hasMany(WarrantyMedia::class)
+            ->where('stage', WarrantyMedia::STAGE_COMPLETION)
+            ->orderBy('id');
+    }
+
+    public function receiptMedia()
+    {
+        return $this->hasMany(WarrantyMedia::class)
+            ->where('stage', WarrantyMedia::STAGE_CUSTOMER_RECEIPT)
+            ->orderBy('id');
+    }
+
     public function getWarrantyCodeAttribute(): string
     {
         return 'BH' . str_pad((string) $this->id, 6, '0', STR_PAD_LEFT);
@@ -44,13 +75,6 @@ class Warranty extends Model
         return match ($this->status) {
             self::STATUS_CLAIMED => 'Đang xử lý bảo hành',
 
-            /*
-            |--------------------------------------------------------------------------
-            | active và expired đều xem là phiếu đã xử lý xong
-            |--------------------------------------------------------------------------
-            | expired giữ lại để không lỗi dữ liệu cũ.
-            | Từ giao diện mới, admin không chọn expired nữa.
-            */
             self::STATUS_ACTIVE,
             self::STATUS_EXPIRED => 'Hoàn tất xử lý',
 
