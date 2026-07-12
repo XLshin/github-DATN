@@ -30,6 +30,7 @@ class OrderProof extends Model
             'packed' => 'Ảnh đóng gói',
             'delivered' => 'Ảnh giao hàng thành công',
             'failed_delivery' => 'Ảnh giao hàng thất bại',
+            'cancelled' => 'Ảnh hủy đơn',
             default => $this->type,
         };
     }

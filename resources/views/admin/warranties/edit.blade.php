@@ -1,10 +1,10 @@
 @extends('layouts.admin')
 
-@section('title', 'Sửa phiếu bảo hành')
-@section('page_icon', 'bi-shield-check')
+@section('title', 'Hoàn tất xử lý bảo hành')
+@section('page_icon', 'bi-check2-circle')
 @section('page_eyebrow', 'Dịch vụ sau bán')
-@section('page_title', 'Sửa phiếu bảo hành')
-@section('page_subtitle', 'Cập nhật thời hạn, lỗi khách báo và trạng thái xử lý của phiếu bảo hành.')
+@section('page_title', 'Hoàn tất xử lý bảo hành')
+@section('page_subtitle', 'Nhập kết quả sửa chữa và minh chứng để chuyển trạng thái đơn sang Hoàn tất.')
 
 @section('heading_actions')
 <a href="{{ route('admin.warranties.show', $warranty) }}" class="btn btn-light btn-sm">
@@ -14,88 +14,21 @@
 
 @section('content')
 
-@if (session('error'))
-<div class="alert alert-danger">
-    {{ session('error') }}
-</div>
-@endif
-
-@if ($errors->any())
-<div class="alert alert-danger">
-    Vui lòng kiểm tra lại thông tin cập nhật phiếu bảo hành.
-</div>
-@endif
-
 <div class="row g-3">
     <div class="col-lg-5">
         <section class="panel h-100">
             <div class="panel-header">
-                <div>
-                    <h5 class="mb-1">Thông tin phiếu</h5>
-                    <div class="text-muted small">
-                        Thông tin đơn hàng, sản phẩm và IMEI liên quan.
-                    </div>
-                </div>
+                <h5 class="mb-1">Thông tin phiếu</h5>
             </div>
-
             <div class="p-3">
                 <div class="mb-3">
                     <div class="text-muted small">Mã phiếu</div>
-                    <div class="fw-semibold">
-                        {{ $warranty->warranty_code }}
-                    </div>
+                    <div class="fw-semibold">{{ $warranty->warranty_code }}</div>
                 </div>
-
                 <div class="mb-3">
-                    <div class="text-muted small">IMEI</div>
-                    <div class="fw-semibold">
-                        {{ $warranty->imei->imei ?? $warrantyDetail->imei ?? 'Không có' }}
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <div class="text-muted small">Sản phẩm</div>
-
-                    @if($warrantyDetail)
-                        <div class="fw-semibold">
-                            {{ $warrantyDetail->product_name }}
-                        </div>
-                        <div class="text-muted small">
-                            {{ $warrantyDetail->color }} - {{ $warrantyDetail->storage }}
-                        </div>
-                    @else
-                        <div class="fw-semibold">Không có</div>
-                    @endif
-                </div>
-
-                <div class="mb-3">
-                    <div class="text-muted small">Mã đơn</div>
-                    <div class="fw-semibold">
-                        {{ $warranty->order->order_code ?? $warrantyDetail->order_code ?? 'Không có' }}
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <div class="text-muted small">Khách hàng</div>
-                    <div class="fw-semibold">
-                        {{ $warranty->order->customer_name ?? $warrantyDetail->customer_name ?? 'Không có' }}
-                    </div>
-                    <div class="text-muted small">
-                        {{ $warranty->order->customer_phone ?? $warrantyDetail->customer_phone ?? '' }}
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <div class="text-muted small">Trạng thái hiện tại</div>
-                    <span class="badge text-bg-{{ $warranty->status_badge }}">
-                        {{ $warranty->status_label }}
-                    </span>
-                </div>
-
-                <div>
-                    <div class="text-muted small">Trạng thái IMEI</div>
-                    <div class="fw-semibold">
-                        {{ $warrantyDetail->imei_status ?? $warranty->imei->status ?? 'Không có' }}
+                    <div class="text-muted small">Lỗi khách báo</div>
+                    <div class="border rounded p-2 bg-light text-danger">
+                        {{ $warranty->customer_note ?? 'Chưa có ghi chú.' }}
                     </div>
                 </div>
             </div>
@@ -103,124 +36,50 @@
     </div>
 
     <div class="col-lg-7">
-        <section class="panel">
+        <section class="panel h-100">
             <div class="panel-header">
-                <div>
-                    <h5 class="mb-1">Cập nhật bảo hành</h5>
-                    <div class="text-muted small">
-                        Chỉnh sửa ngày bắt đầu, ngày hết hạn, lỗi khách báo và trạng thái xử lý.
-                    </div>
-                </div>
+                <h5 class="mb-1 text-primary">Cập nhật kết quả sửa chữa</h5>
             </div>
-
             <div class="p-3">
-                <form method="POST" action="{{ route('admin.warranties.update', $warranty) }}" style="max-width: 700px;">
+                <form method="POST" action="{{ route('admin.warranties.update', $warranty) }}" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
 
-                    <div class="mb-3">
-                        <label class="form-label">
-                            Ngày bắt đầu bảo hành <span class="text-danger">*</span>
-                        </label>
+                    <input type="hidden" name="status" value="active">
 
-                        <input
-                            type="date"
-                            name="warranty_start"
-                            value="{{ old('warranty_start', $warranty->warranty_start ? $warranty->warranty_start->format('Y-m-d') : '') }}"
-                            class="form-control @error('warranty_start') is-invalid  @enderror" readonly >
-
-                        @error('warranty_start')
-                        <div class="invalid-feedback">
-                            {{ $message }}
-                        </div>
-                        @enderror
+                    <div class="alert alert-warning">
+                        Bạn đang xác nhận <strong>Hoàn tất xử lý</strong> cho phiếu bảo hành này.
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">
-                            Ngày hết hạn bảo hành <span class="text-danger">*</span>
-                        </label>
-
-                        <input
-                            type="date"
-                            name="warranty_end"
-                            value="{{ old('warranty_end', $warranty->warranty_end ? $warranty->warranty_end->format('Y-m-d') : '') }}"
-                            class="form-control @error('warranty_end') is-invalid @enderror" readonly >
-
-                        @error('warranty_end')
-                        <div class="invalid-feedback">
-                            {{ $message }}
-                        </div>
-                        @enderror
-
-                        <div class="form-text">
-                            Đây là hạn bảo hành thật sự của IMEI. Hết hạn này thì không tạo phiếu mới được.
-                        </div>
+                        <label class="form-label fw-semibold">Ghi chú cập nhật trạng thái (Nội bộ)</label>
+                        <textarea name="status_update_note" rows="2" class="form-control" placeholder="Ghi chú nhanh về việc hoàn tất...">{{ old('status_update_note', $warranty->status_update_note) }}</textarea>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">
-                            Trạng thái xử lý <span class="text-danger">*</span>
-                        </label>
-
-                        <select name="status" class="form-select @error('status') is-invalid @enderror">
-                            <option value="claimed" @selected(old('status', $warranty->status) === 'claimed')>
-                                Đang xử lý bảo hành
-                            </option>
-
-                            <option value="active" @selected(in_array(old('status', $warranty->status), ['active', 'expired'], true))>
-                                Hoàn tất xử lý
-                            </option>
-                        </select>
-
-                        @error('status')
-                        <div class="invalid-feedback">
-                            {{ $message }}
-                        </div>
-                        @enderror
+                        <label class="form-label fw-semibold">Kết quả sửa chữa / bộ phận thay thế</label>
+                        <textarea name="repair_result_note" rows="4" class="form-control @error('repair_result_note') is-invalid @enderror" required>{{ old('repair_result_note', $warranty->repair_result_note) }}</textarea>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">
-                            Lỗi khách báo / ghi chú tiếp nhận
-                        </label>
-
-                        <textarea
-                            name="customer_note"
-                            rows="4"
-                            class="form-control @error('customer_note') is-invalid @enderror"
-                            placeholder="Ví dụ: Khách báo máy sạc không vào pin, thỉnh thoảng tự tắt nguồn.">{{ old('customer_note', $warranty->customer_note) }}</textarea>
-
-                        @error('customer_note')
-                        <div class="invalid-feedback">
-                            {{ $message }}
-                        </div>
-                        @enderror
-
-                        <div class="form-text">
-                            Có thể chỉnh sửa ghi chú nếu lúc tiếp nhận nhập thiếu hoặc nhập sai.
-                        </div>
+                        <label class="form-label fw-semibold">Ảnh sau khi sửa xong</label>
+                        <input type="file" name="completion_images[]" class="form-control" accept="image/*" multiple>
                     </div>
 
-                    <div class="alert alert-info">
-                        <strong>Đang xử lý bảo hành</strong>: IMEI sẽ ở trạng thái <strong>warranty</strong> và chưa được tạo phiếu mới.<br>
-                        <strong>Hoàn tất xử lý</strong>: IMEI chuyển về <strong>sold</strong>, sau này vẫn có thể tạo phiếu mới nếu còn thời hạn bảo hành thật sự.<br>
-                        <strong>Hết hạn bảo hành</strong>: hệ thống tự kiểm tra theo ngày mua + 12 tháng, admin không cần chọn thủ công.
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Video sau khi sửa xong</label>
+                        <input type="file" name="completion_videos[]" class="form-control" accept="video/*" multiple>
                     </div>
 
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            <i class="bi bi-check-lg"></i> Lưu thay đổi
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-lg"></i> Xác nhận Hoàn tất xử lý
                         </button>
-
-                        <a href="{{ route('admin.warranties.show', $warranty) }}" class="btn btn-light btn-sm">
-                            Hủy
-                        </a>
+                        <a href="{{ route('admin.warranties.show', $warranty) }}" class="btn btn-light">Hủy</a>
                     </div>
                 </form>
             </div>
         </section>
     </div>
 </div>
-
 @endsection

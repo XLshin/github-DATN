@@ -18,7 +18,8 @@ return new class extends Migration
             $table->enum('type', [
                 'packed',
                 'delivered',
-                'failed_delivery'
+                'failed_delivery',
+                'cancelled'
             ]);
 
             $table->string('image_path');
