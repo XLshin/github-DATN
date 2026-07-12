@@ -29,7 +29,7 @@
                 {{ number_format($product->price, 0, ',', '.') }}đ
             </div>
 
-            <a href="{{ route('products.show', $product) }}" class="btn btn-primary btn-sm w-100 mt-auto">
+            <a href="{{ route('products.show', $product) }}" class="btn btn-outline-primary btn-sm w-100 mt-auto">
                 Xem chi tiết
             </a>
         </div>
