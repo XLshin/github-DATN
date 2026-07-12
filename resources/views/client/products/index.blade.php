@@ -141,97 +141,19 @@
                 </select>
             </div>
 
-            @forelse($products as $product)
-            @php
-                $thumb   = $product->thumbnail
-                    ? Storage::url($product->thumbnail)
-                    : ($product->images->first() ? Storage::url($product->images->first()->image_path) : null);
-                $maxPrice = $product->variants->max('additional_price');
-                $inStock  = $product->variants->sum('stock_quantity') > 0;
-            @endphp
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="row g-0">
-                    <div class="col-4 col-md-3">
-                        <a href="{{ route('products.show', $product) }}">
-                            @if($thumb)
-                            <img src="{{ $thumb }}" alt="{{ $product->name }}"
-                                class="img-fluid rounded-start w-100" style="height:160px; object-fit:cover;">
-                            @else
-                            <div class="d-flex align-items-center justify-content-center bg-light rounded-start" style="height:160px;">
-                                <i class="lni lni-image text-muted fs-2"></i>
-                            </div>
-                            @endif
-                        </a>
-                    </div>
-                    <div class="col-8 col-md-9">
-                        <div class="card-body py-3 px-3 d-flex flex-column h-100">
-                            <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
-                                <h6 class="mb-0 fw-semibold">
-                                    <a href="{{ route('products.show', $product) }}" class="text-decoration-none text-dark">
-                                        {{ $product->name }}
-                                    </a>
-                                </h6>
-                                @if($inStock)
-                                <span class="badge text-bg-success flex-shrink-0" style="font-size:10px;">Còn hàng</span>
-                                @else
-                                <span class="badge text-bg-secondary flex-shrink-0" style="font-size:10px;">Hết hàng</span>
-                                @endif
-                            </div>
-
-                            <div class="text-muted small mb-2">
-                                {{ $product->brand->name ?? '' }}
-                                @if($product->category) · {{ $product->category->name }} @endif
-                            </div>
-
-                            <p class="small text-muted mb-2 flex-grow-1">
-                                {{ \Illuminate\Support\Str::limit($product->description, 80) }}
-                            </p>
-
-                            @if($product->variants->count())
-                            <div class="d-flex flex-wrap gap-1 mb-2">
-                                @foreach($product->variants->take(4) as $v)
-                                <span class="badge text-bg-light border text-dark" style="font-size:10px;">
-                                    {{ $v->color }}{{ $product->storage ? ' · '.$product->storage : '' }}
-                                </span>
-                                @endforeach
-                                @if($product->variants->count() > 4)
-                                <span class="badge text-bg-light border text-muted" style="font-size:10px;">
-                                    +{{ $product->variants->count() - 4 }}
-                                </span>
-                                @endif
-                            </div>
-                            @endif
-
-                            <div class="d-flex justify-content-between align-items-center mt-auto">
-                                <div class="fw-semibold text-primary">
-                                    @if($product->price > 0)
-                                    {{ number_format($product->price, 0, ',', '.') }} đ
-                                    @if($maxPrice > 0)
-                                    <span class="text-muted small fw-normal">
-                                        — {{ number_format($product->price + $maxPrice, 0, ',', '.') }} đ
-                                    </span>
-                                    @endif
-                                    @else
-                                    <span class="text-muted">Liên hệ</span>
-                                    @endif
-                                </div>
-                                <a href="{{ route('products.show', $product) }}" class="btn btn-primary btn-sm">
-                                    Xem chi tiết
-                                </a>
-                            </div>
+            <div class="row g-3">
+                @forelse($products as $product)
+                    @include('client.partials.product_card', ['product' => $product])
+                @empty
+                    <div class="col-12 text-center py-5 text-muted">
+                        <i class="lni lni-empty-file fs-1 d-block mb-3"></i>
+                        Không tìm thấy sản phẩm nào.
+                        <div class="mt-2">
+                            <a href="{{ route('products.index') }}" class="btn btn-outline-primary btn-sm">Xóa bộ lọc</a>
                         </div>
                     </div>
-                </div>
+                @endforelse
             </div>
-            @empty
-            <div class="text-center py-5 text-muted">
-                <i class="lni lni-empty-file fs-1 d-block mb-3"></i>
-                Không tìm thấy sản phẩm nào.
-                <div class="mt-2">
-                    <a href="{{ route('products.index') }}" class="btn btn-outline-primary btn-sm">Xóa bộ lọc</a>
-                </div>
-            </div>
-            @endforelse
 
             @if($products->hasPages())
             <div class="mt-3">{{ $products->withQueryString()->links() }}</div>
