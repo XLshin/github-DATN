@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-
 use App\Models\Coupon;
 use App\Models\Imei;
 use App\Models\InventoryTransaction;
@@ -17,9 +16,9 @@ use Illuminate\Validation\ValidationException;
 class CheckoutService
 {
     public function __construct(
-    private readonly CartService $cartService,
-    private readonly PointService $pointService,
-) {}
+        private readonly CartService $cartService,
+        private readonly PointService $pointService,
+    ) {}
 
     public function process(User $user, array $data): Order
     {
@@ -39,8 +38,7 @@ class CheckoutService
             if (! empty($data['coupon_id'])) {
                 $coupon = Coupon::findOrFail($data['coupon_id']);
 
-                // Verify user has access to this coupon
-                if (!$user->coupons->contains($coupon->id)) {
+                if (! $user->coupons->contains($coupon->id)) {
                     throw ValidationException::withMessages([
                         'coupon_id' => 'Voucher không hợp lệ hoặc bạn không có quyền sử dụng.',
                     ]);
@@ -55,6 +53,22 @@ class CheckoutService
                 $couponDiscount = $coupon->discountAmount($subtotal);
             }
 
+            $pointsToUse = (int) ($data['points_to_use'] ?? 0);
+            $pointsDiscount = 0;
+
+            if ($pointsToUse > 0) {
+                if ((int) $user->points < $pointsToUse) {
+                    throw ValidationException::withMessages([
+                        'points_to_use' => 'Bạn không có đủ điểm để đổi.',
+                    ]);
+                }
+
+                $pointsToUse = min($pointsToUse, (int) floor(max($subtotal - $couponDiscount, 0)));
+                $pointsDiscount = $pointsToUse;
+            }
+
+            $totalAmount = max($subtotal - $couponDiscount - $pointsDiscount, 0);
+
             $order = Order::query()->create([
                 'user_id' => $user->id,
                 'order_code' => $this->generateOrderCode(),
@@ -64,30 +78,17 @@ class CheckoutService
                 'subtotal' => $subtotal,
                 'membership_discount' => 0,
                 'coupon_discount' => $couponDiscount,
-                'points_used' => 0,
-                'points_discount' => 0,
+                'points_used' => $pointsToUse,
+                'points_discount' => $pointsDiscount,
                 'coupon_id' => $coupon?->id,
                 'coupon_code' => $coupon?->code,
-                'total_amount' => max($subtotal - $couponDiscount, 0),
+                'total_amount' => $totalAmount,
                 'status' => 'pending',
                 'fulfillment_status' => 'pending',
             ]);
 
             foreach ($items as $item) {
                 $product = $item->product;
-
-                $price = (float) $item->product->price;
-
-                OrderItem::query()->create([
-                    'order_id' => $order->id,
-                    'product_id' => $item->product_id,
-                    'product_variant_id' => $item->product_variant_id,
-                    'price' => $price,
-                    'quantity' => $item->quantity,
-                    'total' => $price * $item->quantity,
-                ]);
-
-                // Cập nhật kho dựa trên loại sản phẩm
                 $variant = $item->productVariant;
 
                 if (! $product) {
@@ -103,12 +104,12 @@ class CheckoutService
                 }
 
                 $quantity = (int) $item->quantity;
-                $price = (float) $product->price;
+                $price = $this->cartService->itemUnitPrice($item);
                 $productType = $product->product_type;
 
                 if ($productType === 'imei/serial' && $quantity > 1) {
                     throw ValidationException::withMessages([
-                        'inventory' => 'Sản phẩm điện thoại chỉ được đặt số lượng 1 cho mỗi dòng sản phẩm.',
+                        'inventory' => 'Sản phẩm quản lý bằng IMEI/Serial chỉ được đặt số lượng 1 cho mỗi dòng sản phẩm.',
                     ]);
                 }
 
@@ -147,16 +148,26 @@ class CheckoutService
                 'paid_at' => $data['payment_method'] === 'cod' ? null : now(),
             ]);
 
-$pointsEarned = $this->pointService->calculatePointsFromOrder($order->total_amount);
+            if ($pointsToUse > 0) {
+                $this->pointService->deductPoints(
+                    $user,
+                    $pointsToUse,
+                    'usage',
+                    "Đổi điểm - Đơn hàng #{$order->order_code}"
+                );
+            }
 
-if ($pointsEarned > 0) {
-    $this->pointService->addPoints(
-        $user,
-        $pointsEarned,
-        'purchase',
-        "Mua hàng - Đơn hàng #{$order->order_code}"
-    );
-}
+            $pointsEarned = $this->pointService->calculatePointsFromOrder($order->total_amount);
+
+            if ($pointsEarned > 0) {
+                $this->pointService->addPoints(
+                    $user,
+                    $pointsEarned,
+                    'purchase',
+                    "Mua hàng - Đơn hàng #{$order->order_code}"
+                );
+            }
+
             $this->cartService->clear($user);
 
             return $order;
