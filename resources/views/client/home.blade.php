@@ -9,7 +9,7 @@
 {{-- ===================== SIDEBAR FILTER (sticky trái) ===================== --}}
 <div class="col-lg-3 d-none d-lg-block">
     <div style="position:sticky;top:80px;max-height:calc(100vh - 100px);overflow-y:auto;">
-        <form method="GET" action="{{ route('home') }}" id="filterForm">
+        <form method="GET" action="{{ route('products.index') }}" id="filterForm">
 
             <div class="card border-0 shadow-sm mb-3">
                 <div class="card-body">
@@ -28,10 +28,10 @@
                 <div class="card-body">
                     <h6 class="fw-semibold mb-2">Danh mục</h6>
                     <div class="d-flex flex-column gap-1">
-                        <a href="{{ request()->fullUrlWithQuery(['category_id' => '', 'page' => 1]) }}"
+                        <a href="{{ route('products.index') }}"
                             class="text-decoration-none small {{ !request('category_id') ? 'fw-semibold text-primary' : 'text-dark' }}">Tất cả</a>
                         @foreach($allCategories as $cat)
-                        <a href="{{ request()->fullUrlWithQuery(['category_id' => $cat->id, 'page' => 1]) }}#tat-ca-san-pham"
+                        <a href="{{ route('products.index', ['category_id' => $cat->id]) }}"
                             class="text-decoration-none small {{ request('category_id') == $cat->id ? 'fw-semibold text-primary' : 'text-dark' }}">
                             {{ $cat->name }}
                         </a>
@@ -44,10 +44,10 @@
                 <div class="card-body">
                     <h6 class="fw-semibold mb-2">Thương hiệu</h6>
                     <div class="d-flex flex-column gap-1">
-                        <a href="{{ request()->fullUrlWithQuery(['brand_id' => '', 'page' => 1]) }}"
+                        <a href="{{ route('products.index') }}"
                             class="text-decoration-none small {{ !request('brand_id') ? 'fw-semibold text-primary' : 'text-dark' }}">Tất cả</a>
                         @foreach($allBrands as $br)
-                        <a href="{{ request()->fullUrlWithQuery(['brand_id' => $br->id, 'page' => 1]) }}#tat-ca-san-pham"
+                        <a href="{{ route('products.index', ['brand_id' => $br->id]) }}"
                             class="text-decoration-none small {{ request('brand_id') == $br->id ? 'fw-semibold text-primary' : 'text-dark' }}">
                             {{ $br->name }}
                         </a>
@@ -113,7 +113,7 @@
 
             <div class="d-grid gap-2 mb-3">
                 <button type="submit" class="btn btn-primary btn-sm">Áp dụng</button>
-                <a href="{{ route('home') }}" class="btn btn-outline-secondary btn-sm">Xóa bộ lọc</a>
+                <a href="{{ route('products.index') }}" class="btn btn-outline-secondary btn-sm">Xóa bộ lọc</a>
             </div>
         </form>
     </div>
@@ -174,7 +174,7 @@
         <div class="row g-2">
             @foreach($categories as $cat)
             <div class="col-6 col-md-3">
-                <a href="{{ route('category.products', $cat) }}"
+                <a href="{{ route('products.index', ['category_id' => $cat->id]) }}"
                     class="text-decoration-none d-flex flex-column align-items-center justify-content-center p-2 bg-white border rounded-3 text-center"
                     style="min-height:80px;">
                     <span style="font-size:1.6rem;">{{ $catIcons[$cat->name] ?? '📦' }}</span>

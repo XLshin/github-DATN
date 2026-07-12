@@ -96,8 +96,10 @@ class HomeController extends Controller
         ));
     }
 
-    public function byCategory(Category $category)
+    public function byCategory($id)
     {
+        $category = Category::findOrFail($id);
+        
         $products = Product::with(['images', 'brand', 'variants'])
             ->where('status', true)
             ->where('category_id', $category->id)
@@ -109,8 +111,10 @@ class HomeController extends Controller
         return view('client.products.by_category', compact('category', 'products', 'brands'));
     }
 
-    public function byBrand(Brand $brand)
+    public function byBrand($id)
     {
+        $brand = Brand::findOrFail($id);
+        
         $products = Product::with(['images', 'category', 'variants'])
             ->where('status', true)
             ->where('brand_id', $brand->id)

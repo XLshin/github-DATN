@@ -313,7 +313,7 @@
                                     </a>
                                     <ul class="sub-menu">
                                         @foreach(\App\Models\Category::all() as $cat)
-                                        <li><a href="{{ route('category.products', $cat) }}">{{ $cat->name }}</a></li>
+                                        <li><a href="{{ route('products.index', ['category_id' => $cat->id]) }}">{{ $cat->name }}</a></li>
                                         @endforeach
                                     </ul>
                                 </li>
@@ -325,7 +325,7 @@
                                     </a>
                                     <ul class="sub-menu">
                                         @foreach(\App\Models\Brand::all() as $br)
-                                        <li><a href="{{ route('brand.products', $br) }}">{{ $br->name }}</a></li>
+                                        <li><a href="{{ route('products.index', ['brand_id' => $br->id]) }}">{{ $br->name }}</a></li>
                                         @endforeach
                                     </ul>
                                 </li>
