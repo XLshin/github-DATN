@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Imei;
 use App\Models\Order;
 use App\Models\OrderProof;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
@@ -14,9 +18,10 @@ class OrderController extends Controller
     {
         $query = Order::with([
             'user',
+            'receiver',
             'items.product',
             'items.variant',
-            'items.imei',
+            'items.imeis',
             'payment',
             'shipment',
         ])->latest();
@@ -38,34 +43,65 @@ class OrderController extends Controller
         }
 
         if ($request->filled('keyword')) {
-            $keyword = $request->keyword;
+            $keyword = trim($request->keyword);
 
             $query->where(function ($q) use ($keyword) {
                 $q->where('order_code', 'like', "%{$keyword}%")
                     ->orWhere('customer_name', 'like', "%{$keyword}%")
                     ->orWhere('customer_phone', 'like', "%{$keyword}%")
-                    ->orWhere('shipping_address', 'like', "%{$keyword}%");
+                    ->orWhere('shipping_address', 'like', "%{$keyword}%")
+                    ->orWhereHas('receiver', function ($receiverQuery) use ($keyword) {
+                        $receiverQuery->where('receiver_name', 'like', "%{$keyword}%")
+                            ->orWhere('receiver_phone', 'like', "%{$keyword}%")
+                            ->orWhere('receiver_address', 'like', "%{$keyword}%");
+                    });
             });
         }
 
-        // Đã xóa dòng $orders bị ghi đè phía dưới để giữ lại kết quả lọc/tìm kiếm
         $orders = $query->paginate(20)->withQueryString();
 
-        return view('admin.orders.index', compact('orders'));
+        $availableImeisByVariant = $this->getAvailableImeisByVariant($orders->getCollection());
+
+        return view('admin.orders.index', compact('orders', 'availableImeisByVariant'));
     }
 
     public function show(Order $order)
     {
         $order->load([
             'user',
+            'receiver',
             'items.product',
             'items.variant',
-            'items.imei',
+            'items.imeis',
             'payment',
             'shipment',
             'proofs.creator',
         ]);
-        return view('admin.orders.show', compact('order'));
+
+        $availableImeisByVariant = $this->getAvailableImeisByVariant(collect([$order]));
+
+        return view('admin.orders.show', compact('order', 'availableImeisByVariant'));
+    }
+
+    public function updateReceiver(Request $request, Order $order)
+    {
+        $data = $request->validate([
+            'receiver_name' => ['required', 'string', 'max:255'],
+            'receiver_phone' => ['required', 'string', 'max:30'],
+            'receiver_address' => ['required', 'string', 'max:1000'],
+            'receiver_note' => ['nullable', 'string', 'max:1000'],
+        ], [
+            'receiver_name.required' => 'Vui lòng nhập tên người nhận.',
+            'receiver_phone.required' => 'Vui lòng nhập số điện thoại người nhận.',
+            'receiver_address.required' => 'Vui lòng nhập địa chỉ người nhận.',
+        ]);
+
+        $order->receiver()->updateOrCreate(
+            ['order_id' => $order->getKey()],
+            $data
+        );
+
+        return back()->with('success', 'Đã cập nhật thông tin người nhận.');
     }
 
     public function confirm(Order $order)
@@ -92,12 +128,56 @@ class OrderController extends Controller
         $request->validate([
             'packed_image' => ['required', 'image', 'max:4096'],
             'note' => ['nullable', 'string', 'max:1000'],
+            'imei_values' => ['nullable', 'array'],
+            'imei_values.*' => ['nullable', 'array'],
+            'imei_values.*.*' => ['nullable', 'string', 'max:20'],
         ], [
             'packed_image.required' => 'Vui lòng tải ảnh minh chứng đã đóng gói.',
             'packed_image.image' => 'File tải lên phải là hình ảnh.',
         ]);
 
-        DB::transaction(function () use ($request, $order) {
+        $order->load([
+            'items.product',
+            'items.variant',
+            'items.imeis',
+        ]);
+
+        $imeiItems = $order->items->filter(fn ($item) => $this->orderItemNeedsImei($item));
+
+        $submittedImeis = $this->validatePackedImeis($request, $imeiItems);
+
+        DB::transaction(function () use ($request, $order, $imeiItems, $submittedImeis) {
+            foreach ($imeiItems as $item) {
+                $imeiValues = $submittedImeis[$item->getKey()] ?? [];
+
+                foreach ($imeiValues as $imeiValue) {
+                    $imei = Imei::query()
+                        ->where('imei', $imeiValue)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$imei) {
+                        throw ValidationException::withMessages([
+                            "imei_values.{$item->getKey()}" => "IMEI {$imeiValue} không tồn tại trong hệ thống.",
+                        ]);
+                    }
+
+                    if ((int) $imei->product_variant_id !== (int) $item->product_variant_id) {
+                        throw ValidationException::withMessages([
+                            "imei_values.{$item->getKey()}" => "IMEI {$imeiValue} không đúng biến thể khách đã đặt.",
+                        ]);
+                    }
+
+                    if ($imei->status !== 'available') {
+                        throw ValidationException::withMessages([
+                            "imei_values.{$item->getKey()}" => "IMEI {$imeiValue} không còn ở trạng thái available.",
+                        ]);
+                    }
+
+                    $imei->reserveForOrderItem($item);
+                }
+            }
+
             $path = $request->file('packed_image')->store('order-proofs', 'public');
 
             OrderProof::create([
@@ -115,7 +195,7 @@ class OrderController extends Controller
             ]);
         });
 
-        return back()->with('success', 'Đã xác nhận đóng gói. Đơn đã chuyển sang chờ bàn giao.');
+        return back()->with('success', 'Đã xác nhận đóng gói, gán IMEI và chuyển đơn sang chờ bàn giao.');
     }
 
     public function handover(Order $order)
@@ -158,6 +238,8 @@ class OrderController extends Controller
         ]);
 
         DB::transaction(function () use ($request, $order) {
+            $order->loadMissing('items.imeis');
+
             $path = $request->file('delivered_image')->store('order-proofs', 'public');
 
             OrderProof::create([
@@ -169,12 +251,10 @@ class OrderController extends Controller
             ]);
 
             foreach ($order->items as $item) {
-                if ($item->imei_id && $item->imei && $item->imei->status === 'reserved') {
-                    $item->imei->update([
-                        'status' => 'sold',
-                        'reserved_at' => null,
-                        'reserved_by_order_item_id' => null,
-                    ]);
+                foreach ($item->imeis as $imei) {
+                    if ($imei->status === 'reserved') {
+                        $imei->markAsSold();
+                    }
                 }
             }
 
@@ -268,62 +348,234 @@ class OrderController extends Controller
         return back()->with('success', 'Đơn hàng đã được chuyển sang giao lại.');
     }
 
-    public function cancel(Order $order)
-    {
-        if (in_array($order->fulfillment_status, ['completed', 'cancelled'], true)) {
-            return back()->with('error', 'Không thể hủy đơn hàng đã hoàn thành hoặc đã hủy.');
-        }
+    public function cancel(Request $request, Order $order)
+{
+    $request->validate([
+        'cancel_reason' => [
+            'required',
+            'string',
+            'max:1000',
+        ],
+        'cancel_image' => [
+            'nullable',
+            'image',
+            'mimes:jpg,jpeg,png,webp',
+            'max:4096',
+        ],
+    ], [
+        'cancel_reason.required' => 'Vui lòng nhập lý do hủy đơn.',
+        'cancel_image.image' => 'File tải lên phải là hình ảnh.',
+    ]);
 
-        DB::transaction(function () use ($order) {
-            foreach ($order->items as $item) {
-                if ($item->imei_id && $item->imei && $item->imei->status === 'reserved') {
-                    $item->imei->update([
-                        'status' => 'available',
-                        'reserved_at' => null,
-                        'reserved_by_order_item_id' => null,
-                    ]);
-
-                    $item->update([
-                        'imei_id' => null,
-                    ]);
-                }
-
-                if ($item->product && $item->product->product_type === 'quantity' && $item->variant) {
-                    $item->variant->increment('stock_quantity', $item->quantity);
-                }
-            }
-
-            $order->update([
-                'status' => 'cancelled',
-                'fulfillment_status' => 'cancelled',
-                'cancelled_at' => now(),
-            ]);
-
-            if ($order->shipment) {
-                $order->shipment->update([
-                    'shipping_status' => 'failed',
-                    'status' => 'cancelled',
-                ]);
-            }
-        });
-
-        return back()->with('success', 'Đã hủy đơn hàng và hoàn lại tồn kho/IMEI.');
+    if (in_array($order->fulfillment_status, ['completed', 'cancelled'], true)) {
+        return back()->with('error', 'Không thể hủy đơn hàng đã hoàn thành hoặc đã hủy.');
     }
 
-    public function printShippingLabel(Order $order)
-    {
-        $order->load([
-            'user',
+    DB::transaction(function () use ($order, $request) {
+
+        $order->loadMissing(
             'items.product',
             'items.variant',
-            'items.imei',
-            'payment',
-        ]);
+            'items.imeis',
+            'shipment',
+            'proofs'
+        );
+
+        foreach ($order->items as $item) {
+
+            foreach ($item->imeis as $imei) {
+
+                if ($imei->status === 'reserved') {
+                    $imei->releaseReservation();
+                }
+
+            }
+
+            if (
+                $item->product &&
+                $item->product->product_type === 'quantity' &&
+                $item->variant
+            ) {
+                $item->variant->increment(
+                    'stock_quantity',
+                    $item->quantity
+                );
+            }
+
+        }
 
         $order->update([
-            'shipping_label_printed_at' => now(),
+
+            'status' => 'cancelled',
+
+            'fulfillment_status' => 'cancelled',
+
+            'cancelled_at' => now(),
+
+            'cancel_reason' => $request->cancel_reason,
+
+            'cancelled_by' => 'admin',
+
         ]);
 
-        return view('admin.orders.shipping-label', compact('order'));
+        if ($request->hasFile('cancel_image')) {
+
+            $path = $request->file('cancel_image')->store(
+                'order-proofs',
+                'public'
+            );
+
+            OrderProof::create([
+
+                'order_id' => $order->id,
+
+                'type' => 'cancelled',
+
+                'image_path' => $path,
+
+                'note' => $request->cancel_reason,
+
+                'created_by' => Auth::id(),
+
+            ]);
+        }
+
+        if ($order->shipment) {
+
+            $order->shipment->update([
+
+                'shipping_status' => 'failed',
+
+                'status' => 'cancelled',
+
+            ]);
+
+        }
+
+    });
+
+    return back()->with(
+        'success',
+        'Đã hủy đơn hàng và hoàn lại tồn kho/IMEI.'
+    );
+}
+
+    public function printShippingLabel(Order $order)
+{
+    $order->load([
+        'user',
+        'items.product',
+        'items.variant',
+        'items.imeis',
+        'payment',
+        'receiver',
+    ]);
+
+    if ($this->orderHasMissingRequiredImeis($order)) {
+        return back()->with(
+            'error',
+            'Đơn hàng có sản phẩm cần IMEI nhưng chưa được gán IMEI. Vui lòng xác nhận đóng gói và nhập IMEI trước khi in phiếu giao hàng.'
+        );
+    }
+
+    $order->update([
+        'shipping_label_printed_at' => now(),
+    ]);
+
+    return view('admin.orders.shipping-label', compact('order'));
+}
+
+private function orderHasMissingRequiredImeis(Order $order): bool
+{
+    return $order->items->contains(function ($item) {
+        return $this->orderItemNeedsImei($item) && !$item->hasFullImeiAssignment();
+    });
+}
+
+    private function getAvailableImeisByVariant(Collection $orders): Collection
+    {
+        $variantIds = $orders
+            ->flatMap(function (Order $order) {
+                return $order->items
+                    ->filter(fn ($item) => $this->orderItemNeedsImei($item) && !$item->hasFullImeiAssignment())
+                    ->pluck('product_variant_id');
+            })
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($variantIds->isEmpty()) {
+            return collect();
+        }
+
+        return Imei::query()
+            ->whereIn('product_variant_id', $variantIds)
+            ->where('status', 'available')
+            ->orderBy('imei')
+            ->get()
+            ->groupBy('product_variant_id');
+    }
+
+    private function orderItemNeedsImei($item): bool
+    {
+        return ($item->product->product_type ?? null) === 'imei/serial';
+    }
+
+    private function validatePackedImeis(Request $request, Collection $imeiItems): array
+    {
+        $errors = [];
+        $submittedImeis = [];
+        $seenImeisInOrder = [];
+
+        foreach ($imeiItems as $item) {
+            $remaining = $item->remainingImeiSlots();
+
+            if ($remaining === 0) {
+                // Item này đã được gán đủ IMEI từ trước, bỏ qua.
+                continue;
+            }
+
+            $rawValues = (array) $request->input("imei_values.{$item->getKey()}", []);
+
+            // Loại bỏ khoảng trắng và giá trị rỗng.
+            $values = array_values(array_filter(
+                array_map(fn ($v) => trim((string) $v), $rawValues),
+                fn ($v) => $v !== ''
+            ));
+
+            $productName = $item->product->name ?? 'sản phẩm';
+
+            if (count($values) !== $remaining) {
+                $errors["imei_values.{$item->getKey()}"] = "Vui lòng nhập đủ {$remaining} IMEI cho {$productName} (đã nhập " . count($values) . ").";
+                continue;
+            }
+
+            $seenInItem = [];
+
+            foreach ($values as $imeiValue) {
+                $duplicateKey = strtolower($imeiValue);
+
+                if (isset($seenInItem[$duplicateKey])) {
+                    $errors["imei_values.{$item->getKey()}"] = "IMEI {$imeiValue} bị nhập trùng trong cùng {$productName}.";
+                    continue 2;
+                }
+
+                if (isset($seenImeisInOrder[$duplicateKey])) {
+                    $errors["imei_values.{$item->getKey()}"] = "IMEI {$imeiValue} đang được nhập trùng trong cùng đơn hàng.";
+                    continue 2;
+                }
+
+                $seenInItem[$duplicateKey] = true;
+                $seenImeisInOrder[$duplicateKey] = true;
+            }
+
+            $submittedImeis[$item->getKey()] = $values;
+        }
+
+        if (!empty($errors)) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        return $submittedImeis;
     }
 }

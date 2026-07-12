@@ -7,7 +7,7 @@
 @section('page_subtitle', 'Quản lý mã voucher, thời hạn và hạn mức áp dụng cho khách hàng.')
 
 @section('heading_actions')
-    <a href="{{ route('coupons.create') }}" class="btn btn-primary btn-sm">
+    <a href="{{ route('admin.coupons.create') }}" class="btn btn-primary btn-sm">
         <i class="bi bi-plus-lg"></i> Tạo voucher
     </a>
 @endsection
@@ -15,7 +15,7 @@
 @section('content')
     <section class="panel">
         <div class="panel-header">
-            <form method="GET" action="{{ route('coupons.index') }}" class="d-flex gap-2 flex-grow-1">
+            <form method="GET" action="{{ route('admin.coupons.index') }}" class="d-flex gap-2 flex-grow-1">
                 <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm" placeholder="Tìm theo mã hoặc loại">
                 <button type="submit" class="btn btn-outline-primary btn-sm">Tìm</button>
             </form>
@@ -57,9 +57,9 @@
                             </td>
                             <td class="text-end">
                                 <div class="d-flex justify-content-end gap-2">
-                                    <a href="{{ route('coupons.assign-users-edit', $coupon) }}" class="btn btn-info btn-sm">Gán user</a>
-                                    <a href="{{ route('coupons.edit', $coupon) }}" class="btn btn-light btn-sm">Sửa</a>
-                                    <form action="{{ route('coupons.destroy', $coupon) }}" method="POST" onsubmit="return confirm('Xóa voucher này?')">
+                                    <a href="{{ route('admin.coupons.assign-users-edit', $coupon) }}" class="btn btn-info btn-sm">Gán user</a>
+                                    <a href="{{ route('admin.coupons.edit', $coupon) }}" class="btn btn-light btn-sm">Sửa</a>
+                                    <form action="{{ route('admin.coupons.destroy', $coupon) }}" method="POST" onsubmit="return confirm('Xóa voucher này?')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-outline-danger btn-sm">Xóa</button>
