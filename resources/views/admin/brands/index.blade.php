@@ -7,7 +7,7 @@
 @section('page_subtitle', 'Quản lý thương hiệu sản phẩm trong hệ thống.')
 
 @section('heading_actions')
-    <a href="{{ route('brands.create') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Thêm thương hiệu</a>
+    <a href="{{ route('admin.brands.create') }}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Thêm thương hiệu</a>
 @endsection
 
 @section('content')
@@ -55,9 +55,9 @@
                             </td>
                             <td>{{ Str::limit($brand->description, 60) }}</td>
                             <td class="text-end">
-                                <a href="{{ route('brands.show', $brand) }}" class="btn btn-light btn-sm"><i class="bi bi-eye"></i> Xem</a>
-                                <a href="{{ route('brands.edit', $brand) }}" class="btn btn-light btn-sm">Sửa</a>
-                                <form action="{{ route('brands.destroy', $brand) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa thương hiệu này?')">
+                                <a href="{{ route('admin.brands.show', $brand) }}" class="btn btn-light btn-sm"><i class="bi bi-eye"></i> Xem</a>
+                                <a href="{{ route('admin.brands.edit', $brand) }}" class="btn btn-light btn-sm">Sửa</a>
+                                <form action="{{ route('admin.brands.destroy', $brand) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa thương hiệu này?')">
                                     @csrf @method('DELETE')
                                     <button class="btn btn-outline-danger btn-sm">Xóa</button>
                                 </form>

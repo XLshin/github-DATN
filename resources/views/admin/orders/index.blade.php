@@ -14,6 +14,10 @@
 
 @section('content')
 
+@php
+    $availableImeisByVariant = $availableImeisByVariant ?? collect();
+@endphp
+
 @if(session('success'))
     <div class="alert alert-success">{{ session('success') }}</div>
 @endif
@@ -78,7 +82,7 @@
             <a href="{{ route('admin.orders.index', ['tab' => 'cancelled']) }}"
                class="btn btn-sm {{ request('tab') === 'cancelled' ? 'btn-primary' : 'btn-light' }}">
                 Đã hủy
-</a>
+            </a>
         </div>
     </div>
 </section>
@@ -96,7 +100,7 @@
                     name="keyword"
                     value="{{ request('keyword') }}"
                     class="form-control form-control-sm"
-                    placeholder="Tìm theo mã đơn, tên khách hàng, số điện thoại hoặc địa chỉ">
+                    placeholder="Tìm theo mã đơn, tên khách hàng, số điện thoại, địa chỉ hoặc người nhận">
             </div>
 
             <div class="col-md-2 d-flex gap-2">
@@ -120,15 +124,12 @@
                 <tr>
                     <th>Mã đơn</th>
                     <th>Khách hàng</th>
+                    <th>Người nhận</th>
                     <th>Sản phẩm</th>
-<<<<<<< HEAD
-=======
                     <th>Trạng thái đơn</th>
-                    <th>Trạng thái giao hàng</th>
->>>>>>> origin/bac
                     <th class="text-end">Tổng tiền</th>
                     <th>Thanh toán</th>
-                    <th>Trạng thái</th>
+                    <th>Tiến trình xử lý</th>
                     <th class="text-end">Thao tác</th>
                 </tr>
             </thead>
@@ -138,6 +139,7 @@
                     <tr>
                         <td class="fw-semibold">
                             {{ $order->order_code }}
+
                             <div class="text-muted small">
                                 {{ $order->created_at?->format('d/m/Y H:i') }}
                             </div>
@@ -147,12 +149,34 @@
                             <div class="fw-semibold">
                                 {{ $order->customer_name ?? $order->user->name ?? 'Guest' }}
                             </div>
+
                             <div class="text-muted small">
                                 {{ $order->customer_phone ?? '-' }}
                             </div>
+
                             <div class="text-muted small">
                                 {{ $order->shipping_address ?? '-' }}
                             </div>
+                        </td>
+
+                        <td>
+                            <div class="fw-semibold">
+                                {{ $order->receiver->receiver_name ?? $order->customer_name ?? $order->user->name ?? 'Guest' }}
+                            </div>
+
+                            <div class="text-muted small">
+                                {{ $order->receiver->receiver_phone ?? $order->customer_phone ?? '-' }}
+                            </div>
+
+                            <div class="text-muted small">
+                                {{ $order->receiver->receiver_address ?? $order->shipping_address ?? '-' }}
+                            </div>
+
+                            @if($order->receiver?->receiver_note)
+                                <div class="text-muted small">
+                                    Ghi chú: {{ $order->receiver->receiver_note }}
+                                </div>
+                            @endif
                         </td>
 
                         <td>
@@ -161,18 +185,16 @@
                                     <span class="fw-semibold">
                                         {{ $item->product->name ?? ('Product #' . $item->product_id) }}
                                     </span>
-<<<<<<< HEAD
-x {{ $item->quantity }}
-=======
+
                                     x {{ $item->quantity }}
->>>>>>> origin/bac
 
                                     @if($item->variant)
                                         <div class="text-muted small">
                                             Biến thể:
                                             {{ $item->variant->color ?? '-' }}
-                                            @if(!empty($item->variant->storage))
-                                                - {{ $item->variant->storage }}
+
+                                            @if(!empty($item->product->storage))
+                                                - {{ $item->product->storage }}
                                             @endif
                                         </div>
                                     @else
@@ -181,9 +203,30 @@ x {{ $item->quantity }}
                                         </div>
                                     @endif
 
-                                    @if($item->imei)
+                                    @if($item->imeis && $item->imeis->isNotEmpty())
                                         <div class="text-muted small">
-                                            IMEI: {{ $item->imei->imei ?? $item->imei->serial_number ?? $item->imei->id }}
+                                            IMEI:
+                                            @foreach($item->imeis as $assignedImei)
+                                                <span class="fw-semibold">
+                                                    {{ $assignedImei->imei ?? $assignedImei->id }}
+                                                </span>
+                                                @if(!empty($assignedImei->status))
+                                                    <span>({{ $assignedImei->status }})</span>
+                                                @endif
+                                                @if(!$loop->last)
+                                                    <span>,</span>
+                                                @endif
+                                            @endforeach
+                                        </div>
+
+                                        @if(($item->product->product_type ?? null) === 'imei/serial' && !$item->hasFullImeiAssignment())
+                                            <div class="text-danger small">
+                                                Còn thiếu {{ $item->remainingImeiSlots() }} IMEI
+                                            </div>
+                                        @endif
+                                    @elseif(($item->product->product_type ?? null) === 'imei/serial')
+                                        <div class="text-danger small">
+                                            Chưa gán IMEI
                                         </div>
                                     @endif
                                 </div>
@@ -221,35 +264,6 @@ x {{ $item->quantity }}
                             @endswitch
                         </td>
 
-<td>
-    @if($order->shipment)
-        @switch($order->shipment->shipping_status)
-            @case('pending')
-                <span class="badge text-bg-secondary">Chờ giao</span>
-                @break
-
-            @case('shipping')
-                <span class="badge text-bg-primary">Đang giao</span>
-                @break
-
-            @case('delivered')
-                <span class="badge text-bg-success">Đã giao</span>
-                @break
-
-            @case('failed')
-                <span class="badge text-bg-danger">Giao thất bại</span>
-                @break
-
-            @default
-                <span class="badge text-bg-light">
-                    {{ $order->shipment->shipping_status }}
-                </span>
-        @endswitch
-    @else
-        <span class="text-muted">—</span>
-    @endif
-</td>
-
                         <td class="text-end fw-semibold">
                             {{ number_format($order->total_amount, 0, ',', '.') }} đ
                         </td>
@@ -285,7 +299,7 @@ x {{ $item->quantity }}
                             @php
                                 $badge = match($order->fulfillment_status) {
                                     'pending' => 'text-bg-secondary',
-'waiting_pack' => 'text-bg-primary',
+                                    'waiting_pack' => 'text-bg-primary',
                                     'waiting_handover' => 'text-bg-info',
                                     'shipping' => 'text-bg-warning',
                                     'completed' => 'text-bg-success',
@@ -307,15 +321,32 @@ x {{ $item->quantity }}
                                     Chi tiết
                                 </a>
 
-                                <a href="{{ route('admin.orders.printShippingLabel', $order) }}"
-                                   target="_blank"
-                                   class="btn btn-outline-dark btn-sm">
-                                    In phiếu
-                                </a>
+                                @php
+                                    $missingRequiredImeis = $order->items->contains(function ($item) {
+                                        return ($item->product->product_type ?? null) === 'imei/serial'
+                                            && !$item->hasFullImeiAssignment();
+                                    });
+                                @endphp
+
+                                @if($missingRequiredImeis)
+                                    <button type="button"
+                                            class="btn btn-outline-secondary btn-sm"
+                                            disabled
+                                            title="Cần nhập IMEI trước khi in phiếu.">
+                                        In phiếu
+                                    </button>
+                                @else
+                                    <a href="{{ route('admin.orders.printShippingLabel', $order) }}"
+                                    target="_blank"
+                                    class="btn btn-outline-dark btn-sm">
+                                        In phiếu
+                                    </a>
+                                @endif
 
                                 @if($order->fulfillment_status === 'pending')
                                     <form action="{{ route('admin.orders.confirm', $order) }}" method="POST">
                                         @csrf
+
                                         <button type="submit" class="btn btn-primary btn-sm">
                                             Xác nhận
                                         </button>
@@ -334,12 +365,14 @@ x {{ $item->quantity }}
                                 @if($order->fulfillment_status === 'waiting_handover')
                                     <form action="{{ route('admin.orders.handover', $order) }}" method="POST">
                                         @csrf
+
                                         <button type="submit" class="btn btn-primary btn-sm">
                                             Bắt đầu giao
                                         </button>
                                     </form>
                                 @endif
-@if($order->fulfillment_status === 'shipping')
+
+                                @if($order->fulfillment_status === 'shipping')
                                     <button type="button"
                                             class="btn btn-success btn-sm"
                                             data-bs-toggle="modal"
@@ -356,9 +389,11 @@ x {{ $item->quantity }}
                                 @endif
 
                                 @if($order->fulfillment_status === 'failed')
-                                    <form action="{{ route('admin.orders.retryDelivery', $order) }}" method="POST"
+                                    <form action="{{ route('admin.orders.retryDelivery', $order) }}"
+                                          method="POST"
                                           onsubmit="return confirm('Bạn có chắc muốn giao lại đơn hàng này không?');">
                                         @csrf
+
                                         <button type="submit" class="btn btn-primary btn-sm">
                                             Giao lại
                                         </button>
@@ -366,13 +401,12 @@ x {{ $item->quantity }}
                                 @endif
 
                                 @if(!in_array($order->fulfillment_status, ['completed', 'cancelled'], true))
-                                    <form action="{{ route('admin.orders.cancel', $order) }}" method="POST"
-                                          onsubmit="return confirm('Bạn chắc chắn muốn hủy đơn hàng này?')">
-                                        @csrf
-                                        <button type="submit" class="btn btn-danger btn-sm">
-                                            Hủy
-                                        </button>
-                                    </form>
+                                    <button type="button"
+                                            class="btn btn-danger btn-sm"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#cancelModal-{{ $order->id }}">
+                                        Hủy
+                                    </button>
                                 @endif
                             </div>
                         </td>
@@ -395,146 +429,19 @@ x {{ $item->quantity }}
     @endif
 </section>
 
-{{-- Modal đặt ngoài bảng để tránh lỗi Bootstrap/HTML --}}
 @foreach($orders as $order)
 
-    {{-- Modal xác nhận đóng gói --}}
-    <div class="modal fade"
-         id="packedModal-{{ $order->id }}"
-         tabindex="-1"
-aria-labelledby="packedModalLabel-{{ $order->id }}"
-         aria-hidden="true">
-        <div class="modal-dialog">
-            <form action="{{ route('admin.orders.markPacked', $order) }}"
-                  method="POST"
-                  enctype="multipart/form-data"
-                  class="modal-content">
-                @csrf
+    @include('admin.orders.partials.packed-modal', [
+        'order' => $order,
+        'modalId' => 'packedModal-' . $order->id,
+        'availableImeisByVariant' => $availableImeisByVariant,
+    ])
 
-                <div class="modal-header">
-                    <h5 class="modal-title" id="packedModalLabel-{{ $order->id }}">
-                        Xác nhận đã đóng gói
-                    </h5>
+    @include('admin.orders.partials.delivered-modal', [
+        'order' => $order,
+        'modalId' => 'deliveredModal-' . $order->id,
+    ])
 
-                    <button type="button"
-                            class="btn-close"
-                            data-bs-dismiss="modal"
-                            aria-label="Đóng">
-                    </button>
-                </div>
-
-                <div class="modal-body">
-                    <div class="mb-2">
-                        <strong>Mã đơn:</strong> {{ $order->order_code }}
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">
-                            Ảnh minh chứng đã đóng gói <span class="text-danger">*</span>
-                        </label>
-
-                        <input type="file"
-                               name="packed_image"
-                               class="form-control"
-                               accept="image/*"
-                               required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Ghi chú</label>
-
-                        <textarea name="note"
-                                  class="form-control"
-                                  rows="3"
-                                  placeholder="Nhập ghi chú nếu có"></textarea>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button"
-                            class="btn btn-outline-secondary"
-                            data-bs-dismiss="modal">
-                        Đóng
-                    </button>
-
-                    <button type="submit"
-                            class="btn btn-primary">
-                        Xác nhận đóng gói
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    {{-- Modal xác nhận giao thành công --}}
-    <div class="modal fade"
-         id="deliveredModal-{{ $order->id }}"
-         tabindex="-1"
-         aria-labelledby="deliveredModalLabel-{{ $order->id }}"
-         aria-hidden="true">
-        <div class="modal-dialog">
-            <form action="{{ route('admin.orders.markDelivered', $order) }}"
-                  method="POST"
-                  enctype="multipart/form-data"
-                  class="modal-content">
-                @csrf
-
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deliveredModalLabel-{{ $order->id }}">
-Xác nhận giao hàng thành công
-                    </h5>
-
-                    <button type="button"
-                            class="btn-close"
-                            data-bs-dismiss="modal"
-                            aria-label="Đóng">
-                    </button>
-                </div>
-
-                <div class="modal-body">
-                    <div class="mb-2">
-                        <strong>Mã đơn:</strong> {{ $order->order_code }}
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">
-                            Ảnh minh chứng giao hàng <span class="text-danger">*</span>
-                        </label>
-
-                        <input type="file"
-                               name="delivered_image"
-                               class="form-control"
-                               accept="image/*"
-                               required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Ghi chú</label>
-
-                        <textarea name="note"
-                                  class="form-control"
-                                  rows="3"
-                                  placeholder="Nhập ghi chú nếu có"></textarea>
-                    </div>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button"
-                            class="btn btn-outline-secondary"
-                            data-bs-dismiss="modal">
-                        Đóng
-                    </button>
-
-                    <button type="submit"
-                            class="btn btn-success">
-                        Xác nhận đã giao
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    {{-- Modal xác nhận giao thất bại --}}
     <div class="modal fade"
          id="failedModal-{{ $order->id }}"
          tabindex="-1"
@@ -562,7 +469,7 @@ Xác nhận giao hàng thành công
                 <div class="modal-body">
                     <div class="mb-2">
                         <strong>Mã đơn:</strong> {{ $order->order_code }}
-</div>
+                    </div>
 
                     <div class="mb-3">
                         <label class="form-label">Ảnh minh chứng giao thất bại</label>
@@ -598,6 +505,107 @@ Xác nhận giao hàng thành công
             </form>
         </div>
     </div>
+
+    <div class="modal fade"
+     id="cancelModal-{{ $order->id }}"
+     tabindex="-1"
+     aria-labelledby="cancelModalLabel-{{ $order->id }}"
+     aria-hidden="true">
+
+    <div class="modal-dialog">
+
+        <form action="{{ route('admin.orders.cancel', $order) }}"
+              method="POST"
+              enctype="multipart/form-data"
+              class="modal-content">
+
+            @csrf
+
+            <div class="modal-header">
+
+                <h5 class="modal-title"
+                    id="cancelModalLabel-{{ $order->id }}">
+
+                    Hủy đơn hàng
+
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal">
+                </button>
+
+            </div>
+
+            <div class="modal-body">
+
+                <div class="mb-2">
+
+                    <strong>Mã đơn:</strong>
+
+                    {{ $order->order_code }}
+
+                </div>
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+
+                        Lý do hủy <span class="text-danger">*</span>
+
+                    </label>
+
+                    <textarea
+                        class="form-control"
+                        name="cancel_reason"
+                        rows="3"
+                        required
+                        placeholder="Nhập lý do hủy đơn..."></textarea>
+
+                </div>
+
+                <div class="mb-3">
+
+                    <label class="form-label">
+
+                        Ảnh minh chứng (không bắt buộc)
+
+                    </label>
+
+                    <input
+                        type="file"
+                        class="form-control"
+                        name="cancel_image"
+                        accept="image/*">
+
+                </div>
+
+            </div>
+
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="btn btn-light"
+                        data-bs-dismiss="modal">
+
+                    Đóng
+
+                </button>
+
+                <button type="submit"
+                        class="btn btn-danger">
+
+                    Xác nhận hủy đơn
+
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
 
 @endforeach
 

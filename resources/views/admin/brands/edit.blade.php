@@ -7,7 +7,7 @@
 @section('page_subtitle', 'Cập nhật thông tin thương hiệu, logo và mô tả.')
 
 @section('heading_actions')
-<a href="{{ route('brands.index') }}" class="btn btn-light btn-sm">
+<a href="{{ route('admin.brands.index') }}" class="btn btn-light btn-sm">
     <i class="bi bi-arrow-left"></i> Quay lại
 </a>
 @endsection
@@ -25,7 +25,7 @@
 
     <div class="p-3">
         <form
-            action="{{ route('brands.update', $brand) }}"
+            action="{{ route('admin.brands.update', $brand) }}"
             method="POST"
             enctype="multipart/form-data"
             style="max-width: 700px;">
@@ -109,7 +109,7 @@
                     <i class="bi bi-check-lg"></i> Cập nhật
                 </button>
 
-                <a href="{{ route('brands.index') }}" class="btn btn-light btn-sm">
+                <a href="{{ route('admin.brands.index') }}" class="btn btn-light btn-sm">
                     Hủy
                 </a>
             </div>

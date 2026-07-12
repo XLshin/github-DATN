@@ -1,4 +1,7 @@
-<div class="modal fade" id="deliveredModal{{ $order->id }}" tabindex="-1">
+<div class="modal fade"
+     id="{{ $modalId ?? ('deliveredModal-' . $order->id) }}"
+     tabindex="-1"
+     aria-hidden="true">
     <div class="modal-dialog">
         <form action="{{ route('admin.orders.markDelivered', $order) }}"
               method="POST"
@@ -7,8 +10,13 @@
             @csrf
 
             <div class="modal-header">
-                <h5 class="modal-title">Xác nhận đã giao hàng</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title">Xác nhận giao hàng thành công</h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Đóng">
+                </button>
             </div>
 
             <div class="modal-body">
@@ -21,6 +29,7 @@
                     <label class="form-label">
                         Ảnh minh chứng đã giao hàng <span class="text-danger">*</span>
                     </label>
+
                     <input type="file"
                            name="delivered_image"
                            class="form-control"
@@ -30,7 +39,11 @@
 
                 <div class="mb-3">
                     <label class="form-label">Ghi chú</label>
-                    <textarea name="note" class="form-control" rows="3"></textarea>
+
+                    <textarea name="note"
+                              class="form-control"
+                              rows="3"
+                              placeholder="Nhập ghi chú nếu có"></textarea>
                 </div>
             </div>
 
@@ -41,7 +54,7 @@
                     Đóng
                 </button>
 
-                <button class="btn btn-success">
+                <button type="submit" class="btn btn-success">
                     Xác nhận đã giao
                 </button>
             </div>

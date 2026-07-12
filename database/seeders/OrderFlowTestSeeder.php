@@ -27,6 +27,24 @@ class OrderFlowTestSeeder extends Seeder
                 ->all();
 
             if (! empty($orderIds)) {
+                $oldImeiIds = DB::table('order_items')
+                    ->whereIn('order_id', $orderIds)
+                    ->whereNotNull('imei_id')
+                    ->pluck('imei_id')
+                    ->all();
+
+                if (! empty($oldImeiIds)) {
+                    DB::table('imeis')
+                        ->whereIn('id', $oldImeiIds)
+                        ->whereIn('status', ['reserved'])
+                        ->update([
+                            'status' => 'available',
+                            'reserved_at' => null,
+                            'reserved_by_order_item_id' => null,
+                            'updated_at' => $now,
+                        ]);
+                }
+
                 $shipmentIds = DB::table('shipments')
                     ->whereIn('order_id', $orderIds)
                     ->pluck('id')
@@ -37,6 +55,10 @@ class OrderFlowTestSeeder extends Seeder
                         ->whereIn('shipment_id', $shipmentIds)
                         ->delete();
                 }
+
+                DB::table('order_receivers')
+                    ->whereIn('order_id', $orderIds)
+                    ->delete();
 
                 DB::table('order_proofs')
                     ->whereIn('order_id', $orderIds)
@@ -59,6 +81,11 @@ class OrderFlowTestSeeder extends Seeder
                     ->delete();
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | 2. Xóa lại IMEI test riêng của seeder này
+            |--------------------------------------------------------------------------
+            */
             DB::table('imeis')
                 ->where(function ($query) {
                     $query->where('imei', 'like', '86000100000%')
@@ -70,7 +97,7 @@ class OrderFlowTestSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | 2. Tạo user admin và customer test
+            | 3. Tạo user admin và customer test
             |--------------------------------------------------------------------------
             */
             DB::table('users')->updateOrInsert(
@@ -114,7 +141,7 @@ class OrderFlowTestSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | 3. Tạo category, brand
+            | 4. Tạo category, brand
             |--------------------------------------------------------------------------
             */
             DB::table('categories')->updateOrInsert(
@@ -168,7 +195,7 @@ class OrderFlowTestSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | 4. Tạo sản phẩm: điện thoại dùng IMEI, phụ kiện dùng quantity
+            | 5. Tạo sản phẩm
             |--------------------------------------------------------------------------
             */
             $iphoneId = $this->upsertProduct([
@@ -225,7 +252,7 @@ class OrderFlowTestSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | 5. Tạo biến thể
+            | 6. Tạo biến thể
             |--------------------------------------------------------------------------
             */
             $iphoneBlack128 = $this->upsertVariant($iphoneId, 'Titan Đen', '128GB', 0, 10, $now);
@@ -242,7 +269,7 @@ class OrderFlowTestSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | 6. Tạo IMEI cho điện thoại
+            | 7. Tạo IMEI available cho điện thoại
             |--------------------------------------------------------------------------
             */
             $this->createImeis($iphoneBlack128, '86000100000', 12, $now);
@@ -252,16 +279,19 @@ class OrderFlowTestSeeder extends Seeder
 
             /*
             |--------------------------------------------------------------------------
-            | 7. Tạo nhiều đơn hàng theo từng trạng thái để test admin
+            | 8. Tạo nhiều đơn hàng theo từng trạng thái để test admin
             |--------------------------------------------------------------------------
             */
-
             $this->createOrderCase([
                 'code' => 'ORD_FLOW_001_PENDING_IMEI',
                 'user_id' => $customer->id,
                 'customer_name' => 'Nguyễn Văn Chờ Xử Lý',
                 'customer_phone' => '0901000001',
                 'shipping_address' => '10 Lê Lợi, Quận 1, TP.HCM',
+                'receiver_name' => 'Người nhận đơn 001',
+                'receiver_phone' => '0981000001',
+                'receiver_address' => 'Lầu 1, 10 Lê Lợi, Quận 1, TP.HCM',
+                'receiver_note' => 'Đơn mới, chưa xác nhận.',
                 'status' => 'pending',
                 'fulfillment_status' => 'pending',
                 'payment_method' => 'cod',
@@ -272,8 +302,7 @@ class OrderFlowTestSeeder extends Seeder
                         'variant_id' => $iphoneBlack128,
                         'price' => 29990000,
                         'quantity' => 1,
-                        'imei_prefix' => '86000100000',
-                        'imei_status' => 'reserved',
+                        'assign_imei' => false,
                     ],
                 ],
                 'now' => $now,
@@ -285,6 +314,10 @@ class OrderFlowTestSeeder extends Seeder
                 'customer_name' => 'Trần Thị Chờ Đóng Gói',
                 'customer_phone' => '0901000002',
                 'shipping_address' => '20 Cầu Giấy, Hà Nội',
+                'receiver_name' => 'Người nhận đơn 002',
+                'receiver_phone' => '0981000002',
+                'receiver_address' => 'Tầng 2, 20 Cầu Giấy, Hà Nội',
+                'receiver_note' => 'Đơn chờ đóng gói, cần chọn IMEI.',
                 'status' => 'processing',
                 'fulfillment_status' => 'waiting_pack',
                 'confirmed_at' => $now->copy()->subHours(3),
@@ -296,8 +329,7 @@ class OrderFlowTestSeeder extends Seeder
                         'variant_id' => $iphoneWhite256,
                         'price' => 32990000,
                         'quantity' => 1,
-                        'imei_prefix' => '86000200000',
-                        'imei_status' => 'reserved',
+                        'assign_imei' => false,
                     ],
                     [
                         'product_id' => $chargerId,
@@ -315,6 +347,10 @@ class OrderFlowTestSeeder extends Seeder
                 'customer_name' => 'Lê Văn Chờ Bàn Giao',
                 'customer_phone' => '0901000003',
                 'shipping_address' => '30 Nguyễn Văn Linh, Đà Nẵng',
+                'receiver_name' => 'Người nhận đơn 003',
+                'receiver_phone' => '0981000003',
+                'receiver_address' => '30 Nguyễn Văn Linh, Đà Nẵng',
+                'receiver_note' => 'Đã đóng gói, chờ bàn giao shipper.',
                 'status' => 'processing',
                 'fulfillment_status' => 'waiting_handover',
                 'confirmed_at' => $now->copy()->subHours(5),
@@ -327,7 +363,7 @@ class OrderFlowTestSeeder extends Seeder
                         'variant_id' => $samsungBlack256,
                         'price' => 24990000,
                         'quantity' => 1,
-                        'imei_prefix' => '86000300000',
+                        'assign_imei' => true,
                         'imei_status' => 'reserved',
                     ],
                 ],
@@ -342,6 +378,10 @@ class OrderFlowTestSeeder extends Seeder
                 'customer_name' => 'Phạm Văn Đang Giao',
                 'customer_phone' => '0901000004',
                 'shipping_address' => '40 Hai Bà Trưng, Hà Nội',
+                'receiver_name' => 'Người nhận đơn 004',
+                'receiver_phone' => '0981000004',
+                'receiver_address' => '40 Hai Bà Trưng, Hà Nội',
+                'receiver_note' => 'Đơn đang giao.',
                 'status' => 'shipping',
                 'fulfillment_status' => 'shipping',
                 'confirmed_at' => $now->copy()->subDay(),
@@ -355,7 +395,7 @@ class OrderFlowTestSeeder extends Seeder
                         'variant_id' => $samsungBlue512,
                         'price' => 28990000,
                         'quantity' => 1,
-                        'imei_prefix' => '86000400000',
+                        'assign_imei' => true,
                         'imei_status' => 'reserved',
                     ],
                     [
@@ -377,6 +417,10 @@ class OrderFlowTestSeeder extends Seeder
                 'customer_name' => 'Hoàng Thị Hoàn Thành',
                 'customer_phone' => '0901000005',
                 'shipping_address' => '50 Trần Phú, Nha Trang',
+                'receiver_name' => 'Người nhận đơn 005',
+                'receiver_phone' => '0981000005',
+                'receiver_address' => '50 Trần Phú, Nha Trang',
+                'receiver_note' => 'Đã giao thành công.',
                 'status' => 'completed',
                 'fulfillment_status' => 'completed',
                 'confirmed_at' => $now->copy()->subDays(3),
@@ -391,7 +435,7 @@ class OrderFlowTestSeeder extends Seeder
                         'variant_id' => $iphoneBlack128,
                         'price' => 29990000,
                         'quantity' => 1,
-                        'imei_prefix' => '86000100000',
+                        'assign_imei' => true,
                         'imei_status' => 'sold',
                     ],
                 ],
@@ -407,6 +451,10 @@ class OrderFlowTestSeeder extends Seeder
                 'customer_name' => 'Đỗ Văn Giao Thất Bại',
                 'customer_phone' => '0901000006',
                 'shipping_address' => '60 Phạm Văn Đồng, Thủ Đức',
+                'receiver_name' => 'Người nhận đơn 006',
+                'receiver_phone' => '0981000006',
+                'receiver_address' => '60 Phạm Văn Đồng, Thủ Đức',
+                'receiver_note' => 'Khách không nghe máy.',
                 'status' => 'shipping',
                 'fulfillment_status' => 'failed',
                 'confirmed_at' => $now->copy()->subDays(2),
@@ -420,7 +468,7 @@ class OrderFlowTestSeeder extends Seeder
                         'variant_id' => $samsungBlack256,
                         'price' => 24990000,
                         'quantity' => 1,
-                        'imei_prefix' => '86000300000',
+                        'assign_imei' => true,
                         'imei_status' => 'reserved',
                     ],
                 ],
@@ -436,6 +484,10 @@ class OrderFlowTestSeeder extends Seeder
                 'customer_name' => 'Bùi Thị Đã Hủy',
                 'customer_phone' => '0901000007',
                 'shipping_address' => '70 Láng Hạ, Hà Nội',
+                'receiver_name' => 'Người nhận đơn 007',
+                'receiver_phone' => '0981000007',
+                'receiver_address' => '70 Láng Hạ, Hà Nội',
+                'receiver_note' => 'Đơn đã hủy, không giữ IMEI.',
                 'status' => 'cancelled',
                 'fulfillment_status' => 'cancelled',
                 'cancelled_at' => $now->copy()->subHours(6),
@@ -443,10 +495,11 @@ class OrderFlowTestSeeder extends Seeder
                 'payment_status' => 'pending',
                 'items' => [
                     [
-                        'product_id' => $chargerId,
-                        'variant_id' => $chargerBlack,
-                        'price' => 490000,
-                        'quantity' => 3,
+                        'product_id' => $iphoneId,
+                        'variant_id' => $iphoneBlack128,
+                        'price' => 29990000,
+                        'quantity' => 1,
+                        'assign_imei' => false,
                     ],
                 ],
                 'now' => $now,
@@ -458,6 +511,10 @@ class OrderFlowTestSeeder extends Seeder
                 'customer_name' => 'Vũ Văn Chưa Thanh Toán',
                 'customer_phone' => '0901000008',
                 'shipping_address' => '80 Điện Biên Phủ, Bình Thạnh',
+                'receiver_name' => 'Người nhận đơn 008',
+                'receiver_phone' => '0981000008',
+                'receiver_address' => '80 Điện Biên Phủ, Bình Thạnh',
+                'receiver_note' => null,
                 'status' => 'pending',
                 'fulfillment_status' => 'pending',
                 'payment_method' => 'bank_transfer',
@@ -479,6 +536,10 @@ class OrderFlowTestSeeder extends Seeder
                 'customer_name' => 'Ngô Thị Phụ Kiện',
                 'customer_phone' => '0901000009',
                 'shipping_address' => '90 Hoàng Hoa Thám, Hà Nội',
+                'receiver_name' => 'Người nhận đơn 009',
+                'receiver_phone' => '0981000009',
+                'receiver_address' => '90 Hoàng Hoa Thám, Hà Nội',
+                'receiver_note' => 'Đơn chỉ có phụ kiện, không cần nhập IMEI.',
                 'status' => 'processing',
                 'fulfillment_status' => 'waiting_pack',
                 'confirmed_at' => $now->copy()->subHour(),
@@ -501,7 +562,7 @@ class OrderFlowTestSeeder extends Seeder
                 'now' => $now,
             ]);
 
-            $this->command->info('Đã seed dữ liệu test flow đơn hàng thành công.');
+            $this->command->info('Đã seed dữ liệu test flow đơn hàng theo flow mới thành công.');
             $this->command->info('Admin: admin@gmail.com / 12345678');
             $this->command->info('Customer: customer.flow@gmail.com / 12345678');
         });
@@ -609,18 +670,46 @@ class OrderFlowTestSeeder extends Seeder
             'updated_at' => $now,
         ]);
 
+        DB::table('order_receivers')->insert([
+            'order_id' => $orderId,
+            'receiver_name' => $data['receiver_name'] ?? $data['customer_name'],
+            'receiver_phone' => $data['receiver_phone'] ?? $data['customer_phone'],
+            'receiver_address' => $data['receiver_address'] ?? $data['shipping_address'],
+            'receiver_note' => $data['receiver_note'] ?? null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
         foreach ($data['items'] as $item) {
+            $product = DB::table('products')
+                ->where('id', $item['product_id'])
+                ->first();
+
+            if (! $product) {
+                throw new \Exception('Không tìm thấy sản phẩm ID: ' . $item['product_id']);
+            }
+
             $imeiId = null;
 
-            if (! empty($item['imei_prefix'])) {
+            /*
+            |--------------------------------------------------------------------------
+            | Chỉ các case đã qua bước đóng gói mới gắn IMEI
+            |--------------------------------------------------------------------------
+            */
+            if (
+                $product->product_type === 'imei/serial'
+                && ! empty($item['assign_imei'])
+            ) {
                 $imei = DB::table('imeis')
-                    ->where('imei', 'like', $item['imei_prefix'] . '%')
+                    ->where('product_variant_id', $item['variant_id'])
                     ->where('status', 'available')
                     ->orderBy('id')
                     ->first();
 
                 if (! $imei) {
-                    throw new \Exception('Không còn IMEI available cho prefix: ' . $item['imei_prefix']);
+                    throw new \Exception(
+                        'Không còn IMEI available cho product_variant_id: ' . $item['variant_id']
+                    );
                 }
 
                 $imeiId = $imei->id;
@@ -639,19 +728,24 @@ class OrderFlowTestSeeder extends Seeder
             ]);
 
             if ($imeiId) {
+                $imeiStatus = $item['imei_status'] ?? 'reserved';
+
                 DB::table('imeis')
                     ->where('id', $imeiId)
                     ->update([
-                        'status' => $item['imei_status'] ?? 'reserved',
-                        'reserved_at' => ($item['imei_status'] ?? 'reserved') === 'reserved' ? $now : null,
-                        'reserved_by_order_item_id' => $orderItemId,
+                        'status' => $imeiStatus,
+                        'reserved_at' => $imeiStatus === 'reserved' ? $now : null,
+                        'reserved_by_order_item_id' => $imeiStatus === 'reserved'
+                            ? $orderItemId
+                            : null,
                         'updated_at' => $now,
                     ]);
             }
 
-            $product = DB::table('products')->where('id', $item['product_id'])->first();
-
-            if ($product && $product->product_type === 'quantity' && $data['fulfillment_status'] !== 'cancelled') {
+            if (
+                $product->product_type === 'quantity'
+                && $data['fulfillment_status'] !== 'cancelled'
+            ) {
                 DB::table('product_variants')
                     ->where('id', $item['variant_id'])
                     ->decrement('stock_quantity', $item['quantity']);
@@ -663,7 +757,9 @@ class OrderFlowTestSeeder extends Seeder
             'payment_method' => $data['payment_method'],
             'amount' => $subtotal,
             'payment_status' => $data['payment_status'],
-            'transaction_code' => $data['payment_status'] === 'paid' ? 'TXN_' . $data['code'] : null,
+            'transaction_code' => $data['payment_status'] === 'paid'
+                ? 'TXN_' . $data['code']
+                : null,
             'paid_at' => $data['payment_status'] === 'paid' ? $now : null,
             'created_at' => $now,
             'updated_at' => $now,
