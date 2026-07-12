@@ -6,162 +6,37 @@
 <div class="container py-3">
 <div class="row g-4">
 
-{{-- ===================== SIDEBAR FILTER (sticky trái) ===================== --}}
-<div class="col-lg-3 d-none d-lg-block">
-    <div style="position:sticky;top:80px;max-height:calc(100vh - 100px);overflow-y:auto;">
-        <form method="GET" action="{{ route('home') }}" id="filterForm">
-
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                    <h6 class="fw-semibold mb-2">Tìm kiếm</h6>
-                    <div class="input-group">
-                        <input type="text" name="search" value="{{ request('search') }}"
-                            class="form-control form-control-sm" placeholder="Tên sản phẩm...">
-                        <button class="btn btn-primary btn-sm" type="submit">
-                            <i class="lni lni-search-alt"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                    <h6 class="fw-semibold mb-2">Danh mục</h6>
-                    <div class="d-flex flex-column gap-1">
-                        <a href="{{ request()->fullUrlWithQuery(['category_id' => '', 'page' => 1]) }}"
-                            class="text-decoration-none small {{ !request('category_id') ? 'fw-semibold text-primary' : 'text-dark' }}">Tất cả</a>
-                        @foreach($allCategories as $cat)
-                        <a href="{{ request()->fullUrlWithQuery(['category_id' => $cat->id, 'page' => 1]) }}#tat-ca-san-pham"
-                            class="text-decoration-none small {{ request('category_id') == $cat->id ? 'fw-semibold text-primary' : 'text-dark' }}">
-                            {{ $cat->name }}
-                        </a>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                    <h6 class="fw-semibold mb-2">Thương hiệu</h6>
-                    <div class="d-flex flex-column gap-1">
-                        <a href="{{ request()->fullUrlWithQuery(['brand_id' => '', 'page' => 1]) }}"
-                            class="text-decoration-none small {{ !request('brand_id') ? 'fw-semibold text-primary' : 'text-dark' }}">Tất cả</a>
-                        @foreach($allBrands as $br)
-                        <a href="{{ request()->fullUrlWithQuery(['brand_id' => $br->id, 'page' => 1]) }}#tat-ca-san-pham"
-                            class="text-decoration-none small {{ request('brand_id') == $br->id ? 'fw-semibold text-primary' : 'text-dark' }}">
-                            {{ $br->name }}
-                        </a>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                    <h6 class="fw-semibold mb-2">Khoảng giá</h6>
-                    <div class="d-flex gap-2 align-items-center">
-                        <input type="number" name="price_min" value="{{ request('price_min') }}"
-                            class="form-control form-control-sm" placeholder="Từ">
-                        <span class="text-muted small">—</span>
-                        <input type="number" name="price_max" value="{{ request('price_max') }}"
-                            class="form-control form-control-sm" placeholder="Đến">
-                    </div>
-                </div>
-            </div>
-
-            @if($colors->count())
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                    <h6 class="fw-semibold mb-2">Màu sắc</h6>
-                    <select name="color" class="form-select form-select-sm" onchange="this.form.submit()">
-                        <option value="">Tất cả</option>
-                        @foreach($colors as $color)
-                        <option value="{{ $color }}" @selected(request('color') === $color)>{{ $color }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-            @endif
-
-            @if($storages->count())
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                    <h6 class="fw-semibold mb-2">Dung lượng</h6>
-                    <select name="storage" class="form-select form-select-sm" onchange="this.form.submit()">
-                        <option value="">Tất cả</option>
-                        @foreach($storages as $storage)
-                        <option value="{{ $storage }}" @selected(request('storage') === $storage)>{{ $storage }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-            @endif
-
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" name="in_stock" value="1"
-                            id="inStock" @checked(request('in_stock')) onchange="this.form.submit()">
-                        <label class="form-check-label small" for="inStock">Chỉ hiện còn hàng</label>
-                    </div>
-                </div>
-            </div>
-
-            @foreach(request()->except(['price_min','price_max','search','color','storage','in_stock','_token','page']) as $k => $v)
-            <input type="hidden" name="{{ $k }}" value="{{ $v }}">
-            @endforeach
-
-            <div class="d-grid gap-2 mb-3">
-                <button type="submit" class="btn btn-primary btn-sm">Áp dụng</button>
-                <a href="{{ route('home') }}" class="btn btn-outline-secondary btn-sm">Xóa bộ lọc</a>
-            </div>
-        </form>
-    </div>
-</div>
-
-{{-- ===================== NỘI DUNG CHÍNH (phải) ===================== --}}
-<div class="col-lg-9">
+{{-- ===================== NỘI DUNG CHÍNH ===================== --}}
+<div class="col-12">
 
     {{-- BANNER --}}
     @if($banners->isNotEmpty())
-    <div class="row g-3 mb-4">
-        <div class="col-md-8">
-            <div id="homeBanner" class="carousel slide rounded-3 overflow-hidden" data-bs-ride="carousel" data-bs-interval="3500">
-                <div class="carousel-indicators">
-                    @foreach($banners as $i => $banner)
-                    <button type="button" data-bs-target="#homeBanner" data-bs-slide-to="{{ $i }}"
-                        class="{{ $i === 0 ? 'active' : '' }}"></button>
-                    @endforeach
-                </div>
-                <div class="carousel-inner">
-                    @foreach($banners as $i => $banner)
-                    <div class="carousel-item {{ $i === 0 ? 'active' : '' }}">
-                        @if($banner->link)<a href="{{ $banner->link }}">@endif
-                        <img src="{{ asset('storage/' . $banner->image) }}"
-                            class="d-block w-100" style="height:300px;object-fit:cover;" alt="{{ $banner->title }}">
-                        @if($banner->link)</a>@endif
-                    </div>
-                    @endforeach
-                </div>
-                @if($banners->count() > 1)
-                <button class="carousel-control-prev" type="button" data-bs-target="#homeBanner" data-bs-slide="prev">
-                    <span class="carousel-control-prev-icon"></span>
-                </button>
-                <button class="carousel-control-next" type="button" data-bs-target="#homeBanner" data-bs-slide="next">
-                    <span class="carousel-control-next-icon"></span>
-                </button>
-                @endif
+    <div class="mb-4">
+        <div id="homeBanner" class="carousel slide rounded-3 overflow-hidden" data-bs-ride="carousel" data-bs-interval="3500">
+            <div class="carousel-indicators">
+                @foreach($banners as $i => $banner)
+                <button type="button" data-bs-target="#homeBanner" data-bs-slide-to="{{ $i }}"
+                    class="{{ $i === 0 ? 'active' : '' }}"></button>
+                @endforeach
             </div>
-        </div>
-        <div class="col-md-4 d-flex flex-column gap-3">
-            @foreach($banners->take(2) as $banner)
-            <div class="rounded-3 overflow-hidden flex-fill">
-                @if($banner->link)<a href="{{ $banner->link }}">@endif
-                <img src="{{ asset('storage/' . $banner->image) }}"
-                    class="w-100 h-100" style="object-fit:cover;max-height:145px;" alt="{{ $banner->title }}">
-                @if($banner->link)</a>@endif
+            <div class="carousel-inner">
+                @foreach($banners as $i => $banner)
+                <div class="carousel-item {{ $i === 0 ? 'active' : '' }}">
+                    @if($banner->link)<a href="{{ $banner->link }}">@endif
+                    <img src="{{ asset('storage/' . $banner->image) }}"
+                        class="d-block w-100" style="height:380px;object-fit:cover;" alt="{{ $banner->title }}">
+                    @if($banner->link)</a>@endif
+                </div>
+                @endforeach
             </div>
-            @endforeach
+            @if($banners->count() > 1)
+            <button class="carousel-control-prev" type="button" data-bs-target="#homeBanner" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon"></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#homeBanner" data-bs-slide="next">
+                <span class="carousel-control-next-icon"></span>
+            </button>
+            @endif
         </div>
     </div>
     @endif
@@ -186,19 +61,6 @@
         </div>
     </div>
     @endif
-
-    {{-- ƯU ĐÃI DỊCH VỤ --}}
-    <div class="row g-2 mb-4 text-center">
-        @foreach([['🚚','Giao hàng nhanh','Toàn quốc 24h'],['🛡️','Bảo hành chính hãng','12-24 tháng'],['💳','Thanh toán đa dạng','COD, VNPay, MoMo'],['🔄','Đổi trả dễ dàng','7 ngày đổi trả']] as $item)
-        <div class="col-6 col-md-3">
-            <div class="bg-light rounded-3 p-2">
-                <div style="font-size:1.4rem;">{{ $item[0] }}</div>
-                <div class="fw-semibold" style="font-size:11px;">{{ $item[1] }}</div>
-                <div class="text-muted" style="font-size:10px;">{{ $item[2] }}</div>
-            </div>
-        </div>
-        @endforeach
-    </div>
 
     {{-- FLASH SALE --}}
     @if($flashSaleProducts->isNotEmpty())
@@ -319,9 +181,7 @@
             @endforelse
         </div>
 
-        @if($allProducts->hasPages())
-        <div class="mt-4">{{ $allProducts->withQueryString()->links() }}</div>
-        @endif
+      
     </div>
 
 </div>{{-- end col-lg-9 --}}
