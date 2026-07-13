@@ -84,7 +84,7 @@
 
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary btn-sm">Lưu voucher</button>
-                    <a href="{{ route('coupons.index') }}" class="btn btn-light btn-sm">Hủy</a>
+                    <a href="{{ route('admin.coupons.index') }}" class="btn btn-light btn-sm">Hủy</a>
                 </div>
             </form>
         </div>

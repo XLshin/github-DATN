@@ -57,10 +57,6 @@
                             <td class="text-end">
                                 <a href="{{ route('admin.brands.show', $brand) }}" class="btn btn-light btn-sm"><i class="bi bi-eye"></i> Xem</a>
                                 <a href="{{ route('admin.brands.edit', $brand) }}" class="btn btn-light btn-sm">Sửa</a>
-                                <form action="{{ route('admin.brands.destroy', $brand) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa thương hiệu này?')">
-                                    @csrf @method('DELETE')
-                                    <button class="btn btn-outline-danger btn-sm">Xóa</button>
-                                </form>
                             </td>
                         </tr>
                     @empty
