@@ -41,6 +41,7 @@ class CouponController extends Controller
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'status' => ['required', 'boolean'],
+            'distribution' => ['required', Rule::in([Coupon::DISTRIBUTION_ASSIGNED, Coupon::DISTRIBUTION_PUBLIC])],
         ]);
 
         $validated['code'] = Str::upper($validated['code']);
@@ -71,6 +72,7 @@ class CouponController extends Controller
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'status' => ['required', 'boolean'],
+            'distribution' => ['required', Rule::in([Coupon::DISTRIBUTION_ASSIGNED, Coupon::DISTRIBUTION_PUBLIC])],
         ]);
 
         $validated['code'] = Str::upper($validated['code']);

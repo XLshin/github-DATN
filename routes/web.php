@@ -133,9 +133,9 @@ Route::middleware('auth')->group(function () {
 
     // Client: My vouchers & warranty lookup
     Route::get('/my-vouchers', [ClientCouponController::class, 'index'])->name('client.vouchers.index');
+    Route::post('/my-vouchers/{coupon}/claim', [ClientCouponController::class, 'claim'])->name('client.vouchers.claim');
 
     Route::get('/warranty', [ClientWarrantyController::class, 'showLookupForm'])->name('warranties.lookup');
-    Route::post('/warranty/lookup', [ClientWarrantyController::class, 'lookup'])->name('warranties.lookup.post');
     Route::get('/warranty/{warranty}', [ClientWarrantyController::class, 'show'])->name('warranties.show');
 
     Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
@@ -278,7 +278,7 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
 
         Route::post('/orders/{order}/receiver', [OrderController::class, 'updateReceiver'])
         ->name('orders.updateReceiver');
-        
+
         /*
         |--------------------------------------------------------------------------
         | Vận chuyển

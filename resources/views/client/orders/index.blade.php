@@ -8,19 +8,19 @@
         <div class="card-body p-0">
             <ul class="nav nav-pills nav-justified text-center" style="background-color: #fff;">
                 <li class="nav-item">
-                    <a class="nav-link py-3 rounded-0 fw-bold text-secondary {{ is_null($status) ? 'active border-bottom border-danger border-3 bg-light text-danger' : '' }}" 
+                    <a class="nav-link py-3 rounded-0 fw-bold text-secondary {{ is_null($status) ? 'active border-bottom border-danger border-3 bg-light text-danger' : '' }}"
                        href="{{ route('orders.index') }}">Tất cả</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link py-3 rounded-0 fw-bold text-secondary {{ $status === 'pending' ? 'active border-bottom border-danger border-3 bg-light text-danger' : '' }}" 
+                    <a class="nav-link py-3 rounded-0 fw-bold text-secondary {{ $status === 'pending' ? 'active border-bottom border-danger border-3 bg-light text-danger' : '' }}"
                        href="{{ route('orders.index', ['status' => 'pending']) }}">Chờ xử lý</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link py-3 rounded-0 fw-bold text-secondary {{ $status === 'shipping' ? 'active border-bottom border-danger border-3 bg-light text-danger' : '' }}" 
+                    <a class="nav-link py-3 rounded-0 fw-bold text-secondary {{ $status === 'shipping' ? 'active border-bottom border-danger border-3 bg-light text-danger' : '' }}"
                        href="{{ route('orders.index', ['status' => 'shipping']) }}">Đang giao</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link py-3 rounded-0 fw-bold text-secondary {{ $status === 'completed' ? 'active border-bottom border-danger border-3 bg-light text-danger' : '' }}" 
+                    <a class="nav-link py-3 rounded-0 fw-bold text-secondary {{ $status === 'completed' ? 'active border-bottom border-danger border-3 bg-light text-danger' : '' }}"
                        href="{{ route('orders.index', ['status' => 'completed']) }}">Hoàn thành</a>
                 </li>
                 <li class="nav-item">
@@ -30,7 +30,7 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link py-3 rounded-0 fw-bold text-secondary {{ $status === 'cancelled' ? 'active border-bottom border-danger border-3 bg-light text-danger' : '' }}" 
+                    <a class="nav-link py-3 rounded-0 fw-bold text-secondary {{ $status === 'cancelled' ? 'active border-bottom border-danger border-3 bg-light text-danger' : '' }}"
                        href="{{ route('orders.index', ['status' => 'cancelled']) }}">Đã hủy</a>
                 </li>
             </ul>
@@ -153,8 +153,10 @@
                                 class="rounded border"
                                 style="width:80px;height:80px;object-fit:cover;">
                             <div class="flex-grow-1 ms-3">
-                                <h6 class="mb-1 text-truncate" style="max-width: 600px;">{{ $item->product->name ?? 'Sản phẩm không tồn tại' }}</h6>
-                                
+                                <h6 class="mb-1 text-truncate" style="max-width: 600px;">
+                                    <a href="{{ route('products.show', $item->product) }}?hide_reviews=1" class="text-dark text-decoration-none">{{ $item->product->name ?? 'Sản phẩm không tồn tại' }}</a>
+                                </h6>
+
                                 {{-- Hiển thị biến thể rõ ràng bằng badge --}}
                                 @if($item->variant)
                                     <small class="d-block mb-1">
@@ -163,7 +165,7 @@
                                         </span>
                                     </small>
                                 @endif
-                                
+
                                 <small class="text-dark fw-medium">Số lượng: x{{ $item->quantity }}</small>
                             </div>
                             <div class="text-end">

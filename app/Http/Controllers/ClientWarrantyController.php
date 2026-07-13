@@ -2,80 +2,28 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Imei;
+use App\Models\OrderItem;
 use App\Models\Warranty;
 use Illuminate\Http\Request;
 
 class ClientWarrantyController extends Controller
 {
-    public function showLookupForm()
+    public function showLookupForm(Request $request)
     {
-        $user = auth()->user();
-        $userImeis = [];
+        $user = $request->user();
+        $search = trim((string) $request->query('search', ''));
 
-        if ($user) {
-            $userImeis = Imei::whereHas('orderItem.order', function ($q) use ($user) {
-                $q->where('user_id', $user->getKey());
-            })->pluck('imei')->unique()->values()->all();
-        }
+        $orderItems = OrderItem::query()
+            ->with(['product', 'variant', 'order', 'imeis.warranty'])
+            ->whereHas('order', fn ($query) => $query->where('user_id', $user->id))
+            ->whereHas('imeis.warranty')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->whereHas('product', fn ($productQuery) => $productQuery->where('name', 'like', "%{$search}%"));
+            })
+            ->latest('id')
+            ->get();
 
-        return view('client.warranties.lookup', compact('userImeis'));
-    }
-
-    public function lookup(Request $request)
-    {
-        $request->validate([
-            'imei' => ['nullable', 'string'],
-            'order_code' => ['nullable', 'string'],
-        ]);
-
-        $imei = null;
-        $currentWarranty = null;
-        $warranties = collect();
-        $user = auth()->user();
-
-        if ($request->filled('imei')) {
-            $imei = Imei::where('imei', trim($request->imei))->first();
-
-            if ($imei) {
-                $query = Warranty::with('order')
-                    ->where('imei_id', $imei->id)
-                    ->whereIn('status', ['claimed']);
-
-                if ($user) {
-                    $query->whereHas('order', function ($q) use ($user) {
-                        $q->where('user_id', $user->getKey());
-                    });
-                }
-
-                $currentWarranty = (clone $query)->latest()->first();
-
-                $warranties = (clone $query)->latest()->get();
-            }
-        }
-
-        if ($request->filled('order_code') && (is_array($warranties) ? empty($warranties) : $warranties->isEmpty())) {
-            $orderQuery = Warranty::with('order')
-                ->whereHas('order', function ($q) use ($request, $user) {
-                    $q->where('order_code', trim($request->order_code));
-                    if ($user) {
-                        $q->where('user_id', $user->getKey());
-                    }
-                });
-
-            $warranties = $orderQuery->latest()->get();
-        }
-
-        $user = auth()->user();
-        $userImeis = [];
-
-        if ($user) {
-            $userImeis = Imei::whereHas('orderItem.order', function ($q) use ($user) {
-                $q->where('user_id', $user->getKey());
-            })->pluck('imei')->unique()->values()->all();
-        }
-
-        return view('client.warranties.lookup', compact('imei', 'currentWarranty', 'warranties', 'userImeis'));
+        return view('client.warranties.lookup', compact('search', 'orderItems'));
     }
 
     public function show(Warranty $warranty)
