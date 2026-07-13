@@ -124,44 +124,32 @@
 
     {{-- BANNER --}}
     @if($banners->isNotEmpty())
-    <div class="row g-3 mb-4">
-        <div class="col-md-8">
-            <div id="homeBanner" class="carousel slide rounded-3 overflow-hidden" data-bs-ride="carousel" data-bs-interval="3500">
-                <div class="carousel-indicators">
-                    @foreach($banners as $i => $banner)
-                    <button type="button" data-bs-target="#homeBanner" data-bs-slide-to="{{ $i }}"
-                        class="{{ $i === 0 ? 'active' : '' }}"></button>
-                    @endforeach
-                </div>
-                <div class="carousel-inner">
-                    @foreach($banners as $i => $banner)
-                    <div class="carousel-item {{ $i === 0 ? 'active' : '' }}">
-                        @if($banner->link)<a href="{{ $banner->link }}">@endif
-                        <img src="{{ asset('storage/' . $banner->image) }}"
-                            class="d-block w-100" style="height:300px;object-fit:cover;" alt="{{ $banner->title }}">
-                        @if($banner->link)</a>@endif
-                    </div>
-                    @endforeach
-                </div>
-                @if($banners->count() > 1)
-                <button class="carousel-control-prev" type="button" data-bs-target="#homeBanner" data-bs-slide="prev">
-                    <span class="carousel-control-prev-icon"></span>
-                </button>
-                <button class="carousel-control-next" type="button" data-bs-target="#homeBanner" data-bs-slide="next">
-                    <span class="carousel-control-next-icon"></span>
-                </button>
-                @endif
+    <div class="mb-4">
+        <div id="homeBanner" class="carousel slide rounded-3 overflow-hidden" data-bs-ride="carousel" data-bs-interval="3500">
+            <div class="carousel-indicators">
+                @foreach($banners as $i => $banner)
+                <button type="button" data-bs-target="#homeBanner" data-bs-slide-to="{{ $i }}"
+                    class="{{ $i === 0 ? 'active' : '' }}"></button>
+                @endforeach
             </div>
-        </div>
-        <div class="col-md-4 d-flex flex-column gap-3">
-            @foreach($banners->take(2) as $banner)
-            <div class="rounded-3 overflow-hidden flex-fill">
-                @if($banner->link)<a href="{{ $banner->link }}">@endif
-                <img src="{{ asset('storage/' . $banner->image) }}"
-                    class="w-100 h-100" style="object-fit:cover;max-height:145px;" alt="{{ $banner->title }}">
-                @if($banner->link)</a>@endif
+            <div class="carousel-inner">
+                @foreach($banners as $i => $banner)
+                <div class="carousel-item {{ $i === 0 ? 'active' : '' }}">
+                    @if($banner->link)<a href="{{ $banner->link }}">@endif
+                    <img src="{{ asset('storage/' . $banner->image) }}"
+                        class="d-block w-100" style="height:380px;object-fit:cover;" alt="{{ $banner->title }}">
+                    @if($banner->link)</a>@endif
+                </div>
+                @endforeach
             </div>
-            @endforeach
+            @if($banners->count() > 1)
+            <button class="carousel-control-prev" type="button" data-bs-target="#homeBanner" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon"></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#homeBanner" data-bs-slide="next">
+                <span class="carousel-control-next-icon"></span>
+            </button>
+            @endif
         </div>
     </div>
     @endif
@@ -186,19 +174,6 @@
         </div>
     </div>
     @endif
-
-    {{-- ƯU ĐÃI DỊCH VỤ --}}
-    <div class="row g-2 mb-4 text-center">
-        @foreach([['🚚','Giao hàng nhanh','Toàn quốc 24h'],['🛡️','Bảo hành chính hãng','12-24 tháng'],['💳','Thanh toán đa dạng','COD, VNPay, MoMo'],['🔄','Đổi trả dễ dàng','7 ngày đổi trả']] as $item)
-        <div class="col-6 col-md-3">
-            <div class="bg-light rounded-3 p-2">
-                <div style="font-size:1.4rem;">{{ $item[0] }}</div>
-                <div class="fw-semibold" style="font-size:11px;">{{ $item[1] }}</div>
-                <div class="text-muted" style="font-size:10px;">{{ $item[2] }}</div>
-            </div>
-        </div>
-        @endforeach
-    </div>
 
     {{-- FLASH SALE --}}
     @if($flashSaleProducts->isNotEmpty())
@@ -319,9 +294,7 @@
             @endforelse
         </div>
 
-        @if($allProducts->hasPages())
-        <div class="mt-4">{{ $allProducts->withQueryString()->links() }}</div>
-        @endif
+      
     </div>
 
 </div>{{-- end col-lg-9 --}}

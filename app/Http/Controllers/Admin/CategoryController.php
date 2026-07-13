@@ -42,7 +42,7 @@ class CategoryController extends Controller
         );
 
         return redirect()
-            ->route('categories.index')
+            ->route('admin.categories.index')
             ->with(
                 'success',
                 'Thêm thành công'
@@ -98,7 +98,7 @@ class CategoryController extends Controller
         );
 
         return redirect()
-            ->route('categories.index');
+            ->route('admin.categories.index');
     }
 
     /**

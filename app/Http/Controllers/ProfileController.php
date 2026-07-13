@@ -2,47 +2,39 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Http\Requests\UpdateProfileRequest;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
+    /**
+     * Trang tổng quan tài khoản: hiển thị form cập nhật thông tin + danh sách địa chỉ.
+     */
+    public function dashboard()
+    {
+        $user = Auth::user();
+        $addresses = $user->addresses()->latest()->get();
+
+        return view('client.profile.dashboard', compact('user', 'addresses'));
+    }
+
     public function show()
     {
-        return view('client.profile.show', ['user' => Auth::user()]);
+        // Giữ nguyên hoặc có thể chuyển hướng sang dashboard
+        return redirect()->route('dashboard');
     }
 
     public function edit()
     {
-        return view('client.profile.edit', ['user' => Auth::user()]);
+        // Nếu bạn vẫn muốn trang edit riêng, giữ nguyên
+        $user = Auth::user();
+        return view('client.profile.edit', compact('user'));
     }
 
-    public function update(Request $request)
+    public function update(UpdateProfileRequest $request)
     {
-        $user = Auth::user();
+        Auth::user()->update($request->validated());
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => [
-                'required', 'email', 'max:255',
-                Rule::unique('users', 'email')->ignore($user->id),
-            ],
-            'phone' => ['nullable', 'string', 'max:20'],
-            'address' => ['nullable', 'string', 'max:500'],
-        ], [
-            'name.required' => 'Vui lòng nhập họ tên.',
-            'email.required' => 'Vui lòng nhập email.',
-            'email.unique' => 'Email này đã được sử dụng.',
-        ]);
-
-        $user->update([
-            'name' => $validated['name'],
-            'email' => strtolower($validated['email']),
-            'phone' => $validated['phone'] ?? null,
-            'address' => $validated['address'] ?? null,
-        ]);
-
-        return redirect()->route('profile.show')->with('success', 'Cập nhật thông tin thành công.');
+        return back()->with('profile_success', 'Cập nhật thông tin thành công.');
     }
 }
