@@ -179,13 +179,17 @@ class ShipmentController extends Controller
                 $shipment->order->update([
                     'status' => 'completed',
                 ]);
+                // Cập nhật tổng chi tiêu
+                if ($shipment->order->user && $shipment->order->user->isCustomer()) {
+                    $shipment->order->user->increment('total_spent', $shipment->order->total_amount);
+                }
             } elseif ($status === 'failed') {
-                // Rollback stock and IMEIs (idempotent): if order_item has imei_id, return it to available and increment stock.
+                // Rollback stock and IMEIs (idempotent): trả toàn bộ IMEI đã gán cho order_item về available và tăng lại tồn kho.
                 foreach ($shipment->order->items as $item) {
-                    if ($item->imei_id) {
-                        // revert IMEI
-                        $imei = Imei::lockForUpdate()->find($item->imei_id);
-                        if ($imei) {
+                    $itemImeis = $item->imeis()->lockForUpdate()->get();
+
+                    if ($itemImeis->isNotEmpty()) {
+                        foreach ($itemImeis as $imei) {
                             $imei->status = 'available';
                             $imei->reserved_by_order_item_id = null;
                             $imei->reserved_at = null;
@@ -198,10 +202,6 @@ class ShipmentController extends Controller
                             $variant->stock_quantity += $item->quantity;
                             $variant->save();
                         }
-
-                        // detach imei from order item
-                        $item->imei_id = null;
-                        $item->save();
                     }
                 }
 
