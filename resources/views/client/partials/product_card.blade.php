@@ -32,7 +32,7 @@
                 </a>
             </h3>
 
-            <div class="price-tag fw-bold text-primary mb-2">
+            <div class="price-tag fw-bold text-primary mb-3">
                 {{ number_format($product->price, 0, ',', '.') }}đ
             </div>
 

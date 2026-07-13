@@ -43,7 +43,7 @@
                             <div class="row g-2">
                                 <div class="col-6">
                                     <label style="font-size:12px; font-weight:600; color:#555; margin-bottom:4px; display:block;">Màu sắc</label>
-                                    <select id="fsColor" class="form-select form-select-sm">
+<select id="fsColor" class="form-select form-select-sm">
                                         <option value="">Tất cả màu</option>
                                         @foreach(\App\Models\ProductVariant::distinct()->pluck('color')->filter()->sort() as $c)
                                         <option value="{{ $c }}" @selected(request('color')===$c)>{{ $c }}</option>
@@ -54,7 +54,7 @@
                                     <label style="font-size:12px; font-weight:600; color:#555; margin-bottom:4px; display:block;">Dung lượng</label>
                                     <select id="fsStorage" class="form-select form-select-sm">
                                         <option value="">Tất cả</option>
-                                        @foreach(\App\Models\ProductVariant::distinct()->pluck('storage')->filter()->sort() as $s)
+                                        @foreach(\App\Models\Product::distinct()->pluck('storage')->filter()->sort() as $s)
                                         <option value="{{ $s }}" @selected(request('storage')===$s)>{{ $s }}</option>
                                         @endforeach
                                     </select>
@@ -80,264 +80,21 @@
                     </form>
                 </div>
 
-                {{-- Hotline + Cart/Admin --}}
-                <div class="col-lg-4 col-md-2 col-5">
-                    <div class="middle-right-area">
-                        <div class="nav-hotline">
-                            <i class="lni lni-phone"></i>
-                            <h3>
-                                Hotline:
-                                <span>0909 999 888</span>
-                            </h3>
-                        </div>
-
-                        @guest
-                        <div class="navbar-cart">
-                            <div class="cart-items">
-                                <a href="{{ route('login') }}" class="main-btn">
-                                    <i class="lni lni-cart"></i>
-                                    <span class="total-items">0</span>
-                                </a>
-
-                                <div class="shopping-item">
-                                    <div class="dropdown-cart-header">
-                                        <span>Giỏ hàng</span>
-                                        <a href="{{ route('login') }}">Đăng nhập</a>
-                                    </div>
-
-                                    <ul class="shopping-list">
-                                        <li>
-                                            <div class="content">
-                                                <h4>
-                                                    <a href="{{ route('login') }}">
-                                                        Đăng nhập để xem giỏ hàng
-                                                    </a>
-                                                </h4>
-                                                <p class="quantity">
-                                                    Bạn cần đăng nhập để mua hàng và thanh toán.
-                                                </p>
-                                            </div>
-                                        </li>
-                                    </ul>
-
-                                    <div class="bottom">
-                                        <div class="button">
-                                            <a href="{{ route('login') }}" class="btn animate">
-                                                Đăng nhập
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        @endguest
-
-                        @auth
-                        @if (auth()->user()->role === 'customer')
-                        <div class="navbar-cart">
-                            <div class="wishlist">
-                                <a href="javascript:void(0)">
-                                    <i class="lni lni-heart"></i>
-                                    <span class="total-items">0</span>
-                                </a>
-                            </div>
-
-                            <div class="cart-items">
-                                <a href="{{ route('cart.index') }}" class="main-btn">
-                                    <i class="lni lni-cart"></i>
-                                    <span class="total-items">0</span>
-                                </a>
-
-                                <div class="shopping-item">
-                                    <div class="dropdown-cart-header">
-                                        <span>Giỏ hàng</span>
-                                        <a href="{{ route('cart.index') }}">Xem giỏ hàng</a>
-                                    </div>
-
-                                    <ul class="shopping-list">
-                                        <li>
-                                            <div class="content">
-                                                <h4>
-                                                    <a href="{{ route('cart.index') }}">
-                                                        Xem sản phẩm trong giỏ hàng
-                                                    </a>
-                                                </h4>
-                                                <p class="quantity">
-                                                    Quản lý sản phẩm, số lượng và thanh toán.
-                                                </p>
-                                            </div>
-                                        </li>
-                                    </ul>
-
-                                    <div class="bottom">
-                                        <div class="button">
-                                            <a href="{{ route('cart.index') }}" class="btn animate">
-                                                Đi đến giỏ hàng
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        @elseif (in_array(auth()->user()->role, ['admin', 'staff'], true))
-                        <div class="navbar-cart">
-                            <div class="cart-items">
-                                <a href="{{ route('admin.dashboard') }}" class="main-btn">
-                                    <i class="lni lni-dashboard"></i>
-                                </a>
-
-                                <div class="shopping-item">
-                                    <div class="dropdown-cart-header">
-                                        <span>Trang quản trị</span>
-                                        <a href="{{ route('admin.dashboard') }}">Vào quản trị</a>
-                                    </div>
-
-                                    <ul class="shopping-list">
-                                        <li>
-                                            <div class="content">
-                                                <h4>
-                                                    <a href="{{ route('admin.dashboard') }}">
-                                                        Truy cập hệ thống quản trị
-                                                    </a>
-                                                </h4>
-                                                <p class="quantity">
-                                                    Quản lý đơn hàng, kho hàng, bảo hành và các nghiệp vụ nội bộ.
-                                                </p>
-                                            </div>
-                                        </li>
-                                    </ul>
-
-                                    <div class="bottom">
-                                        <div class="button">
-                                            <a href="{{ route('admin.dashboard') }}" class="btn animate">
-                                                Vào trang quản trị
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        @endif
-                        @endauth
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- Header bottom --}}
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-8 col-md-6 col-12">
-                <div class="nav-inner">
-                    {{-- Main menu --}}
-                    <nav class="navbar navbar-expand-lg">
-                        <button
-                            class="navbar-toggler mobile-menu-btn"
-                            type="button"
-                            data-bs-toggle="collapse"
-                            data-bs-target="#clientNavbar"
-                            aria-controls="clientNavbar"
-                            aria-expanded="false"
-                            aria-label="Toggle navigation">
-                            <span class="toggler-icon"></span>
-                            <span class="toggler-icon"></span>
-                            <span class="toggler-icon"></span>
-                        </button>
-
-                        <div class="collapse navbar-collapse sub-menu-bar" id="clientNavbar">
-                            <ul id="nav" class="navbar-nav ms-auto">
-                                <li class="nav-item">
-                                    <a
-                                        href="{{ route('home') }}"
-                                        class="{{ request()->routeIs('home') ? 'active' : '' }}">
-                                        Trang chủ
-                                    </a>
-                                </li>
-
-                                {{-- Menu Danh mục --}}
-                                <li class="nav-item">
-                                    <a href="#" class="{{ request()->routeIs('category.*') ? 'active' : '' }}">
-                                        Danh mục <i class="lni lni-chevron-down" style="font-size:10px"></i>
-                                    </a>
-                                    <ul class="sub-menu">
-                                        @foreach(\App\Models\Category::all() as $cat)
-                                        <li><a href="{{ route('products.index', ['category_id' => $cat->id]) }}">{{ $cat->name }}</a></li>
-                                        @endforeach
-                                    </ul>
-                                </li>
-
-                                {{-- Menu Thương hiệu --}}
-                                <li class="nav-item">
-                                    <a href="#" class="{{ request()->routeIs('brand.*') ? 'active' : '' }}">
-                                        Thương hiệu <i class="lni lni-chevron-down" style="font-size:10px"></i>
-                                    </a>
-                                    <ul class="sub-menu">
-                                        @foreach(\App\Models\Brand::all() as $br)
-                                        <li><a href="{{ route('products.index', ['brand_id' => $br->id]) }}">{{ $br->name }}</a></li>
-                                        @endforeach
-                                    </ul>
-                                </li>
-
-                                @guest
-                                <li class="nav-item">
-                                    <a href="{{ route('login') }}">
-                                        Giỏ hàng
-                                    </a>
-                                </li>
-
-                                <li class="nav-item">
-                                    <a href="{{ route('login') }}">
-                                        Đăng nhập
-                                    </a>
-                                </li>
-
-                                <li class="nav-item">
-                                    <a href="{{ route('register') }}">
-                                        Đăng ký
-                                    </a>
-                                </li>
-                                @endguest
-
-                                @auth
-                                @if (auth()->user()->role === 'customer')
-                                <li class="nav-item">
-                                    <a
-                                        href="{{ route('cart.index') }}"
-                                        class="{{ request()->routeIs('cart.*') ? 'active' : '' }}">
-                                        Giỏ hàng
-                                    </a>
-                                </li>
-
-                                <li class="nav-item">
-                                    <a
-                                        href="{{ route('orders.index') }}"
-                                        class="{{ request()->routeIs('orders.*') ? 'active' : '' }}">
-                                        Đơn hàng
-                                    </a>
-                                </li>
-
-                                <li class="nav-item">
-                                    <a
-                                        href="{{ route('points.index') }}"
-                                        class="{{ request()->routeIs('points.*') ? 'active' : '' }}">
-                                        Điểm tích lũy
-                                    </a>
-                                </li>
-
-                                <li class="nav-item">
-                                    <a
-                                        href="{{ route('dashboard') }}"
-                                        class="{{ request()->routeIs('dashboard', 'profile.*', 'password.change*') ? 'active' : '' }}">
-                                        Tài khoản
-                                    </a>
-                                </li>
-                                @elseif (in_array(auth()->user()->role, ['admin', 'staff'], true))
-                                <li class="nav-item">
-                                    <a href="{{ route('admin.dashboard') }}" class="text-warning">
-                                        Trang quản trị
-                                    </a>
-                                </li>
+                {{-- Login / User --}}
+                <div class="header-account flex-shrink-0">
+                    @auth
+                        <div class="account-dropdown">
+                            <button class="account-btn">
+<i class="lni lni-user"></i>
+                                <span class="d-none d-lg-inline ms-1">{{ Str::limit(auth()->user()->name, 12) }}</span>
+                                <i class="lni lni-chevron-down ms-1" style="font-size:10px"></i>
+                            </button>
+                            <ul class="account-menu">
+                                @if(auth()->user()->role === 'customer')
+                                    <li><a href="{{ route('dashboard') }}"><i class="lni lni-user me-2"></i>Tài khoản</a></li>
+                                    <li><a href="{{ route('orders.index') }}"><i class="lni lni-package me-2"></i>Đơn hàng</a></li>
+                                @else
+                                    <li><a href="{{ route('admin.dashboard') }}"><i class="lni lni-dashboard me-2"></i>Quản trị</a></li>
                                 @endif
                                 <li class="divider"></li>
                                 <li>
@@ -388,7 +145,7 @@
 
 {{-- ===== HEADER MAIN: Nav danh mục (cuộn theo trang) ===== --}}
 <div class="header-main">
-        <div class="container">
+<div class="container">
             <nav class="main-nav d-flex align-items-center justify-content-center">
 
                 {{-- Mobile toggle --}}
@@ -399,31 +156,17 @@
                 <ul class="main-nav-list" id="mainNavList">
                     {{-- Danh mục động từ DB --}}
                     @foreach(\App\Models\Category::orderBy('name')->get() as $cat)
-                    <li class="nav-item has-dropdown">
-                        <a href="{{ route('category.products', $cat) }}"
-                           class="{{ request()->is('danh-muc/'.$cat->id.'*') ? 'active' : '' }}">
+                    @php
+                        // Danh mục Điện thoại hiện có ID = 1; dùng ID để tránh lỗi so sánh chuỗi có dấu/encoding.
+                        $categoryUrl = route('products.index', ['category_id' => $cat->id]);
+                        $isCategoryActive = request()->routeIs('products.index')
+                            && (string) request('category_id') === (string) $cat->id;
+                    @endphp
+                    <li class="nav-item">
+                        <a href="{{ $categoryUrl }}"
+                           class="{{ $isCategoryActive ? 'active' : '' }}">
                             {{ $cat->name }}
-                            @if(\App\Models\Brand::whereHas('products', fn($q) => $q->where('category_id', $cat->id))->exists())
-                                <i class="lni lni-chevron-down ms-1" style="font-size:10px"></i>
-                            @endif
                         </a>
-                        @php
-                            $catBrands = \App\Models\Brand::whereHas('products', fn($q) => $q->where('category_id', $cat->id))->get();
-                        @endphp
-                        @if($catBrands->isNotEmpty())
-                        <ul class="dropdown-menu-nav">
-                            @foreach($catBrands as $br)
-                            <li>
-                                <a href="{{ route('brand.products', $br) }}?category_id={{ $cat->id }}">
-                                    @if($br->logo)
-                                        <img src="{{ asset('storage/'.$br->logo) }}" alt="{{ $br->name }}" width="20" height="20" class="me-2 rounded">
-                                    @endif
-                                    {{ $br->name }}
-                                </a>
-                            </li>
-                            @endforeach
-                        </ul>
-                        @endif
                     </li>
                     @endforeach
                 </ul>
@@ -613,7 +356,7 @@
     background: #1565c0;
 }
 .main-nav-list {
-    display: flex;
+display: flex;
     list-style: none;
     margin: 0;
     padding: 0;
@@ -728,7 +471,7 @@
     const overlay= document.getElementById('mobileNavOverlay');
     if(toggle){
         function openNav(){ nav.classList.add('open'); overlay.classList.add('open'); document.body.style.overflow='hidden'; }
-        function closeNav(){ nav.classList.remove('open'); overlay.classList.remove('open'); document.body.style.overflow=''; }
+function closeNav(){ nav.classList.remove('open'); overlay.classList.remove('open'); document.body.style.overflow=''; }
         toggle.addEventListener('click', () => nav.classList.contains('open') ? closeNav() : openNav());
         overlay.addEventListener('click', closeNav);
     }
