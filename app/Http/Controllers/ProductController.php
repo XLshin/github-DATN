@@ -13,11 +13,32 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::with(['category', 'brand', 'variants', 'images'])
+        $query = Product::with([
+            'category',
+            'brand',
+            'variants.images',
+            'images',
+            'productGroup.images',
+        ])
             ->where('status', true);
 
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $search = trim((string) $request->search);
+            $numericSearch = preg_replace('/\D+/', '', $search);
+
+            $query->where(function ($searchQuery) use ($search, $numericSearch) {
+                $searchQuery
+                    ->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('storage', 'like', '%' . $search . '%')
+                    ->orWhereHas('productGroup', fn ($groupQuery) => $groupQuery->where('name', 'like', '%' . $search . '%'))
+                    ->orWhereHas('brand', fn ($brandQuery) => $brandQuery->where('name', 'like', '%' . $search . '%'))
+                    ->orWhereHas('category', fn ($categoryQuery) => $categoryQuery->where('name', 'like', '%' . $search . '%'))
+                    ->orWhereHas('variants', fn ($variantQuery) => $variantQuery->where('color', 'like', '%' . $search . '%'));
+
+                if ($numericSearch !== '') {
+                    $searchQuery->orWhere('price', 'like', '%' . $numericSearch . '%');
+                }
+            });
         }
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
@@ -99,4 +120,45 @@ class ProductController extends Controller
 
         return view('client.products.show', compact('product', 'relatedProducts'));
     }
-}
+
+    private function preferredAvailableProduct(Product $product): ?Product
+    {
+        if (! $product->product_group_id || $this->hasAvailableStock($product)) {
+            return null;
+        }
+
+        return Product::query()
+            ->where('product_group_id', $product->product_group_id)
+            ->where('status', true)
+            ->whereKeyNot($product->id)
+            ->where(function ($query) {
+                $query
+                    ->where(function ($quantityQuery) {
+                        $quantityQuery
+                            ->where('product_type', 'quantity')
+                            ->whereHas('variants', fn ($variantQuery) => $variantQuery->where('stock_quantity', '>', 0));
+                    })
+                    ->orWhere(function ($imeiQuery) {
+                        $imeiQuery
+                            ->where('product_type', 'imei/serial')
+                            ->whereHas('variants.imeis', fn ($imeiStockQuery) => $imeiStockQuery->where('status', 'available'));
+                    });
+            })
+            ->orderBy('price')
+            ->orderBy('id')
+            ->first();
+    }
+
+    private function hasAvailableStock(Product $product): bool
+    {
+        if ($product->product_type === 'imei/serial') {
+            return $product->variants()
+                ->whereHas('imeis', fn ($query) => $query->where('status', 'available'))
+                ->exists();
+        }
+
+        return $product->variants()
+            ->where('stock_quantity', '>', 0)
+            ->exists();
+    }
+} 
