@@ -73,18 +73,28 @@
                     </div>
                 </div>
 
-                <div class="mb-3 mt-3">
-                    <label class="form-label">Trạng thái</label>
-                    <select name="status" class="form-select @error('status') is-invalid @enderror">
-                        <option value="1" @selected(old('status', '1')==='1')>Kích hoạt</option>
-                        <option value="0" @selected(old('status')==='0')>Tắt</option>
-                    </select>
-                    @error('status')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                <div class="row g-3 mt-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Trạng thái</label>
+                        <select name="status" class="form-select @error('status') is-invalid @enderror">
+                            <option value="1" @selected(old('status', '1')==='1')>Kích hoạt</option>
+                            <option value="0" @selected(old('status')==='0')>Tắt</option>
+                        </select>
+                        @error('status')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Loại phân phối</label>
+                        <select name="distribution" class="form-select @error('distribution') is-invalid @enderror">
+                            <option value="{{ \App\Models\Coupon::DISTRIBUTION_PUBLIC }}" @selected(old('distribution') === \App\Models\Coupon::DISTRIBUTION_PUBLIC)>Công khai - Khách có thể nhận</option>
+                            <option value="{{ \App\Models\Coupon::DISTRIBUTION_ASSIGNED }}" @selected(old('distribution', \App\Models\Coupon::DISTRIBUTION_ASSIGNED) === \App\Models\Coupon::DISTRIBUTION_ASSIGNED)>Chỉ gán riêng</option>
+                        </select>
+                        @error('distribution')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
                 </div>
 
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary btn-sm">Lưu voucher</button>
-                    <a href="{{ route('coupons.index') }}" class="btn btn-light btn-sm">Hủy</a>
+                    <a href="{{ route('admin.coupons.index') }}" class="btn btn-light btn-sm">Hủy</a>
                 </div>
             </form>
         </div>
