@@ -11,6 +11,7 @@
             'price' => $product->price,
             'description' => $product->description,
             'has_imeis' => $product->variants->contains(fn ($variant) => (int) ($variant->imeis_count ?? 0) > 0),
+            'has_stock' => $product->variants->contains(fn ($variant) => (int) $variant->stock_quantity > 0),
         ])->values();
     } else {
         $versionRows = collect([
@@ -36,6 +37,7 @@
                 'name' => $color,
                 'image_path' => optional($variants->firstWhere('image_path', '!=', null))->image_path,
                 'has_imeis' => $variants->contains(fn ($variant) => (int) ($variant->imeis_count ?? 0) > 0),
+                'has_stock' => $variants->contains(fn ($variant) => (int) $variant->stock_quantity > 0),
             ])
             ->values();
     } else {
@@ -82,6 +84,8 @@
         @foreach($versionRows as $index => $version)
         @php($isExistingVersion = !empty($version['id']))
         @php($versionHasImeis = !empty($version['has_imeis']))
+        @php($versionHasStock = !empty($version['has_stock']))
+        @php($versionLocked = $versionHasImeis || $versionHasStock)
         <div class="border rounded p-3 mb-2 version-row" data-index="{{ $index }}" data-existing="{{ $isExistingVersion ? '1' : '0' }}">
             @if($isExistingVersion)
                 <input type="hidden" name="versions[{{ $index }}][id]" value="{{ $version['id'] }}">
@@ -96,18 +100,21 @@
                     @if($versionHasImeis)
                         <span class="badge bg-warning text-dark ms-1">Đã có IMEI</span>
                     @endif
+                    @if($versionHasStock)
+                        <span class="badge bg-info text-dark ms-1">Đã có tồn kho</span>
+                    @endif
                 </div>
                 <button type="button"
                     class="btn btn-light btn-sm remove-version"
-                    title="{{ $versionHasImeis ? 'Phiên bản đã có IMEI nên không thể xóa' : 'Xóa phiên bản' }}"
-                    @disabled($versionHasImeis)>
+                    title="{{ $versionLocked ? 'Phiên bản đã có IMEI hoặc tồn kho nên không thể xóa' : 'Xóa phiên bản' }}"
+                    @disabled($versionLocked)>
                     <i class="bi bi-x-lg"></i>
                 </button>
             </div>
 
-            @if($versionHasImeis)
+            @if($versionLocked)
                 <div class="alert alert-warning py-2 small mb-2">
-                    Phiên bản này đã có IMEI nên không thể sửa tên hoặc dung lượng. Bạn vẫn có thể chỉnh giá, mô tả và trạng thái hiển thị.
+                    Phiên bản này đã có IMEI hoặc tồn kho nên không thể sửa tên hoặc dung lượng. Bạn vẫn có thể chỉnh giá, mô tả và trạng thái hiển thị.
                 </div>
             @endif
 
@@ -119,7 +126,7 @@
                         value="{{ $version['storage'] ?? '' }}"
                         class="form-control form-control-sm version-storage @error("versions.$index.storage") is-invalid @enderror"
                         placeholder="VD: 256GB"
-                        @readonly($versionHasImeis)>
+                        @readonly($versionLocked)>
                     @error("versions.$index.storage")<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 
@@ -130,7 +137,7 @@
                         value="{{ $version['name'] ?? '' }}"
                         class="form-control form-control-sm version-name @error("versions.$index.name") is-invalid @enderror"
                         placeholder="VD: iPhone 17 Pro Max 256GB"
-                        @readonly($versionHasImeis)>
+                        @readonly($versionLocked)>
                     @error("versions.$index.name")<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 
@@ -195,6 +202,8 @@
         @foreach($colorRows as $index => $color)
         @php($isExistingColor = !empty($color['original_name']))
         @php($colorHasImeis = !empty($color['has_imeis']))
+        @php($colorHasStock = !empty($color['has_stock']))
+        @php($colorLocked = $colorHasImeis || $colorHasStock)
         <div class="row g-2 align-items-end mb-2 color-row" data-index="{{ $index }}" data-existing="{{ $isExistingColor ? '1' : '0' }}">
             @if($isExistingColor)
                 <input type="hidden" name="colors[{{ $index }}][original_name]" value="{{ $color['original_name'] }}">
@@ -208,10 +217,10 @@
                     value="{{ $color['name'] ?? '' }}"
                     class="form-control form-control-sm @error("colors.$index.name") is-invalid @enderror"
                     placeholder="VD: Titan Đen"
-                    @readonly($colorHasImeis)>
+                    @readonly($colorLocked)>
                 @error("colors.$index.name")<div class="invalid-feedback">{{ $message }}</div>@enderror
-                @if($colorHasImeis)
-                    <div class="form-text text-warning">Màu này đã có IMEI nên không thể đổi tên hoặc xóa.</div>
+                @if($colorLocked)
+                    <div class="form-text text-warning">Màu này đã có IMEI hoặc tồn kho nên không thể đổi tên hoặc xóa.</div>
                 @endif
             </div>
 
@@ -251,8 +260,8 @@
             <div class="col-md-1 d-grid">
                 <button type="button"
                     class="btn btn-light btn-sm remove-color"
-                    title="{{ $colorHasImeis ? 'Màu đã có IMEI nên không thể xóa' : 'Xóa màu' }}"
-                    @disabled($colorHasImeis)>
+                    title="{{ $colorLocked ? 'Màu đã có IMEI hoặc tồn kho nên không thể xóa' : 'Xóa màu' }}"
+                    @disabled($colorLocked)>
                     <i class="bi bi-x-lg"></i>
                 </button>
             </div>
