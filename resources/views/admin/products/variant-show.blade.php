@@ -3,7 +3,7 @@
 @section('title', 'Chi tiết biến thể')
 @section('page_icon', 'bi-layers')
 @section('page_eyebrow', $variant->product->name)
-@section('page_title', $variant->color . ($variant->storage ? ' / ' . $variant->storage : ''))
+@section('page_title', $variant->color . ($variant->product->storage ? ' / ' . $variant->product->storage : ''))
 @section('page_subtitle', 'Chi tiết biến thể sản phẩm.')
 
 @section('heading_actions')
@@ -44,10 +44,10 @@
                         <th>Màu sắc</th>
                         <td><span class="badge text-bg-secondary fs-6">{{ $variant->color }}</span></td>
                     </tr>
-                    @if($variant->storage)
+                    @if($variant->product->storage)
                     <tr>
                         <th>Bộ nhớ</th>
-                        <td><span class="badge text-bg-info fs-6">{{ $variant->storage }}</span></td>
+                        <td><span class="badge text-bg-info fs-6">{{ $variant->product->storage }}</span></td>
                     </tr>
                     @endif
                     <tr>
@@ -218,10 +218,10 @@
                             <label class="form-label">Màu <span class="text-danger">*</span></label>
                             <input type="text" name="color" class="form-control" value="{{ old('color', $variant->color) }}" required>
                         </div>
-                        @if($variant->storage !== null && $variant->storage !== '')
+                        @if($variant->product->storage !== null && $variant->product->storage !== '')
                         <div class="col-md-6">
                             <label class="form-label">Bộ nhớ</label>
-                            <input type="text" name="storage" class="form-control" value="{{ old('storage', $variant->storage) }}">
+                            <input type="text" name="storage" class="form-control" value="{{ old('storage', $variant->product->storage) }}">
                         </div>
                         @else
                         <input type="hidden" name="storage" value="">

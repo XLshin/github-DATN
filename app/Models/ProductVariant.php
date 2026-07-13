@@ -7,20 +7,28 @@ use Illuminate\Database\Eloquent\Model;
 class ProductVariant extends Model
 {
     protected $fillable = [
-
         'product_id',
-
         'color',
-
         'image_path',
-
         'stock_quantity',
-
         'additional_price',
-
         'status'
-
     ];
+
+    protected static function booted(): void
+    {
+        static::saved(function (ProductVariant $variant) {
+            $variant->product?->updateQuietly([
+                'stock_quantity' => $variant->product->variants()->sum('stock_quantity'),
+            ]);
+        });
+
+        static::deleted(function (ProductVariant $variant) {
+            optional($variant->product)->updateQuietly([
+                'stock_quantity' => ProductVariant::where('product_id', $variant->product_id)->sum('stock_quantity'),
+            ]);
+        });
+    }
 
     public function product()
     {
