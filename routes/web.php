@@ -38,6 +38,8 @@ use App\Http\Controllers\CarrierWebhookController;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
+Route::get('/categories/{category}', [HomeController::class, 'byCategory'])->name('category.products');
+Route::get('/brands/{brand}', [HomeController::class, 'byBrand'])->name('brand.products');
 
 Route::middleware('auth')->group(function () {
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');

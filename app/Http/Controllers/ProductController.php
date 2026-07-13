@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Brand;
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use Illuminate\Http\Request;
@@ -50,7 +52,7 @@ class ProductController extends Controller
         $categories = Category::orderBy('name')->get();
         $brands     = Brand::orderBy('name')->get();
         $colors     = ProductVariant::distinct()->pluck('color')->filter()->sort()->values();
-        $storages   = Product::distinct()->pluck('storage')->filter()->sort()->values();
+        $storages   = Product::distinct()->whereNotNull('storage')->pluck('storage')->filter()->sort()->values();
 
         return view('client.products.index', compact('products', 'categories', 'brands', 'colors', 'storages'));
     }

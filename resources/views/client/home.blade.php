@@ -6,121 +6,8 @@
 <div class="container py-3">
 <div class="row g-4">
 
-{{-- ===================== SIDEBAR FILTER (sticky trái) ===================== --}}
-<div class="col-lg-3 d-none d-lg-block">
-    <div style="position:sticky;top:80px;max-height:calc(100vh - 100px);overflow-y:auto;">
-        <form method="GET" action="{{ route('products.index') }}" id="filterForm">
-
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                    <h6 class="fw-semibold mb-2">Tìm kiếm</h6>
-                    <div class="input-group">
-                        <input type="text" name="search" value="{{ request('search') }}"
-                            class="form-control form-control-sm" placeholder="Tên sản phẩm...">
-                        <button class="btn btn-primary btn-sm" type="submit">
-                            <i class="lni lni-search-alt"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                    <h6 class="fw-semibold mb-2">Danh mục</h6>
-                    <div class="d-flex flex-column gap-1">
-                        <a href="{{ route('products.index') }}"
-                            class="text-decoration-none small {{ !request('category_id') ? 'fw-semibold text-primary' : 'text-dark' }}">Tất cả</a>
-                        @foreach($allCategories as $cat)
-                        <a href="{{ route('products.index', ['category_id' => $cat->id]) }}"
-                            class="text-decoration-none small {{ request('category_id') == $cat->id ? 'fw-semibold text-primary' : 'text-dark' }}">
-                            {{ $cat->name }}
-                        </a>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                    <h6 class="fw-semibold mb-2">Thương hiệu</h6>
-                    <div class="d-flex flex-column gap-1">
-                        <a href="{{ route('products.index') }}"
-                            class="text-decoration-none small {{ !request('brand_id') ? 'fw-semibold text-primary' : 'text-dark' }}">Tất cả</a>
-                        @foreach($allBrands as $br)
-                        <a href="{{ route('products.index', ['brand_id' => $br->id]) }}"
-                            class="text-decoration-none small {{ request('brand_id') == $br->id ? 'fw-semibold text-primary' : 'text-dark' }}">
-                            {{ $br->name }}
-                        </a>
-                        @endforeach
-                    </div>
-                </div>
-            </div>
-
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                    <h6 class="fw-semibold mb-2">Khoảng giá</h6>
-                    <div class="d-flex gap-2 align-items-center">
-                        <input type="number" name="price_min" value="{{ request('price_min') }}"
-                            class="form-control form-control-sm" placeholder="Từ">
-                        <span class="text-muted small">—</span>
-                        <input type="number" name="price_max" value="{{ request('price_max') }}"
-                            class="form-control form-control-sm" placeholder="Đến">
-                    </div>
-                </div>
-            </div>
-
-            @if($colors->count())
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                    <h6 class="fw-semibold mb-2">Màu sắc</h6>
-                    <select name="color" class="form-select form-select-sm" onchange="this.form.submit()">
-                        <option value="">Tất cả</option>
-                        @foreach($colors as $color)
-                        <option value="{{ $color }}" @selected(request('color') === $color)>{{ $color }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-            @endif
-
-            @if($storages->count())
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                    <h6 class="fw-semibold mb-2">Dung lượng</h6>
-                    <select name="storage" class="form-select form-select-sm" onchange="this.form.submit()">
-                        <option value="">Tất cả</option>
-                        @foreach($storages as $storage)
-                        <option value="{{ $storage }}" @selected(request('storage') === $storage)>{{ $storage }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            </div>
-            @endif
-
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body">
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" name="in_stock" value="1"
-                            id="inStock" @checked(request('in_stock')) onchange="this.form.submit()">
-                        <label class="form-check-label small" for="inStock">Chỉ hiện còn hàng</label>
-                    </div>
-                </div>
-            </div>
-
-            @foreach(request()->except(['price_min','price_max','search','color','storage','in_stock','_token','page']) as $k => $v)
-            <input type="hidden" name="{{ $k }}" value="{{ $v }}">
-            @endforeach
-
-            <div class="d-grid gap-2 mb-3">
-                <button type="submit" class="btn btn-primary btn-sm">Áp dụng</button>
-                <a href="{{ route('products.index') }}" class="btn btn-outline-secondary btn-sm">Xóa bộ lọc</a>
-            </div>
-        </form>
-    </div>
-</div>
-
-{{-- ===================== NỘI DUNG CHÍNH (phải) ===================== --}}
-<div class="col-lg-9">
+{{-- ===================== NỘI DUNG CHÍNH ===================== --}}
+<div class="col-12">
 
     {{-- BANNER --}}
     @if($banners->isNotEmpty())
@@ -162,7 +49,7 @@
         <div class="row g-2">
             @foreach($categories as $cat)
             <div class="col-6 col-md-3">
-                <a href="{{ route('products.index', ['category_id' => $cat->id]) }}"
+                <a href="{{ route('category.products', $cat) }}"
                     class="text-decoration-none d-flex flex-column align-items-center justify-content-center p-2 bg-white border rounded-3 text-center"
                     style="min-height:80px;">
                     <span style="font-size:1.6rem;">{{ $catIcons[$cat->name] ?? '📦' }}</span>
@@ -178,7 +65,7 @@
     {{-- FLASH SALE --}}
     @if($flashSaleProducts->isNotEmpty())
     <div class="mb-4">
-        <div class="d-flex align-items-center justify-content-between mb-3">
+<div class="d-flex align-items-center justify-content-between mb-3">
             <div class="d-flex align-items-center gap-2">
                 <h2 class="h6 fw-bold mb-0 text-danger">⚡ Flash Sale</h2>
                 <span class="badge bg-dark" id="flashCountdown">--:--:--</span>
@@ -248,13 +135,16 @@
             @foreach($brands as $brand)
             <div class="col-4 col-md-2">
                 <a href="{{ route('brand.products', $brand) }}"
-                    class="d-flex align-items-center justify-content-center p-2 bg-white border rounded-3"
-                    style="min-height:60px;">
+                    class="d-flex flex-column align-items-center justify-content-center p-2 bg-white border rounded-3 text-decoration-none"
+                    style="min-height:70px; transition:.2s;"
+onmouseover="this.style.borderColor='#1565c0';this.style.boxShadow='0 2px 8px rgba(21,101,192,.15)'"
+                    onmouseout="this.style.borderColor='';this.style.boxShadow=''">
                     @if($brand->logo)
                     <img src="{{ asset('storage/' . $brand->logo) }}" alt="{{ $brand->name }}"
-                        style="max-height:36px;max-width:100%;object-fit:contain;">
+                        style="max-height:36px;max-width:90%;object-fit:contain;">
                     @else
-                    <span class="fw-bold text-dark small">{{ $brand->name }}</span>
+                    <i class="lni lni-tag" style="font-size:1.4rem;color:#1565c0;"></i>
+                    <span class="fw-bold text-dark mt-1" style="font-size:12px;">{{ $brand->name }}</span>
                     @endif
                 </a>
             </div>
@@ -314,7 +204,7 @@
         const diff = end - new Date();
         if (diff <= 0) { el.textContent = '00:00:00'; return; }
         const h = String(Math.floor(diff/3600000)).padStart(2,'0');
-        const m = String(Math.floor((diff%3600000)/60000)).padStart(2,'0');
+const m = String(Math.floor((diff%3600000)/60000)).padStart(2,'0');
         const s = String(Math.floor((diff%60000)/1000)).padStart(2,'0');
         el.textContent = `${h}:${m}:${s}`;
     }
