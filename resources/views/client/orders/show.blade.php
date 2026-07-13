@@ -284,30 +284,6 @@
                                             </div>
 
                                             @endif
-
-                                            @if($item->imeis->count())
-
-                                                <div class="mt-2">
-
-                                                <div class="fw-semibold">
-
-                                                IMEI
-
-                                                </div>
-
-                                                @foreach($item->imeis as $imei)
-
-                                                <div class="small text-success">
-
-                                                {{ $imei->imei }}
-
-                                                </div>
-
-                                                @endforeach
-
-                                                </div>
-
-                                                @endif
                                     </td>
                                     <td>
                                         @php
