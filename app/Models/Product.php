@@ -8,6 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
     use HasFactory;
+
+    protected $casts = [
+        'product_type' => 'string',
+    ];
+
     protected $fillable = [
 
         'category_id',
@@ -76,9 +81,15 @@ class Product extends Model
         return $this->belongsTo(ProductGroup::class, 'product_group_id');
     }
 
-public function getTotalStockAttribute(): int
-{
-    return $this->variants->sum('stock_quantity');
-}
+    public function getProductTypeAttribute($value): string
+    {
+        $normalized = is_string($value) ? trim($value) : '';
 
+        return in_array($normalized, ['imei/serial', 'quantity'], true) ? $normalized : 'quantity';
+    }
+
+    public function getTotalStockAttribute(): int
+    {
+        return $this->variants->sum('stock_quantity');
+    }
 }
