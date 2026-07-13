@@ -143,42 +143,6 @@ class InventoryController extends Controller
             ->with('success', 'Đã điều chỉnh kho phụ kiện thành công.');
     }
 
-    public function show(string $id)
-    {
-        abort(404);
-    }
-
-    public function edit(string $id)
-    {
-        $transaction = InventoryTransaction::with('productVariant.product.brand')->findOrFail($id);
-
-        return view('admin.inventory.edit', compact('transaction'));
-    }
-
-    public function update(Request $request, string $id)
-    {
-        $validated = $request->validate([
-            'note' => 'nullable|string|max:1000',
-        ], [
-            'note.max' => 'Ghi chú không được vượt quá 1000 ký tự.',
-        ]);
-
-        $transaction = InventoryTransaction::findOrFail($id);
-
-        $transaction->update([
-            'note' => $validated['note'] ?? null,
-        ]);
-
-        return redirect()
-            ->route('admin.inventory.index')
-            ->with('success', 'Đã cập nhật ghi chú lịch sử kho.');
-    }
-
-    public function destroy(string $id)
-    {
-        abort(404);
-    }
-
     private function quantityVariantQuery()
     {
         return ProductVariant::with('product')

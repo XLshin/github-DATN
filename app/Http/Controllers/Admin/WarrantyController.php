@@ -478,10 +478,11 @@ class WarrantyController extends Controller
                 'p.id as product_id',
                 'p.name as product_name',
                 'p.price as base_price',
+                'p.storage',
+
 
                 'pv.id as product_variant_id',
                 'pv.color',
-                'p.storage',
                 'pv.additional_price',
 
                 'oi.id as order_item_id',
@@ -525,9 +526,10 @@ class WarrantyController extends Controller
 
                 'p.name as product_name',
                 'p.price as base_price',
+                'p.storage',
+
 
                 'pv.color',
-                'p.storage',
                 'pv.additional_price',
 
                 'oi.price as sold_price',
