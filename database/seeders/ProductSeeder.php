@@ -34,6 +34,7 @@ class ProductSeeder extends Seeder
             [
                 'slug' => 'iphone-16-pro',
                 'name' => 'iPhone 16 Pro',
+
                 'category' => 'Điện thoại',
                 'brand' => 'Apple',
                 'description' => 'iPhone 16 Pro chính hãng, thiết kế mới và hiệu năng vượt trội.',
@@ -45,6 +46,7 @@ class ProductSeeder extends Seeder
             [
                 'slug' => 'samsung-galaxy-s25',
                 'name' => 'Samsung Galaxy S25',
+                'storage' => '256GB',
                 'category' => 'Điện thoại',
                 'brand' => 'Samsung',
                 'description' => 'Samsung Galaxy S25 chính hãng với màn hình siêu sắc nét.',
@@ -56,6 +58,7 @@ class ProductSeeder extends Seeder
             [
                 'slug' => 'xiaomi-redmi-note-15',
                 'name' => 'Xiaomi Redmi Note 15',
+                'storage' => '128GB',
                 'category' => 'Điện thoại',
                 'brand' => 'Xiaomi',
                 'description' => 'Xiaomi Redmi Note 15 pin khỏe, hiệu năng tốt trong tầm giá.',
@@ -67,6 +70,7 @@ class ProductSeeder extends Seeder
             [
                 'slug' => 'oppo-reno-12',
                 'name' => 'Oppo Reno 12',
+                'storage' => '128GB',
                 'category' => 'Điện thoại',
                 'brand' => 'Oppo',
                 'description' => 'Oppo Reno 12 camera đẹp, thiết kế mỏng nhẹ.',
@@ -78,6 +82,7 @@ class ProductSeeder extends Seeder
             [
                 'slug' => 'ipad-air-6',
                 'name' => 'iPad Air 6',
+                'storage' => '256GB',
                 'category' => 'Máy tính bảng',
                 'brand' => 'Apple',
                 'description' => 'iPad Air 6 mỏng nhẹ, hiệu năng mạnh mẽ cho công việc và giải trí.',
@@ -89,6 +94,7 @@ class ProductSeeder extends Seeder
             [
                 'slug' => 'samsung-galaxy-tab-s10',
                 'name' => 'Samsung Galaxy Tab S10',
+                'storage' => '128GB',
                 'category' => 'Máy tính bảng',
                 'brand' => 'Samsung',
                 'description' => 'Samsung Galaxy Tab S10 màn hình lớn, âm thanh sống động.',
@@ -100,6 +106,7 @@ class ProductSeeder extends Seeder
             [
                 'slug' => 'apple-airpods-pro-3',
                 'name' => 'Apple AirPods Pro 3',
+                'storage' => '1 unit',
                 'category' => 'Phụ kiện',
                 'brand' => 'Apple',
                 'description' => 'AirPods Pro 3 chống ồn chủ động, âm thanh chất lượng.',
@@ -111,6 +118,7 @@ class ProductSeeder extends Seeder
             [
                 'slug' => 'samsung-galaxy-buds-3',
                 'name' => 'Samsung Galaxy Buds 3',
+                'storage' => '1 unit',
                 'category' => 'Phụ kiện',
                 'brand' => 'Samsung',
                 'description' => 'Galaxy Buds 3 tiện lợi, pin bền và âm thanh rõ nét.',
@@ -122,6 +130,7 @@ class ProductSeeder extends Seeder
             [
                 'slug' => 'xiaomi-65w-charger',
                 'name' => 'Xiaomi 65W Charger',
+                'storage' => '65W',
                 'category' => 'Phụ kiện',
                 'brand' => 'Xiaomi',
                 'description' => 'Sạc nhanh 65W tương thích nhiều thiết bị.',
@@ -156,6 +165,7 @@ class ProductSeeder extends Seeder
                     'description' => $productData['description'],
                     'price' => $productData['price'],
                     'stock_quantity' => $productData['stock_quantity'],
+                    // 'storage' => $productData['storage'],
                     'thumbnail' => null,
                     'status' => $productData['status'],
                     'product_type' => $productData['product_type'],

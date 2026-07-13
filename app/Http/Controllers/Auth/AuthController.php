@@ -59,7 +59,7 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        $credentials = $request->validate([
+        $validated = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
         ], [
@@ -67,6 +67,11 @@ class AuthController extends Controller
             'email.email' => 'Email không đúng định dạng.',
             'password.required' => 'Vui lòng nhập mật khẩu.',
         ]);
+
+        $credentials = [
+            'email' => strtolower($validated['email']),
+            'password' => $validated['password'],
+        ];
 
         $remember = $request->boolean('remember');
 
