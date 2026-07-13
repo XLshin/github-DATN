@@ -44,6 +44,11 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        $orderStatusCounts = Order::select('fulfillment_status', DB::raw('count(*) as count'))
+            ->groupBy('fulfillment_status')
+            ->pluck('count', 'fulfillment_status')
+            ->all();
+
         return view(
             'admin.dashboard',
             compact(
@@ -51,7 +56,8 @@ class DashboardController extends Controller
                 'totalOrders',
                 'totalCustomers',
                 'topRevenueProducts',
-                'lowStockVariants'
+                'lowStockVariants',
+                'orderStatusCounts'
             )
         );
     }

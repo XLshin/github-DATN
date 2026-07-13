@@ -32,7 +32,7 @@ class ProductSeeder extends Seeder
             [
                 'slug' => 'iphone-16-pro',
                 'name' => 'iPhone 16 Pro',
-                'storage' => '128GB',
+
                 'category' => 'Điện thoại',
                 'brand' => 'Apple',
                 'description' => 'iPhone 16 Pro chính hãng, thiết kế mới và hiệu năng vượt trội.',
@@ -149,7 +149,7 @@ class ProductSeeder extends Seeder
                     'description' => $productData['description'],
                     'price' => $productData['price'],
                     'stock_quantity' => $productData['stock_quantity'],
-                    'storage' => $productData['storage'],
+                    // 'storage' => $productData['storage'],
                     'thumbnail' => null,
                     'status' => $productData['status'],
                     'product_type' => $productData['product_type'],
