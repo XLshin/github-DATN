@@ -87,7 +87,7 @@ class ClientWarrantyController extends Controller
             abort(403);
         }
 
-        $warranty->load(['imei', 'order']);
+        $warranty->load(['imei', 'order', 'receptionMedia', 'completionMedia', 'receiptMedia']);
 
         $histories = $this->buildWarrantyHistory($warranty);
 
