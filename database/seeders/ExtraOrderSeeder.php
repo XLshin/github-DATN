@@ -34,7 +34,7 @@ class ExtraOrderSeeder extends Seeder
                 ->join('products', 'products.id', '=', 'product_variants.product_id')
                 ->where('products.slug', 'iphone-16-pro')
                 ->where('product_variants.color', 'Titan Trắng')
-                ->where('product_variants.storage', '256GB')
+                ->where('products.storage', '256GB')
                 ->select('product_variants.*', 'products.price as product_price', 'products.id as pid')
                 ->first();
 

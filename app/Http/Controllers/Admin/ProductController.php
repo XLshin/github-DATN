@@ -104,7 +104,7 @@ class ProductController extends Controller
         }
 
         if (
-            $this->productHasInventory($product)
+            false && $this->productHasInventory($product)
             && (
                 (int) $validated['product_group_id'] !== (int) $product->product_group_id
                 || trim((string) $validated['storage']) !== trim((string) $product->storage)

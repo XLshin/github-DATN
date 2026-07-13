@@ -131,6 +131,9 @@ class ProductGroupController extends Controller
         $request->merge([
             'product_type' => trim((string) $request->input('product_type')),
         ]);
+        $storageRule = $request->input('product_type') === 'imei/serial'
+            ? 'required|string|max:255'
+            : 'nullable|string|max:255';
 
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:product_groups,name',
@@ -147,7 +150,7 @@ class ProductGroupController extends Controller
             'specifications.*.name' => 'nullable|string|max:255',
             'specifications.*.value' => 'nullable|string',
             'versions' => 'required|array|min:1',
-            'versions.*.storage' => 'required|string|max:255',
+            'versions.*.storage' => $storageRule,
             'versions.*.name' => 'required|string|max:255|distinct|unique:products,name',
             'versions.*.price' => 'required|numeric|min:0',
             'versions.*.description' => 'nullable|string',
@@ -251,7 +254,7 @@ class ProductGroupController extends Controller
                     'category_id' => $productGroup->category_id,
                     'brand_id' => $productGroup->brand_id,
                     'product_type' => $validated['product_type'],
-                    'storage' => $version['storage'],
+                    'storage' => $this->normalizeVersionStorage($version['storage'] ?? null),
                     'name' => $version['name'],
                     'slug' => Str::slug($version['name']),
                     'description' => $version['description'] ?? null,
@@ -328,6 +331,9 @@ class ProductGroupController extends Controller
         $request->merge([
             'product_type' => trim((string) $request->input('product_type')),
         ]);
+        $storageRule = $request->input('product_type') === 'imei/serial'
+            ? 'required|string|max:255'
+            : 'nullable|string|max:255';
 
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:product_groups,name,' . $productGroup->id,
@@ -345,7 +351,7 @@ class ProductGroupController extends Controller
             'specifications.*.value' => 'nullable|string',
             'versions' => 'required|array|min:1',
             'versions.*.id' => 'nullable|integer|exists:products,id',
-            'versions.*.storage' => 'required|string|max:255',
+            'versions.*.storage' => $storageRule,
             'versions.*.name' => 'required|string|max:255',
             'versions.*.price' => 'required|numeric|min:0',
             'versions.*.description' => 'nullable|string',
@@ -482,7 +488,7 @@ class ProductGroupController extends Controller
                     'category_id' => $productGroup->category_id,
                     'brand_id' => $productGroup->brand_id,
                     'product_type' => $validated['product_type'],
-                    'storage' => $version['storage'],
+                    'storage' => $this->normalizeVersionStorage($version['storage'] ?? null),
                     'name' => $version['name'],
                     'slug' => Str::slug($version['name']),
                     'description' => $version['description'] ?? null,
@@ -673,7 +679,7 @@ class ProductGroupController extends Controller
             }
 
             if (
-                trim((string) $existingVersion->storage) !== trim((string) $version['storage'])
+                trim((string) $existingVersion->storage) !== (string) $this->normalizeVersionStorage($version['storage'] ?? null)
                 || trim((string) $existingVersion->name) !== trim((string) $version['name'])
             ) {
                 throw ValidationException::withMessages([
@@ -718,6 +724,13 @@ class ProductGroupController extends Controller
                 ]);
             }
         }
+    }
+
+    private function normalizeVersionStorage(?string $storage): ?string
+    {
+        $storage = trim((string) $storage);
+
+        return $storage === '' ? null : $storage;
     }
 
     private function variantHasInventory(ProductVariant $variant): bool
