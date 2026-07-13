@@ -129,7 +129,7 @@ class CheckoutService
                 ]);
 
                 if ($productType === 'imei/serial') {
-                    $this->reserveImeiForOrderItem($orderItem, $variant->id, $product->name);
+                    $this->assertImeiAvailable($variant->id, $product->name);
                 }
 
                 if ($productType === 'quantity') {
@@ -169,29 +169,22 @@ if ($pointsEarned > 0) {
         });
     }
 
-    private function reserveImeiForOrderItem(OrderItem $orderItem, int $productVariantId, string $productName): void
+    /**
+     * Chỉ kiểm tra còn IMEI khả dụng cho biến thể, không gán/giữ chỗ một IMEI cụ thể.
+     * Việc chọn IMEI nào cụ thể sẽ do admin thực hiện thủ công ở bước xác nhận đóng gói.
+     */
+    private function assertImeiAvailable(int $productVariantId, string $productName): void
     {
-        $imei = Imei::query()
+        $exists = Imei::query()
             ->where('product_variant_id', $productVariantId)
             ->where('status', 'available')
-            ->lockForUpdate()
-            ->first();
+            ->exists();
 
-        if (! $imei) {
+        if (! $exists) {
             throw ValidationException::withMessages([
                 'inventory' => 'Sản phẩm ' . $productName . ' đã hết IMEI khả dụng.',
             ]);
         }
-
-        $imei->update([
-            'status' => 'reserved',
-            'reserved_at' => now(),
-            'reserved_by_order_item_id' => $orderItem->id,
-        ]);
-
-        $orderItem->update([
-            'imei_id' => $imei->id,
-        ]);
     }
 
     private function decreaseVariantStock($variant, int $quantity, string $productName): void

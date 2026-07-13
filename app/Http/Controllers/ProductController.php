@@ -17,4 +17,4 @@ class ProductController extends Controller
 
         return view('client.products.show', compact('product'));
     }
-}
+} 

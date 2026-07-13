@@ -74,33 +74,37 @@
 
                             @if($remaining > 0)
                                 <label class="form-label">
-                                    Nhập hoặc chọn thêm {{ $remaining }} IMEI còn thiếu <span class="text-danger">*</span>
+                                    Chọn thủ công {{ $remaining }} IMEI còn thiếu <span class="text-danger">*</span>
                                 </label>
+
+                                @if($variantImeis->isEmpty())
+                                    <div class="alert alert-warning mb-2">
+                                        Không còn IMEI khả dụng cho biến thể này. Vui lòng nhập kho thêm trước khi đóng gói.
+                                    </div>
+                                @endif
 
                                 @for($slot = 0; $slot < $remaining; $slot++)
                                     @php
-                                        $datalistId = 'imei-options-' . $order->id . '-' . $item->id . '-' . $slot;
+                                        $oldValue = old('imei_values.' . $item->id . '.' . $slot);
                                     @endphp
 
-                                    <input type="text"
-                                           name="imei_values[{{ $item->id }}][]"
-                                           class="form-control mb-2"
-                                           list="{{ $datalistId }}"
-                                           value="{{ old('imei_values.' . $item->id . '.' . $slot) }}"
-                                           placeholder="Nhập IMEI hoặc chọn từ danh sách gợi ý"
-                                           required>
-
-                                    <datalist id="{{ $datalistId }}">
+                                    <select name="imei_values[{{ $item->id }}][]"
+                                            class="form-select mb-2"
+                                            {{ $variantImeis->isEmpty() ? 'disabled' : '' }}
+                                            required>
+                                        <option value="" disabled {{ $oldValue ? '' : 'selected' }}>
+                                            -- Chọn IMEI --
+                                        </option>
                                         @foreach($variantImeis as $imei)
-                                            <option value="{{ $imei->imei }}">
+                                            <option value="{{ $imei->imei }}" {{ $oldValue === $imei->imei ? 'selected' : '' }}>
                                                 {{ $imei->imei }}
                                             </option>
                                         @endforeach
-                                    </datalist>
+                                    </select>
                                 @endfor
 
                                 <div class="form-text">
-                                    Có {{ $variantImeis->count() }} IMEI available cho biến thể này.
+                                    Có {{ $variantImeis->count() }} IMEI available cho biến thể này. Mỗi IMEI chỉ được chọn cho 1 dòng sản phẩm, hệ thống sẽ kiểm tra trùng khi xác nhận.
                                 </div>
                             @endif
                         @else
