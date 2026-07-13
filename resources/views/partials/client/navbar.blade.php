@@ -137,12 +137,6 @@
                             </a>
                         @endif
                     @else
-                    <a href="{{ route('admin.dashboard') }}" class="cart-btn">
-                        <i class="lni lni-cart"></i>
-                        <span class="cart-text">Giỏ hàng</span>
-                    </a>
-                    @endif
-                    @else
                     <a href="{{ route('login') }}" class="cart-btn">
                         <i class="lni lni-cart"></i>
                         <span class="cart-text">Giỏ hàng</span>
