@@ -31,7 +31,12 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Voucher</label>
-                                <select name="coupon_id" class="form-select">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <input type="text" name="coupon_code" class="form-control" placeholder="Nhập mã voucher (nếu có)" value="{{ old('coupon_code') }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <select name="coupon_id" class="form-select">
                                     <option value="">-- Không chọn voucher --</option>
                                     @forelse($availableCoupons ?? [] as $coupon)
                                         <option value="{{ $coupon->id }}" {{ old('coupon_id') == $coupon->id ? 'selected' : '' }}>
@@ -46,10 +51,16 @@
                                     @empty
                                         <option value="" disabled>Không có voucher nào</option>
                                     @endforelse
-                                </select>
+                                        </select>
+                                    </div>
+                                </div>
                                 @error('coupon_id')
                                     <div class="text-danger small mt-1">{{ $message }}</div>
                                 @enderror
+                                @error('coupon_code')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                                <div class="text-muted small mt-1">Chú ý: Chỉ được dùng một loại voucher — <strong>nhập mã</strong> hoặc <strong>chọn voucher đã có</strong>.</div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Dùng điểm</label>
@@ -144,8 +155,10 @@
         function preview(){
             const tokenMeta = document.querySelector('meta[name="csrf-token"]');
             const token = tokenMeta ? tokenMeta.getAttribute('content') : null;
+            const couponCodeInput = document.querySelector('input[name="coupon_code"]');
             const payload = new URLSearchParams();
             payload.append('coupon_id', couponSelect ? couponSelect.value : '');
+            payload.append('coupon_code', couponCodeInput ? couponCodeInput.value.trim() : '');
             payload.append('points_to_use', pointsInput ? pointsInput.value : 0);
 
             fetch('{{ route('checkout.preview') }}', {
@@ -215,7 +228,32 @@
             timer = setTimeout(preview, 350);
         }
 
-        if (couponSelect) couponSelect.addEventListener('change', schedulePreview);
+        if (couponSelect) couponSelect.addEventListener('change', function (e) {
+            // when user selects a voucher, clear and disable coupon code input
+            const codeInput = document.querySelector('input[name="coupon_code"]');
+            if (codeInput) {
+                if (this.value) {
+                    codeInput.value = '';
+                    codeInput.disabled = true;
+                } else {
+                    codeInput.disabled = false;
+                }
+            }
+            schedulePreview();
+        });
+        const couponCodeInput = document.querySelector('input[name="coupon_code"]');
+        if (couponCodeInput) couponCodeInput.addEventListener('input', function () {
+            // when user types a code, clear and disable select if not empty
+            if (this.value.trim()) {
+                if (couponSelect) {
+                    couponSelect.value = '';
+                    couponSelect.disabled = true;
+                }
+            } else {
+                if (couponSelect) couponSelect.disabled = false;
+            }
+            schedulePreview();
+        });
         if (pointsInput) pointsInput.addEventListener('input', schedulePreview);
 
         schedulePreview();
