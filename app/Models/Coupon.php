@@ -2,11 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Coupon extends Model
 {
+    protected $attributes = [
+        'distribution' => self::DISTRIBUTION_ASSIGNED,
+    ];
+    public const DISTRIBUTION_ASSIGNED = 'assigned';
+    public const DISTRIBUTION_PUBLIC = 'public';
+
     protected $fillable = [
 
         'code',
@@ -25,7 +33,9 @@ class Coupon extends Model
 
         'end_date',
 
-        'status'
+        'status',
+
+        'distribution'
 
     ];
 
@@ -43,9 +53,16 @@ class Coupon extends Model
         return $this->belongsToMany(User::class, 'coupon_user');
     }
 
-    /**
-     * Kiểm tra voucher còn hiệu lực không
-     */
+    public function isPublic(): bool
+    {
+        return $this->distribution === self::DISTRIBUTION_PUBLIC;
+    }
+
+    public function isAssigned(): bool
+    {
+        return $this->distribution === self::DISTRIBUTION_ASSIGNED;
+    }
+
     public function isValid(): bool
     {
         $hasUsageLeft = $this->usage_limit === 0 || $this->used_count < $this->usage_limit;
@@ -53,6 +70,17 @@ class Coupon extends Model
         return $this->status
             && now()->between($this->start_date, $this->end_date)
             && $hasUsageLeft;
+    }
+
+    public function scopeValid(Builder $query): Builder
+    {
+        return $query->where('status', true)
+            ->where('start_date', '<=', now())
+            ->where('end_date', '>=', now())
+            ->where(function (Builder $builder) {
+                $builder->where('usage_limit', 0)
+                    ->orWhereColumn('used_count', '<', 'usage_limit');
+            });
     }
 
     public function isValidForAmount(float $subtotal): bool

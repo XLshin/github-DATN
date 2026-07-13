@@ -48,9 +48,11 @@ class CheckoutService
 
             // 1. Xử lý giảm giá từ Coupon / Voucher
             if (! empty($data['coupon_id'])) {
-                $coupon = Coupon::findOrFail($data['coupon_id']);
+                // Khoá dòng voucher để hạn mức sử dụng không bị vượt khi nhiều
+                // khách thanh toán cùng lúc.
+                $coupon = Coupon::query()->lockForUpdate()->findOrFail($data['coupon_id']);
 
-                if (! $user->coupons->contains($coupon->id)) {
+                if (! $user->coupons()->whereKey($coupon->id)->exists()) {
                     throw ValidationException::withMessages([
                         'coupon_id' => 'Voucher không hợp lệ hoặc bạn không có quyền sử dụng.',
                     ]);
