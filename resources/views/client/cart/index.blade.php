@@ -25,15 +25,26 @@
                     </thead>
                     <tbody>
                         @foreach ($items as $item)
+                            @php
+                                $variant = $item->productVariant;
+                                $unitPrice = (float) ($item->product?->price ?? 0) + (float) ($variant?->additional_price ?? 0);
+                                $lineTotal = $unitPrice * (int) $item->quantity;
+                            @endphp
                             <tr>
-                                <td>{{ $item->product->name }}</td>
-                                <td class="text-end">{{ number_format($item->product->price, 0, ',', '.') }} đ</td>
+                                <td>
+                                    <div class="fw-semibold">{{ $item->product->name }}</div>
+                                    @if($variant)
+                                        <div class="text-muted small">{{ $variant->color ?: 'Không màu' }}</div>
+                                    @endif
+                                </td>
+                                <td class="text-end">{{ number_format($unitPrice, 0, ',', '.') }} đ</td>
                                 <td class="text-end">{{ $item->quantity }}</td>
-                                <td class="text-end">{{ number_format($item->product->price * $item->quantity, 0, ',', '.') }} đ</td>
+                                <td class="text-end">{{ number_format($lineTotal, 0, ',', '.') }} đ</td>
                                 <td class="text-end">
                                     <form method="POST" action="{{ route('cart.remove') }}">
                                         @csrf
                                         <input type="hidden" name="product_id" value="{{ $item->product_id }}">
+                                        <input type="hidden" name="variant_id" value="{{ $item->product_variant_id }}">
                                         <button type="submit" class="btn btn-outline-danger btn-sm">Xóa</button>
                                     </form>
                                 </td>

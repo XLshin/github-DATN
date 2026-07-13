@@ -84,9 +84,19 @@
                     <div class="card-header bg-white fw-bold">Đơn hàng</div>
                     <ul class="list-group list-group-flush">
                         @foreach ($items as $item)
+                            @php
+                                $variant = $item->productVariant;
+                                $unitPrice = (float) ($item->product?->price ?? 0) + (float) ($variant?->additional_price ?? 0);
+                                $lineTotal = $unitPrice * (int) $item->quantity;
+                            @endphp
                             <li class="list-group-item d-flex justify-content-between">
-                                <span>{{ $item->product->name }} x{{ $item->quantity }}</span>
-                                <span>{{ number_format($item->product->price * $item->quantity, 0, ',', '.') }} đ</span>
+                                <span>
+                                    {{ $item->product->name }} x{{ $item->quantity }}
+                                    @if($variant)
+                                        <span class="d-block text-muted small">{{ $variant->color ?: 'Không màu' }}</span>
+                                    @endif
+                                </span>
+                                <span>{{ number_format($lineTotal, 0, ',', '.') }} đ</span>
                             </li>
                         @endforeach
                         <li class="list-group-item d-flex justify-content-between">

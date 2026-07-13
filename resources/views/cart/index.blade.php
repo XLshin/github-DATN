@@ -1,57 +1,69 @@
 @extends('layouts.app')
 
+@section('title', 'Giỏ hàng')
+
+@section('header')
+    <h1 class="h2 mb-1">Giỏ hàng</h1>
+    <p class="text-muted mb-0">{{ $items->count() }} sản phẩm</p>
+@endsection
+
 @section('content')
-<div class="container">
-    <h2>Giỏ hàng</h2>
-
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    @if(empty($items))
-        <p>Giỏ hàng trống.</p>
+<div class="container mb-5">
+    @if($items->isEmpty())
+        <div class="alert alert-info">
+            Giỏ hàng trống. <a href="{{ route('home') }}">Tiếp tục mua sắm</a>
+        </div>
     @else
-        <form method="post" action="{{ route('cart.update') }}">
-            @csrf
-            <table class="table">
-                <thead><tr><th>Sản phẩm</th><th>Giá</th><th>Số lượng</th><th>Tổng</th><th></th></tr></thead>
-                <tbody>
-                @php $sum = 0; @endphp
-                @foreach($items as $key => $it)
-                    @php
-                        $name = $it['product']->name ?? 'Sản phẩm';
-                        $price = $it['price'] ?? 0;
-                        $qty = $it['quantity'] ?? 0;
-                        $total = $price * $qty;
-                        $sum += $total;
-                    @endphp
-                    <tr>
-                        <td>{{ $name }}</td>
-                        <td>{{ number_format($price) }}</td>
-                        <td>
-                            <input type="number" name="quantity" value="{{ $qty }}" min="0" class="form-control" form="update-{{ $key }}">
-                        </td>
-                        <td>{{ number_format($total) }}</td>
-                        <td>
-                            <form id="update-{{ $key }}" method="post" action="{{ route('cart.update') }}">@csrf
-                                <input type="hidden" name="key" value="{{ $key }}">
-                                <input type="hidden" name="quantity" value="{{ $qty }}">
-                                <button class="btn btn-sm btn-primary" type="submit">Cập nhật</button>
-                            </form>
-                            <form method="post" action="{{ route('cart.remove') }}">@csrf
-                                <input type="hidden" name="key" value="{{ $key }}">
-                                <button class="btn btn-sm btn-danger" type="submit">Xóa</button>
-                            </form>
-                        </td>
-                    </tr>
-                @endforeach
-                </tbody>
-            </table>
-        </form>
+        <div class="card shadow-sm border-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Sản phẩm</th>
+                            <th>Biến thể</th>
+                            <th class="text-end">Đơn giá</th>
+                            <th class="text-end">SL</th>
+                            <th class="text-end">Thành tiền</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($items as $item)
+                            @php
+                                $variant = $item->productVariant;
+                                $unitPrice = (float) ($item->product?->price ?? 0) + (float) ($variant?->additional_price ?? 0);
+                                $lineTotal = $unitPrice * (int) $item->quantity;
+                            @endphp
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">{{ $item->product?->name ?? 'Sản phẩm' }}</div>
+                                    <div class="text-muted small">{{ $item->product?->storage }}</div>
+                                </td>
+                                <td>{{ $variant?->color ?: '-' }}</td>
+                                <td class="text-end">{{ number_format($unitPrice, 0, ',', '.') }} đ</td>
+                                <td class="text-end">{{ $item->quantity }}</td>
+                                <td class="text-end fw-semibold">{{ number_format($lineTotal, 0, ',', '.') }} đ</td>
+                                <td class="text-end">
+                                    <form method="POST" action="{{ route('cart.remove') }}">
+                                        @csrf
+                                        <input type="hidden" name="product_id" value="{{ $item->product_id }}">
+                                        <input type="hidden" name="variant_id" value="{{ $item->product_variant_id }}">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">Xóa</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-        <div class="text-right">
-            <strong>Tổng: {{ number_format($sum) }}</strong>
-            <a class="btn btn-success" href="{{ route('checkout.show') }}">Thanh toán</a>
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <a href="{{ route('home') }}" class="btn btn-outline-secondary">Tiếp tục mua sắm</a>
+            <div class="text-end">
+                <div class="fs-5 fw-bold">Tạm tính: {{ number_format($total, 0, ',', '.') }} đ</div>
+                <a href="{{ route('checkout.show') }}" class="btn btn-primary mt-2">Thanh toán</a>
+            </div>
         </div>
     @endif
 </div>
