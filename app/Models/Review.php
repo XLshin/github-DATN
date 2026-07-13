@@ -11,11 +11,13 @@ class Review extends Model
     'product_id',
     'rating',
     'comment',
-    'status'
+    'status',
+    'attachments'
 ];
 
 protected $casts = [
     'status' => 'boolean'
+    , 'attachments' => 'array'
 ];
 
     public function user()
