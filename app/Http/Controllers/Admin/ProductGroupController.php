@@ -466,9 +466,9 @@ class ProductGroupController extends Controller
                 ->get();
 
             foreach ($productsToDelete as $productToDelete) {
-                if ($productToDelete->variants->contains(fn ($variant) => (int) ($variant->imeis_count ?? 0) > 0)) {
+                if ($productToDelete->variants->contains(fn ($variant) => $this->variantHasInventory($variant))) {
                     throw ValidationException::withMessages([
-                        'versions' => "Không thể xóa phiên bản {$productToDelete->name} vì đã có IMEI.",
+                        'versions' => "Không thể xóa phiên bản {$productToDelete->name} vì đã có IMEI hoặc tồn kho.",
                     ]);
                 }
 
@@ -525,9 +525,9 @@ class ProductGroupController extends Controller
                     ->withCount('imeis')
                     ->get();
 
-                if ($variantsToDelete->contains(fn ($variant) => (int) ($variant->imeis_count ?? 0) > 0)) {
+                if ($variantsToDelete->contains(fn ($variant) => $this->variantHasInventory($variant))) {
                     throw ValidationException::withMessages([
-                        'colors' => "Không thể xóa màu {$colorToDelete} vì đã có IMEI.",
+                        'colors' => "Không thể xóa màu {$colorToDelete} vì đã có IMEI hoặc tồn kho.",
                     ]);
                 }
 
@@ -666,7 +666,7 @@ class ProductGroupController extends Controller
 
             $existingVersion = $existingVersions->get((int) $version['id']);
             $hasImei = $existingVersion
-                && $existingVersion->variants->contains(fn ($variant) => (int) ($variant->imeis_count ?? 0) > 0);
+                && $existingVersion->variants->contains(fn ($variant) => $this->variantHasInventory($variant));
 
             if (!$hasImei) {
                 continue;
@@ -677,7 +677,7 @@ class ProductGroupController extends Controller
                 || trim((string) $existingVersion->name) !== trim((string) $version['name'])
             ) {
                 throw ValidationException::withMessages([
-                    "versions.$index.name" => 'Phiên bản đã có IMEI nên không thể sửa tên hoặc dung lượng.',
+                    "versions.$index.name" => 'Phiên bản đã có IMEI hoặc tồn kho nên không thể sửa tên hoặc dung lượng.',
                 ]);
             }
         }
@@ -706,15 +706,24 @@ class ProductGroupController extends Controller
 
             $hasImei = ProductVariant::whereIn('product_id', $productIds)
                 ->where('color', $originalName)
-                ->whereHas('imeis')
+                ->where(function ($query) {
+                    $query->where('stock_quantity', '>', 0)
+                        ->orWhereHas('imeis');
+                })
                 ->exists();
 
             if ($hasImei) {
                 throw ValidationException::withMessages([
-                    "colors.$index.name" => 'Màu đã có IMEI nên không thể đổi tên.',
+                    "colors.$index.name" => 'Màu đã có IMEI hoặc tồn kho nên không thể đổi tên.',
                 ]);
             }
         }
+    }
+
+    private function variantHasInventory(ProductVariant $variant): bool
+    {
+        return (int) ($variant->imeis_count ?? $variant->imeis()->count()) > 0
+            || (int) $variant->stock_quantity > 0;
     }
 
     private function deleteProductFiles(Product $product): void

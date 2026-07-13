@@ -506,9 +506,9 @@
                                             {{ $item->variant->color ?? 'Không có màu' }}
                                         </div>
 
-                                        @if(!empty($item->variant->storage))
+                                        @if(!empty($item->product?->storage))
                                             <small class="text-muted">
-                                                {{ $item->variant->storage }}
+                                                {{ $item->product->storage }}
                                             </small>
                                         @endif
                                     @else
