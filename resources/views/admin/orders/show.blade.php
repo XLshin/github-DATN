@@ -149,8 +149,15 @@
                 <div class="card-body">
                     <h5 class="mb-3">Thông tin khách hàng</h5>
 
+                    @if($order->buyer_type === 'proxy')
+                        <div class="mb-2">
+                            <div class="text-muted small">Người đặt mua <span class="badge bg-info text-dark">Mua hộ</span></div>
+                            <div class="fw-semibold">{{ $order->buyer_name }} — {{ $order->buyer_phone }}</div>
+                        </div>
+                    @endif
+
                     <div class="mb-2">
-                        <div class="text-muted small">Tên khách hàng</div>
+                        <div class="text-muted small">Tên khách hàng{{ $order->buyer_type === 'proxy' ? ' (người nhận)' : '' }}</div>
                         <div class="fw-semibold">
                             {{ $order->customer_name ?? $order->user->name ?? '-' }}
                         </div>
@@ -256,10 +263,35 @@
                         </div>
                     </div>
 
-                    <div>
+                    <div class="mb-2">
                         <div class="text-muted small">Mã giao dịch</div>
                         <div>{{ $order->payment->transaction_code ?? '-' }}</div>
                     </div>
+
+                    <div class="mb-2">
+                        <div class="text-muted small">Người thanh toán</div>
+                        <div>
+                            {{ $order->payment->payer_name ?? '-' }}
+                            @if($order->payment?->payer_note)
+                                <div class="text-muted small">{{ $order->payment->payer_note }}</div>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <div class="text-muted small">Thời điểm thanh toán</div>
+                        <div>{{ $order->payment?->paid_at?->format('d/m/Y H:i') ?? '-' }}</div>
+                    </div>
+
+                    @if($paymentStatus === 'pending' && $order->payment?->payment_method === 'bank_transfer')
+                        <form action="{{ route('admin.orders.confirmBankTransfer', $order) }}" method="POST"
+                              onsubmit="return confirm('Xác nhận đã nhận được tiền chuyển khoản cho đơn hàng này?');">
+                            @csrf
+                            <button type="submit" class="btn btn-success btn-sm mt-2">
+                                <i class="bi bi-check2-circle me-1"></i>Xác nhận đã nhận tiền
+                            </button>
+                        </form>
+                    @endif
                 </div>
             </div>
         </div>

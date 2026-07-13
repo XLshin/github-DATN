@@ -76,4 +76,9 @@ class Product extends Model
         return $this->belongsTo(ProductGroup::class, 'product_group_id');
     }
 
+public function getTotalStockAttribute(): int
+{
+    return $this->variants->sum('stock_quantity');
+}
+
 }

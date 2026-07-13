@@ -137,10 +137,10 @@
                                     data-bs-trigger="hover focus"
                                     data-bs-placement="bottom"
                                     data-bs-html="true"
-                                    data-bs-content="{{ $product->variants->map(fn($v) => '<span class=\'badge bg-secondary-subtle text-secondary border me-1 mb-1\'>' . e($v->color) . ' / ' . e($v->storage) . '</span>')->implode('') }}"
+                                    data-bs-content="{{ $product->variants->map(fn($v) => '<span class=\'badge bg-secondary-subtle text-secondary border me-1 mb-1\'>' . e($v->color) . ' / ' . e($product->storage) . '</span>')->implode('') }}"
                                     class="badge bg-secondary-subtle text-secondary border"
                                     style="font-size:11px;cursor:pointer">
-                                    {{ $first->color }} / {{ $first->storage }}
+                                    {{ $first->color }} / {{ $product->storage }}
                                     @if($product->variants->count() > 1)
                                         <span class="ms-1 text-muted">+{{ $product->variants->count() - 1 }}</span>
                                     @endif
