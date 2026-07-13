@@ -13,10 +13,18 @@ class AddressController extends Controller
      */
     public function store(AddressRequest $request)
     {
-        Auth::user()->addresses()->create($request->validated());
+        $data = $request->validated();
+        $isFirstAddress = ! Auth::user()->addresses()->exists();
+
+        if ($isFirstAddress || ! empty($data['is_default'])) {
+            Auth::user()->addresses()->update(['is_default' => false]);
+            $data['is_default'] = true;
+        }
+
+        $address = Auth::user()->addresses()->create($data);
 
         if ($request->expectsJson()) {
-            return response()->json(['success' => true]);
+            return response()->json(['success' => true, 'address' => $address]);
         }
 
         return redirect()->route('dashboard')

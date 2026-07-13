@@ -51,7 +51,13 @@ class CheckoutController extends Controller
             ->where('end_date', '>=', now())
             ->get();
 
-        return view('client.checkout.index', compact('items', 'total', 'availableCoupons', 'selectedIds'));
+        // Địa chỉ đã lưu của khách, mặc định lên đầu để chọn sẵn
+        $addresses = $user->addresses()
+            ->orderByDesc('is_default')
+            ->latest()
+            ->get();
+
+        return view('client.checkout.index', compact('items', 'total', 'availableCoupons', 'selectedIds', 'addresses'));
     }
 
     /**
