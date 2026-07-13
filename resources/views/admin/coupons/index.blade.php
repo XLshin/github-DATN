@@ -29,6 +29,7 @@
                         <th>Loại</th>
                         <th>Giá trị</th>
                         <th>Đơn tối thiểu</th>
+                        <th>Phân phối</th>
                         <th>Hạn mức</th>
                         <th>Thời gian</th>
                         <th>Trạng thái</th>
@@ -48,6 +49,7 @@
                                 @endif
                             </td>
                             <td>{{ number_format($coupon->min_order_amount, 0, ',', '.') }} đ</td>
+                            <td>{{ $coupon->distribution === \App\Models\Coupon::DISTRIBUTION_PUBLIC ? 'Công khai' : 'Gán riêng' }}</td>
                             <td>{{ $coupon->usage_limit === 0 ? 'Không giới hạn' : $coupon->usage_limit . ' lần' }}</td>
                             <td>{{ $coupon->start_date->format('d/m/Y') }} - {{ $coupon->end_date->format('d/m/Y') }}</td>
                             <td>
@@ -57,7 +59,9 @@
                             </td>
                             <td class="text-end">
                                 <div class="d-flex justify-content-end gap-2">
-                                    <a href="{{ route('admin.coupons.assign-users-edit', $coupon) }}" class="btn btn-info btn-sm">Gán user</a>
+                                    @if($coupon->distribution === \App\Models\Coupon::DISTRIBUTION_ASSIGNED)
+                                        <a href="{{ route('admin.coupons.assign-users-edit', $coupon) }}" class="btn btn-info btn-sm">Gán user</a>
+                                    @endif
                                     <a href="{{ route('admin.coupons.edit', $coupon) }}" class="btn btn-light btn-sm">Sửa</a>
                                     <form action="{{ route('admin.coupons.destroy', $coupon) }}" method="POST" onsubmit="return confirm('Xóa voucher này?')">
                                         @csrf

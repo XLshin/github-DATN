@@ -1,12 +1,19 @@
 <div class="col-6 col-md-4 col-lg-3">
+    @php
+        $cardImage = collect([
+            $product->productGroup?->images?->first()?->image_path,
+            $product->thumbnail,
+            $product->images?->first()?->image_path,
+            $product->variants?->first()?->image_path,
+            $product->variants?->first()?->images?->first()?->image_path,
+        ])->filter()->first();
+    @endphp
+
     <article class="product-card h-100 border rounded-3 overflow-hidden bg-white" style="transition:.2s">
         <a href="{{ route('products.show', $product) }}" class="d-block overflow-hidden" style="height:180px">
-            @if($product->thumbnail)
-                <img src="{{ asset('storage/' . $product->thumbnail) }}"
-                     class="w-100 h-100" style="object-fit:cover" alt="{{ $product->name }}">
-            @elseif($product->images->isNotEmpty())
-                <img src="{{ asset('storage/' . $product->images->first()->image_path) }}"
-                     class="w-100 h-100" style="object-fit:cover" alt="{{ $product->name }}">
+            @if($cardImage)
+                <img src="{{ Storage::url($cardImage) }}"
+                     class="w-100 h-100 p-2" style="object-fit:contain" alt="{{ $product->name }}">
             @else
                 <div class="w-100 h-100 bg-light d-flex align-items-center justify-content-center">
                     <i class="lni lni-image text-muted" style="font-size:2rem"></i>
@@ -25,7 +32,7 @@
                 </a>
             </h3>
 
-            <div class="price-tag fw-bold text-primary mb-2">
+            <div class="price-tag fw-bold text-primary mb-3">
                 {{ number_format($product->price, 0, ',', '.') }}đ
             </div>
 

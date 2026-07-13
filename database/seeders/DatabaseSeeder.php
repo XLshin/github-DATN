@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             ProductSeeder::class,
             ProductSpecificationSeeder::class,
             ProductVariantSeeder::class,
+            TestCartProductSeeder::class,
             ProductImageSeeder::class,
 
             CouponSeeder::class,
@@ -45,7 +46,7 @@ class DatabaseSeeder extends Seeder
             | - Không gắn IMEI sẵn
             | - Chờ admin xác nhận rồi đóng gói mới chọn IMEI
             */
-            RealOrderTestSeeder::class,
+            // RealOrderTestSeeder::class,
 
             /*
             |--------------------------------------------------------------------------

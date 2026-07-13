@@ -10,7 +10,7 @@
 <a href="#" class="btn btn-outline-primary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#editVariantModal">
     <i class="bi bi-pencil"></i> Sửa biến thể
 </a>
-<a href="{{ route('admin.products.index') }}" class="btn btn-light btn-sm">
+<a href="{{ route('admin.stocks') }}" class="btn btn-light btn-sm">
     <i class="bi bi-arrow-left"></i> Quay lại
 </a>
 @endsection
@@ -27,7 +27,7 @@
                     <tr>
                         <th style="width:160px;">Sản phẩm</th>
                         <td>
-                            <a href="{{ route('admin.products.show', $variant->product) }}" class="text-decoration-none">
+                            <a href="{{ route('admin.product-versions.show', $variant->product) }}" class="text-decoration-none">
                                 {{ $variant->product->name }}
                             </a>
                         </td>
@@ -78,7 +78,12 @@
                     <tr>
                         <th>Số IMEI</th>
                         <td>
-                            <span class="fw-semibold">{{ $variant->imeis->count() }}</span>
+                            <div class="d-flex flex-wrap gap-2">
+                                <span class="badge text-bg-primary">Tổng: {{ $variant->imeis_count }}</span>
+                                <span class="badge text-bg-success">Còn bán: {{ $variant->available_imeis_count }}</span>
+                                <span class="badge text-bg-warning text-dark">Đang giữ chỗ: {{ $variant->reserved_imeis_count }}</span>
+                                <span class="badge text-bg-danger">Đã bán: {{ $variant->sold_imeis_count }}</span>
+                            </div>
                         </td>
                     </tr>
                     @endif
@@ -145,11 +150,20 @@
     </div>
 </div>
 
-@if($variant->product->product_type === 'imei/serial' && $variant->imeis->isNotEmpty())
+@if($variant->product->product_type === 'imei/serial')
         <section class="panel">
             <div class="panel-header">
                 <h5 class="mb-0">Danh sách IMEI / Serial</h5>
             </div>
+            <div class="p-3 border-bottom">
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="badge text-bg-primary">Tổng: {{ $variant->imeis_count }}</span>
+                    <span class="badge text-bg-success">Còn bán: {{ $variant->available_imeis_count }}</span>
+                    <span class="badge text-bg-warning text-dark">Đang giữ chỗ: {{ $variant->reserved_imeis_count }}</span>
+                    <span class="badge text-bg-danger">Đã bán: {{ $variant->sold_imeis_count }}</span>
+                </div>
+            </div>
+            @if($variant->imeis->isNotEmpty())
             <div class="table-responsive">
                 <table class="table table-sm align-middle mb-0">
                     <thead>
@@ -180,6 +194,9 @@
                     </tbody>
                 </table>
             </div>
+            @else
+            <div class="p-3 text-muted">Chưa có IMEI / Serial nào cho màu này.</div>
+            @endif
         </section>
         @endif
     </div>
@@ -204,10 +221,8 @@
                         @if($variant->product->storage !== null && $variant->product->storage !== '')
                         <div class="col-md-6">
                             <label class="form-label">Bộ nhớ</label>
-                            <input type="text" name="storage" class="form-control" value="{{ old('storage', $variant->product->storage) }}">
+                            <input type="text" class="form-control" value="{{ $variant->product->storage }}" disabled>
                         </div>
-                        @else
-                        <input type="hidden" name="storage" value="">
                         @endif
                         <div class="col-md-6">
                             <label class="form-label">Ảnh biến thể</label>

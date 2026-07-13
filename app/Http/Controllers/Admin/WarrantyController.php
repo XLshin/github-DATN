@@ -168,6 +168,7 @@ class WarrantyController extends Controller
             'order',
             'receptionMedia',
             'completionMedia',
+            'receiptMedia',
         ]);
 
         $warrantyDetail = $this->warrantyDetailMap([$warranty->id])->get($warranty->id);
@@ -183,6 +184,7 @@ class WarrantyController extends Controller
             'order',
             'receptionMedia',
             'completionMedia',
+            'receiptMedia',
         ]);
 
         $warrantyDetail = $this->warrantyDetailMap([$warranty->id])->get($warranty->id);
@@ -211,6 +213,11 @@ class WarrantyController extends Controller
                 'mimes:mp4,mov,avi,webm,mkv',
                 'max:102400',
             ],
+
+            // Thêm validate cho minh chứng nhận máy
+            'customer_receipt_note' => ['nullable', 'string', 'max:2000'],
+            'receipt_images' => ['nullable', 'array', 'max:12'],
+            'receipt_images.*' => ['file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
         ], [
             'status_update_note.required' => 'Vui lòng nhập ghi chú xác nhận khi cập nhật trạng thái bảo hành.',
             'completion_images.*.image' => 'File ảnh sau sửa phải là hình ảnh hợp lệ.',
@@ -218,7 +225,17 @@ class WarrantyController extends Controller
             'completion_images.*.max' => 'Mỗi ảnh sau sửa không được vượt quá 10MB.',
             'completion_videos.*.mimes' => 'Video sau sửa chỉ được là mp4, mov, avi, webm hoặc mkv.',
             'completion_videos.*.max' => 'Mỗi video sau sửa không được vượt quá 100MB.',
+
+            
         ]);
+
+        // LOGIC KHÓA LÙI TRẠNG THÁI:
+        // Chặn chuyển ngược từ "Hoàn tất xử lý" về "Đang xử lý bảo hành"
+        if (in_array($warranty->status, ['active', 'expired']) && $validated['status'] === 'claimed') {
+            return back()
+                ->withInput()
+                ->with('error', 'Phiếu bảo hành đã hoàn tất, không thể chuyển lùi lại trạng thái Đang xử lý.');
+        }
 
         if ($validated['status'] === 'claimed') {
             if ($warranty->warranty_end && now()->startOfDay()->gt($warranty->warranty_end->copy()->startOfDay())) {
@@ -255,6 +272,7 @@ class WarrantyController extends Controller
                 'repair_result_note' => $validated['status'] === 'active'
                     ? $validated['repair_result_note']
                     : $warranty->repair_result_note,
+                'customer_receipt_note' => $validated['customer_receipt_note'] ?? $warranty->customer_receipt_note, // Lưu ghi chú bàn giao
                 'completed_at' => $validated['status'] === 'active'
                     ? ($warranty->completed_at ?? now())
                     : null,
@@ -272,12 +290,62 @@ class WarrantyController extends Controller
                 WarrantyMedia::STAGE_COMPLETION
             );
 
+            $this->storeWarrantyMedia(
+                $warranty,
+                $this->uploadedFiles($request, 'receipt_images'),
+                WarrantyMedia::STAGE_CUSTOMER_RECEIPT
+            );
+
             $this->syncImeiStatus($warranty->imei_id, $validated['status']);
         });
 
         return redirect()
             ->route('admin.warranties.show', $warranty)
             ->with('success', 'Cập nhật trạng thái bảo hành thành công.');
+    }
+
+    public function receipt(Warranty $warranty)
+    {
+        // Chặn nếu chưa hoàn tất xử lý
+        if (!in_array($warranty->status, ['active', 'expired'])) {
+            return redirect()
+                ->route('admin.warranties.show', $warranty)
+                ->with('error', 'Chỉ có thể cập nhật bàn giao khi phiếu bảo hành đã Hoàn tất xử lý.');
+        }
+
+        $warranty->load(['imei', 'order', 'receiptMedia']);
+        return view('admin.warranties.receipt', compact('warranty'));
+    }
+
+    public function updateReceipt(Request $request, Warranty $warranty)
+    {
+        // Chặn nếu chưa hoàn tất xử lý
+        if (!in_array($warranty->status, ['active', 'expired'])) {
+            return back()->with('error', 'Chỉ có thể cập nhật bàn giao khi phiếu bảo hành đã Hoàn tất xử lý.');
+        }
+
+        $validated = $request->validate([
+            'customer_receipt_note' => ['nullable', 'string', 'max:2000'],
+            'receipt_images' => ['nullable', 'array', 'max:12'],
+            'receipt_images.*' => ['file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
+        ]);
+
+        DB::transaction(function () use ($validated, $warranty, $request) {
+            $warranty->update([
+                'customer_receipt_note' => $validated['customer_receipt_note'],
+            ]);
+
+            // Dùng lại hàm storeWarrantyMedia đã có
+            $this->storeWarrantyMedia(
+                $warranty,
+                $this->uploadedFiles($request, 'receipt_images'),
+                WarrantyMedia::STAGE_CUSTOMER_RECEIPT
+            );
+        });
+
+        return redirect()
+            ->route('admin.warranties.show', $warranty)
+            ->with('success', 'Cập nhật thông tin bàn giao khách hàng thành công.');
     }
 
     public function lookupImei(Request $request)
@@ -410,10 +478,11 @@ class WarrantyController extends Controller
                 'p.id as product_id',
                 'p.name as product_name',
                 'p.price as base_price',
+                'p.storage',
+
 
                 'pv.id as product_variant_id',
                 'pv.color',
-                'p.storage',
                 'pv.additional_price',
 
                 'oi.id as order_item_id',
@@ -457,9 +526,10 @@ class WarrantyController extends Controller
 
                 'p.name as product_name',
                 'p.price as base_price',
+                'p.storage',
+
 
                 'pv.color',
-                'p.storage',
                 'pv.additional_price',
 
                 'oi.price as sold_price',
@@ -584,6 +654,22 @@ class WarrantyController extends Controller
                 'time' => $warranty->updated_at,
                 'title' => 'Đang xử lý bảo hành',
                 'description' => 'IMEI đang được tiếp nhận và xử lý bảo hành.',
+            ];
+        }
+
+        if ($warranty->customer_receipt_note) {
+            $histories[] = [
+                'time' => $warranty->updated_at ?? now(),
+                'title' => 'Ghi chú bàn giao máy',
+                'description' => $warranty->customer_receipt_note,
+            ];
+        }
+
+        if ($warranty->receiptMedia && $warranty->receiptMedia->count()) {
+            $histories[] = [
+                'time' => $warranty->updated_at ?? now(),
+                'title' => 'Upload minh chứng khách nhận',
+                'description' => 'Đã upload ' . $warranty->receiptMedia->count() . ' ảnh xác nhận khách nhận lại máy.',
             ];
         }
 

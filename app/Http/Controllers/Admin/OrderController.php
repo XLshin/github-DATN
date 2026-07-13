@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Imei;
+use App\Models\InventoryTransaction;
 use App\Models\Order;
 use App\Models\OrderProof;
 use Illuminate\Http\Request;
@@ -117,6 +118,22 @@ class OrderController extends Controller
         ]);
 
         return back()->with('success', 'Đã xác nhận đơn hàng. Đơn đã chuyển sang chờ đóng gói.');
+    }
+
+    public function confirmBankTransfer(Order $order)
+    {
+        $payment = $order->payment;
+
+        if (! $payment || $payment->payment_method !== 'bank_transfer' || $payment->payment_status === 'paid') {
+            return back()->with('error', 'Đơn hàng không ở trạng thái chờ xác nhận chuyển khoản.');
+        }
+
+        $payment->update([
+            'payment_status' => 'paid',
+            'paid_at'        => now(),
+        ]);
+
+        return back()->with('success', 'Đã xác nhận nhận được tiền chuyển khoản.');
     }
 
     public function markPacked(Request $request, Order $order)
@@ -428,17 +445,31 @@ class OrderController extends Controller
             'proofs'
         );
 
+        $shouldRestoreInventory = $order->status !== 'returned';
+
         foreach ($order->items as $item) {
+            $returnedImeis = 0;
 
-            foreach ($item->imeis as $imei) {
-
-                if ($imei->status === 'reserved') {
-                    $imei->releaseReservation();
+            if ($shouldRestoreInventory) {
+                foreach ($item->imeis as $imei) {
+                    if ($imei->status === 'reserved') {
+                        $imei->releaseReservation();
+                        $returnedImeis++;
+                    }
                 }
 
+                if ($returnedImeis > 0) {
+                    InventoryTransaction::create([
+                        'product_variant_id' => $item->product_variant_id,
+                        'type' => 'return',
+                        'quantity' => $returnedImeis,
+                        'note' => 'Trả IMEI về kho do hủy đơn: ' . $order->order_code,
+                    ]);
+                }
             }
 
             if (
+                $shouldRestoreInventory &&
                 $item->product &&
                 $item->product->product_type === 'quantity' &&
                 $item->variant
@@ -447,6 +478,13 @@ class OrderController extends Controller
                     'stock_quantity',
                     $item->quantity
                 );
+
+                InventoryTransaction::create([
+                    'product_variant_id' => $item->product_variant_id,
+                    'type' => 'return',
+                    'quantity' => (int) $item->quantity,
+                    'note' => 'Trả hàng về kho do hủy đơn: ' . $order->order_code,
+                ]);
             }
 
         }

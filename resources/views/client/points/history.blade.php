@@ -1,4 +1,4 @@
-@extends('layouts.client')
+@extends('layouts.app')
 
 @section('title', 'Lịch sử điểm tích lũy')
 
@@ -83,30 +83,7 @@
 
         {{-- Sidebar --}}
         <div class="col-lg-4">
-            <div class="card border-0 sticky-top" style="top: 2rem;">
-                <div class="card-header bg-light border-0">
-                    <h5 class="card-title mb-0">Menu</h5>
-                </div>
-                <div class="card-body">
-                    <div class="list-group list-group-flush">
-                        <a href="{{ route('dashboard') }}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-speedometer2"></i> Dashboard
-                        </a>
-                        <a href="{{ route('orders.index') }}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-bag"></i> Đơn hàng của tôi
-                        </a>
-                        <a href="{{ route('points.index') }}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-star-fill"></i> Điểm tích lũy
-                        </a>
-                        <a href="{{ route('points.history') }}" class="list-group-item list-group-item-action active">
-                            <i class="bi bi-clock-history"></i> Lịch sử điểm
-                        </a>
-                        <a href="{{ route('profile.show') }}" class="list-group-item list-group-item-action">
-                            <i class="bi bi-person"></i> Hồ sơ
-                        </a>
-                    </div>
-                </div>
-            </div>
+            @include('client.profile.partials.account-menu')
         </div>
     </div>
 </div>
