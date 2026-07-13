@@ -96,11 +96,13 @@
         <table class="table align-middle mb-0">
             <thead>
                 <tr>
+                    <th>ID</th>
                     <th>Ảnh</th>
                     <th>Tên sản phẩm</th>
+                    <th>Dòng</th>
+                    <th>Loại quản lý</th>
                     <th>Danh mục</th>
-                    <th>Biến thể</th>
-                    <th>Kiểu loại</th>
+                    <th class="text-end">Giá base</th>
                     <th>Trạng thái</th>
                     <th class="text-end">Thao tác</th>
                 </tr>
@@ -108,68 +110,52 @@
             <tbody>
                 @forelse($products as $product)
                     <tr>
+                        <td>{{ $product->id }}</td>
                         <td>
                             @if($product->thumbnail)
-                                <img src="{{ asset('storage/' . $product->thumbnail) }}"
-                                     width="52" height="52" class="rounded border" style="object-fit:cover" alt="">
-                            @elseif($product->images->isNotEmpty())
-                                <img src="{{ asset('storage/' . $product->images->first()->image_path) }}"
-                                     width="52" height="52" class="rounded border" style="object-fit:cover" alt="">
+                                <img src="{{ Storage::url($product->thumbnail) }}" alt="{{ $product->name }}"
+                                     width="52" height="52" class="rounded" style="object-fit:cover;">
                             @else
-                                <div class="bg-light rounded border d-flex align-items-center justify-content-center"
-                                     style="width:52px;height:52px">
-                                    <i class="bi bi-image text-muted"></i>
-                                </div>
+                                <span class="text-muted small">-</span>
                             @endif
                         </td>
-                        <td class="fw-semibold">{{ $product->name }}</td>
-                        <td>
-                            <span class="badge bg-light text-dark border">
-                                {{ $product->category?->name ?? '—' }}
-                            </span>
+                        <td class="fw-semibold">
+                            <a href="{{ route('admin.product-versions.show', $product) }}" class="text-decoration-none text-dark">
+                                {{ $product->name }}
+                            </a>
+                            <div class="text-muted small">{{ $product->variants_count }} biến thể</div>
                         </td>
-                        <td>
-                            @if($product->variants->isNotEmpty())
-                                @php $first = $product->variants->first(); @endphp
-                                <span
-                                    tabindex="0"
-                                    data-bs-toggle="popover"
-                                    data-bs-trigger="hover focus"
-                                    data-bs-placement="bottom"
-                                    data-bs-html="true"
-                                    data-bs-content="{{ $product->variants->map(fn($v) => '<span class=\'badge bg-secondary-subtle text-secondary border me-1 mb-1\'>' . e($v->color) . ' / ' . e($product->storage) . '</span>')->implode('') }}"
-                                    class="badge bg-secondary-subtle text-secondary border"
-                                    style="font-size:11px;cursor:pointer">
-                                    {{ $first->color }} / {{ $product->storage }}
-                                    @if($product->variants->count() > 1)
-                                        <span class="ms-1 text-muted">+{{ $product->variants->count() - 1 }}</span>
-                                    @endif
-                                </span>
-                            @else
-                                <span class="text-muted small">Chưa có</span>
-                            @endif
-                        </td>
+                        <td>{{ $product->productGroup->name ?? '-' }}</td>
                         <td>
                             @if($product->product_type === 'imei/serial')
-                                <span class="badge bg-info-subtle text-info border">IMEI/Serial</span>
+                                <span class="badge text-bg-warning text-dark">IMEI/Serial</span>
                             @else
-                                <span class="badge bg-warning-subtle text-warning border">Số lượng</span>
+                                <span class="badge text-bg-secondary">Theo số lượng</span>
                             @endif
                         </td>
+                        <td>{{ $product->category->name ?? '-' }}</td>
+                        <td class="text-end fw-semibold">{{ number_format($product->price ?? 0, 0, ',', '.') }} đ</td>
                         <td>
                             @if($product->status)
-                                <span class="badge bg-success-subtle text-success">Đang bán</span>
+                                <span class="badge text-bg-success">Đang bán</span>
                             @else
-                                <span class="badge bg-secondary-subtle text-secondary">Ẩn</span>
+                                <span class="badge text-bg-secondary">Ẩn</span>
                             @endif
                         </td>
                         <td class="text-end">
-                            <a href="{{ route('admin.product-versions.edit', $product) }}" class="btn btn-light btn-sm">Sửa</a>
+                            <div class="d-flex justify-content-end gap-2">
+                                <a href="{{ route('admin.product-versions.show', $product) }}" class="btn btn-light btn-sm" title="Xem chi tiết">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ route('admin.product-versions.edit', $product) }}" class="btn btn-light btn-sm" title="Sửa">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">
+                        <td colspan="9" class="text-center text-muted py-4">
                             Chưa có sản phẩm nào
                         </td>
                     </tr>
@@ -181,13 +167,5 @@
         <div class="p-3">{{ $products->links() }}</div>
     @endif
 </section>
-
-@push('scripts')
-<script>
-    document.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
-        new bootstrap.Popover(el);
-    });
-</script>
-@endpush
 
 @endsection
