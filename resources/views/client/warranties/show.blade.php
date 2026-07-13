@@ -1,4 +1,4 @@
-@extends('layouts.client')
+@extends('layouts.app')
 
 @section('title', 'Chi tiết phiếu bảo hành')
 
