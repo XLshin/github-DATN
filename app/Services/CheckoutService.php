@@ -122,9 +122,12 @@ class CheckoutService
                 $productType = $product->product_type;
 
                 if ($productType === 'imei/serial') {
-                    // Mỗi đơn vị điện thoại gắn với đúng 1 IMEI riêng biệt
+                    // Chỉ kiểm tra còn IMEI khả dụng; việc gán IMEI cụ thể do admin thực hiện thủ công khi đóng gói.
+                    $this->assertImeiAvailable($variant->id, $product->name);
+
+                    // Mỗi đơn vị điện thoại gắn với đúng 1 dòng order item riêng biệt
                     for ($i = 0; $i < $quantity; $i++) {
-                        $orderItem = OrderItem::query()->create([
+                        OrderItem::query()->create([
                             'order_id' => $order->id,
                             'product_id' => $product->id,
                             'product_variant_id' => $variant->id,
@@ -133,8 +136,6 @@ class CheckoutService
                             'total' => $price,
                             'imei_id' => null,
                         ]);
-
-                        $this->reserveImeiForOrderItem($orderItem, $variant->id, $product->name);
                     }
                 } else {
                     $orderItem = OrderItem::query()->create([
@@ -304,7 +305,7 @@ class CheckoutService
             }
 
             if ($product->product_type === 'imei/serial') {
-                $this->reserveImeiForOrderItem($item, $item->product_variant_id, $product->name);
+                $this->assertImeiAvailable($item->product_variant_id, $product->name);
             } elseif ($item->variant) {
                 $this->decreaseVariantStock($item->variant, $item->quantity, $product->name);
             }
