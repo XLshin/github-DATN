@@ -19,9 +19,13 @@ class CouponUserSeeder extends Seeder
             return;
         }
 
-        // Gán tất cả coupon active cho mỗi customer
+        // Gán chỉ coupon đã được đánh dấu là assigned cho mỗi customer
         foreach ($customers as $customer) {
             foreach ($coupons as $coupon) {
+                if ($coupon->distribution !== \App\Models\Coupon::DISTRIBUTION_ASSIGNED) {
+                    continue;
+                }
+
                 DB::table('coupon_user')->updateOrInsert(
                     ['coupon_id' => $coupon->id, 'user_id' => $customer->id],
                     ['created_at' => $now, 'updated_at' => $now]
