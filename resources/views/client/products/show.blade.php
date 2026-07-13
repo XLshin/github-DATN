@@ -580,7 +580,7 @@
                                 <button type="submit" class="btn btn-outline-primary cart-icon-button" title="Thêm vào giỏ" aria-label="Thêm vào giỏ">
                                     <i class="lni lni-cart"></i>
                                 </button>
-                                <button type="button" class="btn btn-danger btn-lg">
+                                <button type="submit" formaction="{{ route('buy.now') }}" class="btn btn-danger btn-lg">
                                     Mua ngay
                                 </button>
                             </div>
@@ -707,8 +707,8 @@
                     @foreach($relatedProducts as $relatedProduct)
                         @php
                             $relatedImage = collect([
-                                $relatedProduct->thumbnail,
                                 $relatedProduct->productGroup?->images?->first()?->image_path,
+                                $relatedProduct->thumbnail,
                                 $relatedProduct->images?->first()?->image_path,
                                 $relatedProduct->variants?->first()?->image_path,
                                 $relatedProduct->variants?->first()?->images?->first()?->image_path,

@@ -1,8 +1,8 @@
 <div class="col-6 col-md-4 col-lg-3">
     @php
         $cardImage = collect([
-            $product->thumbnail,
             $product->productGroup?->images?->first()?->image_path,
+            $product->thumbnail,
             $product->images?->first()?->image_path,
             $product->variants?->first()?->image_path,
             $product->variants?->first()?->images?->first()?->image_path,
