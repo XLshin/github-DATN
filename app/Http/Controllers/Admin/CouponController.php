@@ -41,13 +41,14 @@ class CouponController extends Controller
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'status' => ['required', 'boolean'],
+            'distribution' => ['required', Rule::in([Coupon::DISTRIBUTION_ASSIGNED, Coupon::DISTRIBUTION_PUBLIC])],
         ]);
 
         $validated['code'] = Str::upper($validated['code']);
 
         Coupon::create($validated);
 
-        return redirect()->route('coupons.index')->with('success', 'Tạo voucher thành công.');
+        return redirect()->route('admin.coupons.index')->with('success', 'Tạo voucher thành công.');
     }
 
     public function show(Coupon $coupon)
@@ -71,19 +72,20 @@ class CouponController extends Controller
             'start_date' => ['required', 'date'],
             'end_date' => ['required', 'date', 'after_or_equal:start_date'],
             'status' => ['required', 'boolean'],
+            'distribution' => ['required', Rule::in([Coupon::DISTRIBUTION_ASSIGNED, Coupon::DISTRIBUTION_PUBLIC])],
         ]);
 
         $validated['code'] = Str::upper($validated['code']);
 
         $coupon->update($validated);
 
-        return redirect()->route('coupons.index')->with('success', 'Cập nhật voucher thành công.');
+        return redirect()->route('admin.coupons.index')->with('success', 'Cập nhật voucher thành công.');
     }
 
     public function destroy(Coupon $coupon)
     {
         $coupon->delete();
 
-        return redirect()->route('coupons.index')->with('success', 'Voucher đã được xóa.');
+        return redirect()->route('admin.coupons.index')->with('success', 'Voucher đã được xóa.');
     }
 }

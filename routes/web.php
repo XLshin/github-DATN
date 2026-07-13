@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\Admin\BrandController;
+use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\CouponUserController;
@@ -25,9 +26,13 @@ use App\Http\Controllers\PointController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\ClientCouponController;
+use App\Http\Controllers\ClientWarrantyController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\CarrierWebhookController;
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,8 +43,8 @@ use App\Http\Controllers\CarrierWebhookController;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show');
-Route::get('/danh-muc/{category:id}', [HomeController::class, 'byCategory'])->name('category.products');
-Route::get('/thuong-hieu/{brand:id}', [HomeController::class, 'byBrand'])->name('brand.products');
+Route::get('/categories/{category}', [HomeController::class, 'byCategory'])->name('category.products');
+Route::get('/brands/{brand}', [HomeController::class, 'byBrand'])->name('brand.products');
 
 Route::middleware('auth')->group(function () {
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
@@ -47,7 +52,27 @@ Route::middleware('auth')->group(function () {
     Route::post('/buy-now', [CartController::class, 'buyNow'])->name('buy.now');
     Route::post('/cart/update', [CartController::class, 'update'])->name('cart.update');
     Route::post('/cart/remove', [CartController::class, 'remove'])->name('cart.remove');
+    Route::get('/cart/count', [CartController::class, 'count'])->name('cart.count');
 });
+
+// DEV helper: quick-login demo user (only in local)
+if (app()->environment('local')) {
+    Route::get('/dev-login-xuanbac', function () {
+        $email = 'xuanbac@example.com';
+        $user = User::firstWhere('email', $email);
+        if (! $user) {
+            $user = User::create([
+                'name' => 'Xuân Bắc',
+                'email' => $email,
+                'password' => bcrypt('password'),
+                'role' => 'customer',
+            ]);
+        }
+        Auth::login($user);
+        request()->session()->regenerate();
+        return redirect()->route('dashboard');
+    });
+}
 
 // Webhook endpoints
 Route::post('/webhook/payment', [WebhookController::class, 'paymentCallback']);
@@ -108,16 +133,30 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/products/{product}/reviews', [ReviewController::class, 'store'])->name('reviews.store');
 
+    // Client: My vouchers & warranty lookup
+    Route::get('/my-vouchers', [ClientCouponController::class, 'index'])->name('client.vouchers.index');
+    Route::post('/my-vouchers/{coupon}/claim', [ClientCouponController::class, 'claim'])->name('client.vouchers.claim');
+
+    Route::get('/warranty', [ClientWarrantyController::class, 'showLookupForm'])->name('warranties.lookup');
+    Route::get('/warranty/{warranty}', [ClientWarrantyController::class, 'show'])->name('warranties.show');
+
     Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
     Route::post('/checkout', [CheckoutController::class, 'process'])->name('checkout.process');
     Route::post('/checkout/preview', [CheckoutController::class, 'preview'])->name('checkout.preview');
     Route::get('/checkout/success/{order}', [CheckoutController::class, 'success'])->name('checkout.success');
+    Route::get('/checkout/payment/{order}', [CheckoutController::class, 'showPayment'])->name('checkout.payment');
+    Route::post('/checkout/payment/{order}/confirm', [CheckoutController::class, 'confirmPayment'])->name('checkout.payment.confirm');
+    Route::post('/checkout/payment/{order}/retry', [CheckoutController::class, 'retryPayment'])->name('checkout.payment.retry');
 
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
-    Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+    Route::get('/orders/{id}', [OrderController::class, 'show'])->name('orders.show');
+    Route::post('/orders/{id}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
 
     Route::get('/my-points', [PointController::class, 'index'])->name('points.index');
     Route::get('/point-history', [PointController::class, 'history'])->name('points.history');
+
+    Route::post('/assistant/chat', [AssistantController::class, 'chat'])->name('assistant.chat');
+    Route::post('/assistant/reset', [AssistantController::class, 'reset'])->name('assistant.reset');
 });
 
 /*
@@ -173,13 +212,19 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
         | Sản phẩm
         |--------------------------------------------------------------------------
         */
-        Route::resource('products', AdminProductController::class);
-        Route::resource('product-groups', ProductGroupController::class)
-            ->except(['show'])
-            ->parameters(['product-groups' => 'productGroup']);
+        Route::resource('products', ProductGroupController::class)
+            ->parameters(['products' => 'productGroup']);
+
+        Route::resource('product-versions', AdminProductController::class)
+            ->except(['index', 'create', 'store'])
+            ->parameters(['product-versions' => 'product']);
 
         Route::get('product-groups/{productGroup}/specifications', [ProductGroupController::class, 'specifications'])
             ->name('product-groups.specifications');
+
+        Route::patch('products/variants/{variant}/price', [ProductGroupController::class, 'updateVariantPrice'])
+            ->middleware('only_admin')
+            ->name('products.variants.price.update');
 
         // AJAX endpoint to quickly create a Product Group from the product create form
         Route::post('products/ajax-group', [AdminProductController::class, 'ajaxStore'])
@@ -218,6 +263,9 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
         Route::post('orders/{order}/confirm', [AdminOrderController::class, 'confirm'])
             ->name('orders.confirm');
 
+        Route::post('orders/{order}/confirm-bank-transfer', [AdminOrderController::class, 'confirmBankTransfer'])
+            ->name('orders.confirmBankTransfer');
+
         Route::post('orders/{order}/mark-packed', [AdminOrderController::class, 'markPacked'])
             ->name('orders.markPacked');
 
@@ -241,7 +289,7 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
 
         Route::post('/orders/{order}/receiver', [OrderController::class, 'updateReceiver'])
         ->name('orders.updateReceiver');
-        
+
         /*
         |--------------------------------------------------------------------------
         | Vận chuyển
@@ -274,6 +322,9 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
             Route::get('warranties/lookup-imei', [WarrantyController::class, 'lookupImei'])
                 ->name('warranties.lookupImei');
 
+            Route::get('warranties/{warranty}/receipt', [App\Http\Controllers\Admin\WarrantyController::class, 'receipt'])->name('warranties.receipt');
+            Route::put('warranties/{warranty}/receipt', [App\Http\Controllers\Admin\WarrantyController::class, 'updateReceipt'])->name('warranties.updateReceipt');
+
             Route::resource('warranties', WarrantyController::class)->except([
                 'destroy',
             ]);
@@ -284,7 +335,17 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
         |--------------------------------------------------------------------------
         */
         Route::resource('imeis', ImeiController::class);
-        Route::resource('inventory', InventoryController::class);
+
+        Route::get('inventory/adjustments/create', [InventoryController::class, 'createAdjustment'])
+            ->name('inventory.adjustments.create');
+        Route::post('inventory/adjustments', [InventoryController::class, 'storeAdjustment'])
+            ->name('inventory.adjustments.store');
+
+        Route::resource('inventory', InventoryController::class)->only([
+            'index',
+            'create',
+            'store',
+        ]);
 
         Route::get('/stocks', [ImeiController::class, 'stock'])
             ->name('stocks');

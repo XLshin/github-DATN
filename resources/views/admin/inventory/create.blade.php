@@ -3,13 +3,13 @@
 @section('title', 'Nhập kho')
 @section('page_icon', 'bi-box-arrow-in-down')
 @section('page_eyebrow', 'Kho hàng')
-@section('page_title', 'Nhập kho')
+@section('page_title', 'Nhập kho phụ kiện')
 @section('page_subtitle', 'Nhập kho cho các sản phẩm quản lý bằng số lượng.')
 
 @section('heading_actions')
-<a href="{{ route('admin.inventory.index') }}" class="btn btn-light btn-sm">
+<a href="{{ route('admin.stocks.accessories') }}" class="btn btn-light btn-sm">
     <i class="bi bi-arrow-left"></i>
-    Quay lai
+    Quay lại
 </a>
 @endsection
 
@@ -23,18 +23,18 @@
         <div>
             <h5 class="mb-1">Thông tin nhập kho</h5>
             <div class="text-muted small">
-                Chọn biến thể phụ kiện, nhập số lượng và ghi chú.
+                Chọn biến thể phụ kiện, nhập số lượng cần cộng thêm và ghi chú nếu cần.
             </div>
         </div>
     </div>
 
     <div class="p-3">
-        <form action="{{ route('admin.inventory.store') }}" method="POST" style="max-width:700px;">
+        <form action="{{ route('admin.inventory.store') }}" method="POST" style="max-width:760px;">
             @csrf
 
             <div class="mb-3">
                 <label class="form-label">
-                    Chọn biến thể phụ kiện
+                    Biến thể phụ kiện
                     <span class="text-danger">*</span>
                 </label>
 
@@ -45,74 +45,67 @@
                     <option value="">-- Chọn biến thể phụ kiện --</option>
 
                     @foreach($quantityVariants as $variant)
+                        @php
+                            $product = $variant->product;
+                            $label = trim(($product?->name ?? 'Sản phẩm') . ' - ' . ($variant->color ?: 'Không màu'));
+                        @endphp
                         <option
                             value="{{ $variant->id }}"
-                            data-product="{{ $variant->product->name }}"
+                            data-product="{{ $product?->name }}"
+                            data-storage="{{ $product?->storage }}"
                             data-color="{{ $variant->color ?? '' }}"
                             data-stock="{{ $variant->stock_quantity }}"
                             {{ old('product_variant_id') == $variant->id ? 'selected' : '' }}>
-                            {{ trim(
-                                $variant->product->name .
-                                ' - ' .
-                                ($variant->color ?? '---') .
-                                ' (Hiện còn: ' . $variant->stock_quantity . ')'
-                            ) }}
+                            {{ $label }} (Hiện còn: {{ $variant->stock_quantity }})
                         </option>
                     @endforeach
                 </select>
 
                 @error('product_variant_id')
-                    <div class="invalid-feedback d-block">
-                        {{ $message }}
-                    </div>
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
             </div>
 
             <div class="mb-3">
                 <label class="form-label">
-                    Số lượng <span class="text-danger">*</span>
+                    Số lượng nhập <span class="text-danger">*</span>
                 </label>
 
                 <input
                     type="number"
                     name="quantity"
                     value="{{ old('quantity') }}"
+                    min="1"
                     class="form-control @error('quantity') is-invalid @enderror"
-                    placeholder="Nhập số lượng">
+                    placeholder="Nhập số lượng cần cộng thêm">
 
                 @error('quantity')
-                    <div class="invalid-feedback d-block">
-                        {{ $message }}
-                    </div>
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
             </div>
 
             <div class="mb-3">
-                <label class="form-label">
-                    Ghi chú
-                </label>
+                <label class="form-label">Ghi chú</label>
 
                 <textarea
                     name="note"
                     rows="4"
                     class="form-control @error('note') is-invalid @enderror"
-                    placeholder="Nhập ghi chú">{{ old('note') }}</textarea>
+                    placeholder="Ví dụ: Nhập kho từ nhà cung cấp A, phiếu nhập PN001">{{ old('note') }}</textarea>
 
                 @error('note')
-                    <div class="invalid-feedback d-block">
-                        {{ $message }}
-                    </div>
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
             </div>
 
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary btn-sm">
                     <i class="bi bi-check-lg"></i>
-                    Luu nhap kho
+                    Lưu nhập kho
                 </button>
 
-                <a href="{{ route('admin.inventory.index') }}" class="btn btn-light btn-sm">
-                    Huy
+                <a href="{{ route('admin.stocks.accessories') }}" class="btn btn-light btn-sm">
+                    Hủy
                 </a>
             </div>
         </form>
@@ -137,6 +130,7 @@ document.addEventListener('DOMContentLoaded', function () {
             value: option.value,
             text: option.textContent.trim(),
             product: option.dataset.product || '',
+            storage: option.dataset.storage || '',
             color: option.dataset.color || '',
             stock: option.dataset.stock || '0'
         });
@@ -154,13 +148,13 @@ document.addEventListener('DOMContentLoaded', function () {
         items: selectedItems,
         valueField: 'value',
         labelField: 'text',
-        searchField: ['text', 'product', 'color'],
+        searchField: ['text', 'product', 'storage', 'color'],
         maxOptions: null,
         openOnFocus: true,
         render: {
             option: function(data, escape) {
                 if (!data.value) return '<div class="text-muted">' + escape(data.text) + '</div>';
-                const meta = [data.color].filter(Boolean).join(' - ');
+                const meta = [data.storage, data.color, 'Tồn: ' + data.stock].filter(Boolean).join(' - ');
                 return '<div><div class="fw-semibold">' + escape(data.product || data.text) + '</div><div class="small text-muted">' + escape(meta) + '</div></div>';
             },
             item: function(data, escape) {

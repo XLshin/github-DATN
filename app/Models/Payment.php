@@ -12,12 +12,23 @@ class Payment extends Model
         'amount',
         'payment_status',
         'transaction_code',
-        'paid_at'
+        'payer_name',
+        'payer_note',
+        'paid_at',
+        'expires_at',
     ];
 
     protected $casts = [
-        'paid_at' => 'datetime',
+        'paid_at'    => 'datetime',
+        'expires_at' => 'datetime',
     ];
+
+    public function isExpired(): bool
+    {
+        return $this->payment_status === 'pending'
+            && $this->expires_at !== null
+            && $this->expires_at->isPast();
+    }
 
     public function order()
     {

@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class WarrantyMedia extends Model
 {
@@ -15,6 +14,7 @@ class WarrantyMedia extends Model
     public const TYPE_IMAGE = 'image';
     public const TYPE_VIDEO = 'video';
 
+    public const STAGE_CUSTOMER_RECEIPT = 'customer_receipt';
     protected $fillable = [
         'warranty_id',
         'stage',
@@ -32,7 +32,7 @@ class WarrantyMedia extends Model
 
     public function getUrlAttribute(): string
     {
-        return Storage::disk('public')->url($this->file_path);
+        return '/storage/' . ltrim($this->file_path, '/');
     }
 
     public function getTypeLabelAttribute(): string
@@ -49,6 +49,7 @@ class WarrantyMedia extends Model
         return match ($this->stage) {
             self::STAGE_RECEPTION => 'Tiếp nhận bảo hành',
             self::STAGE_COMPLETION => 'Sau khi sửa xong',
+            self::STAGE_CUSTOMER_RECEIPT => 'Khách nhận lại máy',
             default => (string) $this->stage,
         };
     }
