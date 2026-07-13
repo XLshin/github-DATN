@@ -137,10 +137,16 @@
                             </a>
                         @endif
                     @else
-                        <a href="{{ route('login') }}" class="cart-btn">
-                            <i class="lni lni-cart"></i>
-                            <span class="cart-text">Giỏ hàng</span>
-                        </a>
+                    <a href="{{ route('admin.dashboard') }}" class="cart-btn">
+                        <i class="lni lni-cart"></i>
+                        <span class="cart-text">Giỏ hàng</span>
+                    </a>
+                    @endif
+                    @else
+                    <a href="{{ route('login') }}" class="cart-btn">
+                        <i class="lni lni-cart"></i>
+                        <span class="cart-text">Giỏ hàng</span>
+                    </a>
                     @endauth
                 </div>
             </div>
@@ -300,7 +306,6 @@
             if (!filterPanel.contains(event.target) && !filterBtn.contains(event.target)) {
                 filterPanel.style.display = 'none';
             }
-        });
 
         form.addEventListener('submit', function () {
             document.getElementById('hsColor').value = document.getElementById('fsColor').value;

@@ -28,9 +28,8 @@
 
     $variantPayload = $product->variants->map(function ($variant) use ($product, $mainImageUrl) {
         $imagePath = $variant->image_path ?: $variant->images->first()?->image_path;
-        $stockCount = $product->product_type === 'imei/serial'
-            ? (int) ($variant->available_imeis_count ?? 0)
-            : (int) ($variant->stock_quantity ?? 0);
+        // Use stock_quantity for all product types (IMEI and regular)
+        $stockCount = (int) ($variant->stock_quantity ?? 0);
 
         return [
             'id' => $variant->id,
@@ -614,6 +613,7 @@
             </div>
 
             <div class="col-lg-5">
+                @if(! request()->boolean('hide_reviews'))
                 <section class="product-surface p-3 p-md-4">
                     <h2 class="h5 mb-3">Đánh giá sản phẩm</h2>
 
@@ -690,6 +690,7 @@
                     @endauth
                 </section>
             </div>
+            @endif
         </div>
 
         @if($relatedProducts->isNotEmpty())
