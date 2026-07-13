@@ -110,13 +110,18 @@ class CartController extends Controller
         // Validate để nhận cả key (Session) hoặc product_id/cart_item_id (DB)
         $request->validate([
             'key'        => 'nullable|string',
-            'product_id' => 'nullable|integer'
+            'product_id' => 'nullable|integer',
+            'variant_id' => 'nullable|integer',
         ]);
 
         if ($request->filled('key') && method_exists($this->cartService, 'remove')) {
             $this->cartService->remove($request->key);
         } elseif ($request->filled('product_id') && method_exists($this->cartService, 'removeItem')) {
-            $this->cartService->removeItem(auth()->user(), (int) $request->product_id);
+            $this->cartService->removeItem(
+                auth()->user(),
+                (int) $request->product_id,
+                $request->filled('variant_id') ? (int) $request->variant_id : null
+            );
         }
 
         return redirect()->route('cart.index')->with('success', 'Đã xóa khỏi giỏ hàng.');

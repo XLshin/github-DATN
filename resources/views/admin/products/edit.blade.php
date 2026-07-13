@@ -13,7 +13,7 @@
 @endsection
 
 @section('content')
-<form action="{{ route('admin.products.update', $product) }}" method="POST" enctype="multipart/form-data" id="productForm" data-turbo="false">
+<form action="{{ route('admin.product-versions.update', $product) }}" method="POST" enctype="multipart/form-data" id="productForm" data-turbo="false">
     @csrf
     @method('PUT')
 
@@ -48,7 +48,7 @@
                         </div>
                         @error('product_group_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         <div class="form-text">
-                            <a href="{{ route('admin.product-groups.index') }}">Quản lý dòng sản phẩm</a>
+                            <a href="{{ route('admin.products.index') }}">Quản lý sản phẩm</a>
                         </div>
                     </div>
 

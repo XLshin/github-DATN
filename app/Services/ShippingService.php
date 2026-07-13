@@ -2,27 +2,21 @@
 
 namespace App\Services;
 
+use App\Models\Carrier;
+use App\Models\InventoryTransaction;
 use App\Models\Order;
 use App\Models\Shipment;
-use App\Models\Carrier;
 use App\Models\ShipmentItem;
-use App\Models\Imei;
-use App\Models\ProductVariant;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Arr;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 
 class ShippingService
 {
-    /**
-     * Create shipment for an order using a selected carrier.
-     * This is a simple implementation that acts as an adapter point for real carriers.
-     */
     public function createShipment(Order $order, Carrier $carrier, array $options = []): Shipment
     {
-        // create shipment record - insert only columns that exist to support different migrations
         $data = ['order_id' => $order->id, 'requested_at' => now()];
 
         if (Schema::hasColumn('shipments', 'carrier_id')) {
@@ -47,7 +41,6 @@ class ShippingService
 
         $shipment = Shipment::create($data);
 
-        // map items
         foreach ($order->items as $item) {
             ShipmentItem::create([
                 'shipment_id' => $shipment->id,
@@ -56,9 +49,7 @@ class ShippingService
             ]);
         }
 
-        // Placeholder: call carrier API here to create label. We'll simulate success.
         try {
-            // Simulate carrier response
             $shipment->shipment_code = 'CARRIER-' . strtoupper(uniqid());
             $shipment->tracking_url = 'https://tracking.example/' . $shipment->shipment_code;
             $shipment->status = 'label_created';
@@ -66,7 +57,6 @@ class ShippingService
 
             Log::info('Shipment label created', ['shipment_id' => $shipment->id]);
 
-            // notify customer
             $this->notifyShipmentUpdate($shipment, 'label_created');
         } catch (\Exception $e) {
             Log::error('Failed to create carrier label: ' . $e->getMessage());
@@ -77,30 +67,17 @@ class ShippingService
         return $shipment;
     }
 
-    /**
-     * Update shipment status with business logic (decrement stock, rollback on failure, notify)
-     */
-    public function updateShipmentStatus(\App\Models\Shipment $shipment, string $newStatus, array $meta = []): void
+    public function updateShipmentStatus(Shipment $shipment, string $newStatus, array $meta = []): void
     {
         DB::transaction(function () use ($shipment, $newStatus, $meta) {
             $data = [];
 
-            if ($newStatus === 'shipping') {
-                if (Schema::hasColumn('shipments', 'shipped_at') && is_null($shipment->shipped_at)) {
-                    $data['shipped_at'] = now();
-                }
-
-                // decrement stock for each order item
-                foreach ($shipment->order->items as $item) {
-                    $variant = $item->variant()->lockForUpdate()->first();
-                    if ($variant) {
-                        if ($variant->stock_quantity < $item->quantity) {
-                            throw new \RuntimeException('Không đủ tồn kho để chuyển đơn hàng.');
-                        }
-                        $variant->stock_quantity -= $item->quantity;
-                        $variant->save();
-                    }
-                }
+            if (
+                $newStatus === 'shipping'
+                && Schema::hasColumn('shipments', 'shipped_at')
+                && is_null($shipment->shipped_at)
+            ) {
+                $data['shipped_at'] = now();
             }
 
             if ($newStatus === 'delivered') {
@@ -109,45 +86,66 @@ class ShippingService
 
             $data['shipping_status'] = $newStatus;
 
-            $shipment->update($data + ['metadata' => array_merge($shipment->metadata ?? [], $meta)]);
+            $shipment->update($data + [
+                'metadata' => array_merge($shipment->metadata ?? [], $meta),
+            ]);
 
-            // update order status
             if ($newStatus === 'delivered') {
                 $shipment->order->update(['status' => 'completed']);
-            } elseif ($newStatus === 'failed') {
-                // rollback IMEIs and stock
+
+                return;
+            }
+
+            if ($newStatus === 'failed') {
+                $shipment->order->loadMissing('items.product', 'items.variant', 'items.imeis');
+
                 foreach ($shipment->order->items as $item) {
-                    if ($item->imei_id) {
-                        $imei = Imei::lockForUpdate()->find($item->imei_id);
-                        if ($imei) {
-                            $imei->status = 'available';
-                            $imei->reserved_by_order_item_id = null;
-                            $imei->reserved_at = null;
-                            $imei->save();
-                        }
+                    $returnedImeis = 0;
 
-                        $variant = ProductVariant::lockForUpdate()->find($item->product_variant_id);
-                        if ($variant) {
-                            $variant->stock_quantity += $item->quantity;
-                            $variant->save();
+                    foreach ($item->imeis as $imei) {
+                        if ($imei->status === 'reserved') {
+                            $imei->releaseReservation();
+                            $returnedImeis++;
                         }
+                    }
 
-                        $item->imei_id = null;
-                        $item->save();
+                    if ($returnedImeis > 0) {
+                        InventoryTransaction::create([
+                            'product_variant_id' => $item->product_variant_id,
+                            'type' => 'return',
+                            'quantity' => $returnedImeis,
+                            'note' => 'Trả IMEI về kho do giao thất bại: ' . $shipment->order->order_code,
+                        ]);
+                    }
+
+                    if (
+                        $item->product &&
+                        $item->product->product_type === 'quantity' &&
+                        $item->variant
+                    ) {
+                        $item->variant->increment('stock_quantity', (int) $item->quantity);
+
+                        InventoryTransaction::create([
+                            'product_variant_id' => $item->product_variant_id,
+                            'type' => 'return',
+                            'quantity' => (int) $item->quantity,
+                            'note' => 'Trả hàng về kho do giao thất bại: ' . $shipment->order->order_code,
+                        ]);
                     }
                 }
 
                 $shipment->order->update(['status' => 'returned']);
-            } else {
-                $shipment->order->update(['status' => 'shipping']);
+
+                return;
             }
+
+            $shipment->order->update(['status' => 'shipping']);
         });
 
-        // send notifications
         $this->notifyShipmentUpdate($shipment, $newStatus);
     }
 
-    protected function notifyShipmentUpdate(\App\Models\Shipment $shipment, string $status): void
+    protected function notifyShipmentUpdate(Shipment $shipment, string $status): void
     {
         try {
             $order = $shipment->order;
@@ -161,7 +159,6 @@ class ShippingService
                 });
             }
 
-            // admin notification via log as placeholder
             Log::info('Notify shipment update', ['order' => $order->id, 'status' => $status]);
         } catch (\Exception $e) {
             Log::error('Failed to send shipment notification: ' . $e->getMessage());

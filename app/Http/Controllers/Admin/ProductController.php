@@ -450,6 +450,13 @@ class ProductController extends Controller
     public function showVariant(ProductVariant $variant)
     {
         $variant->load(['product.category', 'product.brand', 'imeis', 'images']);
+        $variant->loadCount([
+            'imeis',
+            'imeis as available_imeis_count' => fn ($query) => $query->where('status', 'available'),
+            'imeis as reserved_imeis_count' => fn ($query) => $query->where('status', 'reserved'),
+            'imeis as sold_imeis_count' => fn ($query) => $query->where('status', 'sold'),
+        ]);
+
         return view('admin.products.variant-show', compact('variant'));
     }
 

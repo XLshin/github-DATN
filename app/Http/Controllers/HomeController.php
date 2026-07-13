@@ -21,10 +21,27 @@ class HomeController extends Controller
         $brands = Brand::withCount(['products' => fn($q) => $q->where('status', true)])
             ->having('products_count', '>', 0)->get();
 
-        $newProducts = Product::with(['images', 'brand', 'category', 'variants'])
-            ->where('status', true)->latest()->take(8)->get();
+        // Sản phẩm mới nhất
+        $newProducts = Product::with([
+            'images',
+            'brand',
+            'category',
+            'productGroup.images',
+            'variants.images',
+        ])
+            ->where('status', true)
+            ->latest()
+            ->take(8)
+            ->get();
 
-        $bestSellers = Product::with(['images', 'brand', 'category', 'variants'])
+        // Sản phẩm bán chạy (dựa trên tổng số lượng đã bán)
+        $bestSellers = Product::with([
+            'images',
+            'brand',
+            'category',
+            'productGroup.images',
+            'variants.images',
+        ])
             ->where('status', true)
             ->withSum(['orderItems as sold_qty' => fn($q) => $q->whereHas(
                 'order', fn($o) => $o->whereIn('status', ['completed', 'shipping', 'processing'])
@@ -98,9 +115,12 @@ class HomeController extends Controller
 
     public function byCategory($id)
     {
-        $category = Category::findOrFail($id);
-        
-        $products = Product::with(['images', 'brand', 'variants'])
+        $products = Product::with([
+            'images',
+            'brand',
+            'productGroup.images',
+            'variants.images',
+        ])
             ->where('status', true)
             ->where('category_id', $category->id)
             ->when(request('brand_id'), fn($q) => $q->where('brand_id', request('brand_id')))
@@ -113,9 +133,12 @@ class HomeController extends Controller
 
     public function byBrand($id)
     {
-        $brand = Brand::findOrFail($id);
-        
-        $products = Product::with(['images', 'category', 'variants'])
+        $products = Product::with([
+            'images',
+            'category',
+            'productGroup.images',
+            'variants.images',
+        ])
             ->where('status', true)
             ->where('brand_id', $brand->id)
             ->when(request('category_id'), fn($q) => $q->where('category_id', request('category_id')))

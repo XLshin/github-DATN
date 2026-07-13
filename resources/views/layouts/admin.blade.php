@@ -7,9 +7,9 @@
     <meta name="description" content="H-Phone Store - Quản trị hệ thống">
     <title>@yield('title', 'Quản trị') — Byte Zone Admin</title>
 
-    <link rel="stylesheet" href="{{ asset('assets/css/bootstrap.min.css') }}" data-turbo-track="reload">
-    <link rel="stylesheet" href="{{ asset('assets/vendors/bootstrap-icons/bootstrap-icons.css') }}" data-turbo-track="reload">
-    <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}" data-turbo-track="reload">
+    <link rel="stylesheet" href="{{ asset('assets/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendors/bootstrap-icons/bootstrap-icons.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
     @stack('styles')
 
     <script>
@@ -17,8 +17,6 @@
             document.documentElement.classList.add('sidebar-collapsed');
         }
     </script>
-
-    <script type="module" src="https://unpkg.com/@hotwired/turbo"></script>
     <style>
         .media-box {
             width: 100%;
