@@ -32,7 +32,7 @@ class BrandController extends Controller
         $brand = Brand::create(\Arr::except($data, ['category_ids']));
         $brand->categories()->sync($data['category_ids'] ?? []);
 
-        return redirect()->route('brands.index')->with('success', 'Thêm thương hiệu thành công');
+        return redirect()->route('admin.brands.index')->with('success', 'Thêm thương hiệu thành công');
     }
 
     public function show(Brand $brand)
@@ -77,7 +77,7 @@ class BrandController extends Controller
         $brand->update(\Arr::except($data, ['category_ids']));
         $brand->categories()->sync($data['category_ids'] ?? []);
 
-        return redirect()->route('brands.index')->with('success', 'Cập nhật thành công');
+        return redirect()->route('admin.brands.index')->with('success', 'Cập nhật thành công');
     }
 
     public function destroy(Brand $brand)

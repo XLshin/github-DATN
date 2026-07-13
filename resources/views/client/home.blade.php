@@ -49,7 +49,7 @@
         <div class="row g-2">
             @foreach($categories as $cat)
             <div class="col-6 col-md-3">
-                <a href="{{ route('category.products', $cat) }}"
+                <a href="{{ route('products.index', ['category_id' => $cat->id]) }}"
                     class="text-decoration-none d-flex flex-column align-items-center justify-content-center p-2 bg-white border rounded-3 text-center"
                     style="min-height:80px;">
                     <span style="font-size:1.6rem;">{{ $catIcons[$cat->name] ?? '📦' }}</span>
