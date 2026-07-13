@@ -164,7 +164,7 @@
                             @endif
                         </td>
                         <td class="text-end">
-                            <a href="{{ route('admin.products.edit', $product) }}" class="btn btn-light btn-sm">Sửa</a>
+                            <a href="{{ route('admin.product-versions.edit', $product) }}" class="btn btn-light btn-sm">Sửa</a>
                         </td>
                     </tr>
                 @empty
