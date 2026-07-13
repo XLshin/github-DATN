@@ -46,6 +46,17 @@
 
     $selectedVariantData = $variantPayload->first();
     $selectedFinalPrice = $selectedVariantData['final_price'] ?? (float) ($product->price ?? 0);
+    $reviewCount = $product->reviews->count();
+    $averageRating = $reviewCount > 0 ? round((float) $product->reviews->avg('rating'), 1) : null;
+    $averageRoundedRating = $averageRating ? (int) round($averageRating) : 0;
+    $ratingBreakdown = collect(range(5, 1))->mapWithKeys(function ($rating) use ($product, $reviewCount) {
+        $count = $product->reviews->where('rating', $rating)->count();
+
+        return [$rating => [
+            'count' => $count,
+            'percent' => $reviewCount > 0 ? round(($count / $reviewCount) * 100) : 0,
+        ]];
+    });
 @endphp
 
 @push('styles')
@@ -275,6 +286,89 @@
         font-weight: 600;
     }
 
+    .rating-inline {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: #f59e0b;
+        font-weight: 700;
+    }
+
+    .rating-summary-card {
+        display: grid;
+        grid-template-columns: 128px 1fr;
+        gap: 18px;
+        align-items: center;
+        padding: 14px;
+        border: 1px solid #e6ebf2;
+        border-radius: 8px;
+        background: #f8fafc;
+        margin-bottom: 16px;
+    }
+
+    .rating-score {
+        font-size: 2.25rem;
+        line-height: 1;
+        font-weight: 800;
+        color: #dc3545;
+    }
+
+    .rating-bar-row {
+        display: grid;
+        grid-template-columns: 46px 1fr 58px;
+        gap: 8px;
+        align-items: center;
+        font-size: .875rem;
+        color: #64748b;
+    }
+
+    .rating-bar-track {
+        height: 7px;
+        border-radius: 99px;
+        background: #e5e7eb;
+        overflow: hidden;
+    }
+
+    .rating-bar-fill {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: #f59e0b;
+    }
+
+    .review-stars {
+        color: #f59e0b;
+        letter-spacing: 1px;
+        white-space: nowrap;
+    }
+
+    .rating-picker {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .rating-star-button {
+        width: 34px;
+        height: 34px;
+        border: 1px solid #dbe3ee;
+        border-radius: 8px;
+        background: #fff;
+        color: #cbd5e1;
+        font-size: 1.25rem;
+        line-height: 1;
+        cursor: pointer;
+        transition: color .15s ease, border-color .15s ease, background .15s ease;
+    }
+
+    .rating-star-button.active,
+    .rating-star-button:hover {
+        color: #f59e0b;
+        border-color: #f59e0b;
+        background: #fffbeb;
+    }
+
     @media (max-width: 991.98px) {
         .buy-panel {
             position: static !important;
@@ -287,6 +381,10 @@
         .product-gallery-main img {
             max-height: 270px;
             max-width: 86%;
+        }
+
+        .rating-summary-card {
+            grid-template-columns: 1fr;
         }
     }
 </style>
@@ -320,7 +418,15 @@
                                     <span><i class="bi bi-award"></i> {{ $product->brand->name }}</span>
                                 @endif
                                 <span><i class="bi bi-hdd"></i> {{ $product->storage ?? 'Không có dung lượng' }}</span>
-                                <span><i class="bi bi-star-fill text-warning"></i> {{ $product->reviews->count() }} đánh giá</span>
+                                @if($reviewCount > 0)
+                                    <span class="rating-inline">
+                                        <span>★</span>
+                                        <span>{{ number_format($averageRating, 1) }} sao</span>
+                                        <span class="text-muted fw-normal">({{ $reviewCount }} đánh giá)</span>
+                                    </span>
+                                @else
+                                    <span class="text-muted"><span class="text-warning">☆</span> Chưa có đánh giá</span>
+                                @endif
                             </div>
                         </div>
                         <span class="badge text-bg-{{ $product->status ? 'success' : 'secondary' }}">
@@ -511,11 +617,34 @@
                 <section class="product-surface p-3 p-md-4">
                     <h2 class="h5 mb-3">Đánh giá sản phẩm</h2>
 
+                    <div class="rating-summary-card">
+                        <div class="text-center">
+                            <div class="rating-score">{{ $averageRating ? number_format($averageRating, 1) : '0.0' }}</div>
+                            <div class="review-stars">
+                                {{ str_repeat('★', $averageRoundedRating) }}{{ str_repeat('☆', 5 - $averageRoundedRating) }}
+                            </div>
+                            <div class="small text-muted">{{ $reviewCount }} đánh giá</div>
+                        </div>
+                        <div class="d-grid gap-2">
+                            @foreach($ratingBreakdown as $rating => $data)
+                                <div class="rating-bar-row">
+                                    <span>{{ $rating }} sao</span>
+                                    <span class="rating-bar-track">
+                                        <span class="rating-bar-fill" style="width: {{ $data['percent'] }}%"></span>
+                                    </span>
+                                    <span class="text-end">{{ $data['count'] }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
                     @forelse($product->reviews as $review)
                         <div class="border-bottom pb-3 mb-3">
                             <div class="d-flex align-items-center justify-content-between gap-2">
                                 <strong>{{ $review->user->name ?? 'Khách' }}</strong>
-                                <span class="text-warning small">{{ str_repeat('★', (int) $review->rating) }}</span>
+                                <span class="review-stars small">
+                                    {{ str_repeat('★', (int) $review->rating) }}{{ str_repeat('☆', 5 - (int) $review->rating) }}
+                                </span>
                             </div>
                             <p class="mb-0 small text-muted">{{ $review->comment }}</p>
                         </div>
@@ -523,20 +652,38 @@
                         <p class="text-muted mb-0">Chưa có đánh giá.</p>
                     @endforelse
 
+                    @error('review')
+                        <div class="alert alert-warning py-2 small mt-3 mb-0">{{ $message }}</div>
+                    @enderror
+
                     @auth
                         <form action="{{ route('reviews.store', $product) }}" method="POST" class="mt-3">
                             @csrf
                             <div class="mb-2">
                                 <label class="form-label">Điểm</label>
-                                <select name="rating" class="form-select" required>
-                                    @for($i = 5; $i >= 1; $i--)
-                                        <option value="{{ $i }}">{{ $i }} sao</option>
+                                <div class="rating-picker" data-rating-picker>
+                                    <input type="hidden" name="rating" value="{{ old('rating', 5) }}" data-rating-input>
+                                    @for($i = 1; $i <= 5; $i++)
+                                        <button
+                                            type="button"
+                                            class="rating-star-button"
+                                            data-rating-value="{{ $i }}"
+                                            aria-label="{{ $i }} sao">
+                                            ★
+                                        </button>
                                     @endfor
-                                </select>
+                                    <span class="small text-muted ms-1" data-rating-text>{{ old('rating', 5) }} sao</span>
+                                </div>
+                                @error('rating')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
                             </div>
                             <div class="mb-2">
                                 <label class="form-label">Nhận xét</label>
-                                <textarea name="comment" class="form-control" rows="3" required></textarea>
+                                <textarea name="comment" class="form-control" rows="3" required>{{ old('comment') }}</textarea>
+                                @error('comment')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
                             </div>
                             <button type="submit" class="btn btn-outline-primary btn-sm">Gửi đánh giá</button>
                         </form>
@@ -787,6 +934,36 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         });
+    });
+
+    document.querySelectorAll('[data-rating-picker]').forEach(function (picker) {
+        const input = picker.querySelector('[data-rating-input]');
+        const text = picker.querySelector('[data-rating-text]');
+        const buttons = Array.from(picker.querySelectorAll('[data-rating-value]'));
+
+        function setRating(value) {
+            const rating = Math.max(1, Math.min(5, Number(value) || 5));
+
+            if (input) {
+                input.value = rating;
+            }
+
+            if (text) {
+                text.textContent = rating + ' sao';
+            }
+
+            buttons.forEach(function (button) {
+                button.classList.toggle('active', Number(button.dataset.ratingValue) <= rating);
+            });
+        }
+
+        buttons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                setRating(button.dataset.ratingValue);
+            });
+        });
+
+        setRating(input ? input.value : 5);
     });
 });
 </script>
