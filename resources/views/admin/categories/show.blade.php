@@ -78,7 +78,11 @@
                     <th>Tên sản phẩm</th>
                     <th>Thương hiệu</th>
                     <th>Biến thể</th>
+<<<<<<< HEAD
                     <th>Kiểu loại</th>
+=======
+                    <th>Giá</th>
+>>>>>>> main
                     <th>Trạng thái</th>
                     <th class="text-end">Thao tác</th>
                 </tr>
@@ -127,6 +131,7 @@
                                 <span class="text-muted small">Chưa có</span>
                             @endif
                         </td>
+<<<<<<< HEAD
                         <td>
                             @if($product->product_type === 'imei/serial')
                                 <span class="badge bg-info-subtle text-info border">IMEI/Serial</span>
@@ -134,6 +139,9 @@
                                 <span class="badge bg-warning-subtle text-warning border">Số lượng</span>
                             @endif
                         </td>
+=======
+                        <td>{{ number_format($product->price, 0, ',', '.') }}đ</td>
+>>>>>>> main
                         <td>
                             @if($product->status)
                                 <span class="badge bg-success-subtle text-success">Đang bán</span>
