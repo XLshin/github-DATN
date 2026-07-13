@@ -135,13 +135,16 @@
             @foreach($brands as $brand)
             <div class="col-4 col-md-2">
                 <a href="{{ route('brand.products', $brand) }}"
-                    class="d-flex align-items-center justify-content-center p-2 bg-white border rounded-3"
-                    style="min-height:60px;">
+                    class="d-flex flex-column align-items-center justify-content-center p-2 bg-white border rounded-3 text-decoration-none"
+                    style="min-height:70px; transition:.2s;"
+                    onmouseover="this.style.borderColor='#1565c0';this.style.boxShadow='0 2px 8px rgba(21,101,192,.15)'"
+                    onmouseout="this.style.borderColor='';this.style.boxShadow=''">
                     @if($brand->logo)
                     <img src="{{ asset('storage/' . $brand->logo) }}" alt="{{ $brand->name }}"
-                        style="max-height:36px;max-width:100%;object-fit:contain;">
+                        style="max-height:36px;max-width:90%;object-fit:contain;">
                     @else
-                    <span class="fw-bold text-dark small">{{ $brand->name }}</span>
+                    <i class="lni lni-tag" style="font-size:1.4rem;color:#1565c0;"></i>
+                    <span class="fw-bold text-dark mt-1" style="font-size:12px;">{{ $brand->name }}</span>
                     @endif
                 </a>
             </div>
