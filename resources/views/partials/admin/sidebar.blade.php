@@ -98,13 +98,13 @@
         </a>
         @endif
 
-        @if ($canViewShipments && Route::has('admin.shipments.index'))
+        {{-- @if ($canViewShipments && Route::has('admin.shipments.index'))
         <a class="nav-link {{ request()->routeIs('admin.shipments.*') ? 'active' : '' }}"
             href="{{ route('admin.shipments.index') }}">
             <span class="nav-icon"><i class="bi bi-truck"></i></span>
             <span class="nav-text">Vận chuyển</span>
         </a>
-        @endif
+        @endif --}}
 
         @if ($canViewWarranties)
         <a class="nav-link {{ request()->routeIs('admin.warranties.*') ? 'active' : '' }}"

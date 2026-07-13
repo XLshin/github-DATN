@@ -49,8 +49,8 @@
                             @if($item->variant)
                                 {{ $item->variant->color ?? '-' }}
 
-                                @if(!empty($item->variant->storage))
-                                    - {{ $item->variant->storage }}
+                                @if(!empty($item->product?->storage))
+                                    - {{ $item->product->storage }}
                                 @endif
                             @else
                                 -
@@ -74,33 +74,43 @@
 
                             @if($remaining > 0)
                                 <label class="form-label">
-                                    Nhập hoặc chọn thêm {{ $remaining }} IMEI còn thiếu <span class="text-danger">*</span>
+                                    Chọn thủ công {{ $remaining }} IMEI còn thiếu <span class="text-danger">*</span>
                                 </label>
+
+                                @if($variantImeis->isEmpty())
+                                    <div class="alert alert-warning mb-2">
+                                        Không còn IMEI khả dụng cho biến thể này. Vui lòng nhập kho thêm trước khi đóng gói.
+                                    </div>
+                                @endif
 
                                 @for($slot = 0; $slot < $remaining; $slot++)
                                     @php
-                                        $datalistId = 'imei-options-' . $order->id . '-' . $item->id . '-' . $slot;
+                                        $oldValue = old('imei_values.' . $item->id . '.' . $slot);
                                     @endphp
 
-                                    <input type="text"
-                                           name="imei_values[{{ $item->id }}][]"
-                                           class="form-control mb-2"
-                                           list="{{ $datalistId }}"
-                                           value="{{ old('imei_values.' . $item->id . '.' . $slot) }}"
-                                           placeholder="Nhập IMEI hoặc chọn từ danh sách gợi ý"
-                                           required>
-
-                                    <datalist id="{{ $datalistId }}">
+                                    <select name="imei_values[{{ $item->id }}][]"
+                                            class="form-select mb-2 imei-picker"
+                                            data-placeholder="Tim IMEI..."
+                                            {{ $variantImeis->isEmpty() ? 'disabled' : '' }}
+                                            required>
+                                        <option value="" disabled {{ $oldValue ? '' : 'selected' }}>
+                                            -- Chọn IMEI --
+                                        </option>
                                         @foreach($variantImeis as $imei)
-                                            <option value="{{ $imei->imei }}">
+                                            <option value="{{ $imei->imei }}"
+                                                    data-imei="{{ $imei->imei }}"
+                                                    data-product="{{ $item->product->name ?? '' }}"
+                                                    data-color="{{ $item->variant->color ?? '' }}"
+                                                    data-storage="{{ $item->product->storage ?? '' }}"
+                                                    {{ $oldValue === $imei->imei ? 'selected' : '' }}>
                                                 {{ $imei->imei }}
                                             </option>
                                         @endforeach
-                                    </datalist>
+                                    </select>
                                 @endfor
 
                                 <div class="form-text">
-                                    Có {{ $variantImeis->count() }} IMEI available cho biến thể này.
+                                    Có {{ $variantImeis->count() }} IMEI available cho biến thể này. Mỗi IMEI chỉ được chọn cho 1 dòng sản phẩm, hệ thống sẽ kiểm tra trùng khi xác nhận.
                                 </div>
                             @endif
                         @else
@@ -147,3 +157,66 @@
         </form>
     </div>
 </div>
+
+@once
+    @push('styles')
+        <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+    @endpush
+
+    @push('scripts')
+        <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+        <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (!window.TomSelect) return;
+
+            document.querySelectorAll('.imei-picker').forEach(function (select) {
+                if (select.tomselect || select.disabled) return;
+
+                const options = [];
+                const selectedItems = [];
+
+                Array.from(select.options).forEach(function (option) {
+                    if (!option.value) return;
+
+                    options.push({
+                        value: option.value,
+                        text: option.textContent.trim(),
+                        imei: option.dataset.imei || option.value,
+                        product: option.dataset.product || '',
+                        color: option.dataset.color || '',
+                        storage: option.dataset.storage || ''
+                    });
+
+                    if (option.selected) {
+                        selectedItems.push(option.value);
+                    }
+                });
+
+                new TomSelect(select, {
+                    plugins: ['clear_button'],
+                    placeholder: select.dataset.placeholder || 'Tim IMEI...',
+                    options: options,
+                    items: selectedItems,
+                    valueField: 'value',
+                    labelField: 'text',
+                    searchField: ['imei', 'text', 'product', 'color', 'storage'],
+                    maxOptions: null,
+                    openOnFocus: true,
+                    render: {
+                        option: function (data, escape) {
+                            const meta = [data.color, data.storage].filter(Boolean).join(' - ');
+                            return '<div>' +
+                                '<div class="fw-semibold">' + escape(data.imei || data.text) + '</div>' +
+                                (meta ? '<div class="small text-muted">' + escape(meta) + '</div>' : '') +
+                            '</div>';
+                        },
+                        item: function (data, escape) {
+                            return '<div>' + escape(data.imei || data.text) + '</div>';
+                        }
+                    }
+                });
+            });
+        });
+        </script>
+    @endpush
+@endonce

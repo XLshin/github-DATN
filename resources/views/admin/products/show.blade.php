@@ -7,7 +7,7 @@
 @section('page_subtitle', 'Chi tiết sản phẩm, giá base và giá bán cuối theo từng biến thể.')
 
 @section('heading_actions')
-<a href="{{ route('admin.products.edit', $product) }}" class="btn btn-primary btn-sm">
+<a href="{{ route('admin.product-versions.edit', $product) }}" class="btn btn-primary btn-sm">
     <i class="bi bi-pencil"></i> Sửa sản phẩm
 </a>
 <a href="{{ route('admin.products.index') }}" class="btn btn-light btn-sm">
@@ -163,14 +163,6 @@
                                 <a href="{{ route('admin.variants.show', $v) }}" class="btn btn-light btn-sm">
                                     <i class="bi bi-eye"></i> Xem
                                 </a>
-                                <form action="{{ route('admin.variants.destroy', $v) }}" method="POST"
-                                    class="d-inline"
-                                    onsubmit="return confirm('Xóa biến thể này?')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger btn-sm">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
                             </td>
                         </tr>
                         @empty

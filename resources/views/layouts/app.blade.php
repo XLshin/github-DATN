@@ -20,17 +20,25 @@
 
     @include('partials.client.navbar')
 
-    @yield('header')
-
-    <main class="flex-grow-1">
-        <div class="container">
-            @include('partials.flash-messages')
+        <div class="container mt-4 mb-3">
+            @yield('header')
         </div>
 
-        @yield('content')
-    </main>
+        <main class="flex-grow-1">
+            <div class="container">
+                @include('partials.flash-messages')
+            </div>
+
+            @yield('content')
+        </main>
 
     @include('partials.client.footer')
+
+    @auth
+        @if (auth()->user()->role === 'customer')
+            @include('partials.client.assistant-widget')
+        @endif
+    @endauth
 
     @include('partials.client.scripts')
     @stack('scripts')

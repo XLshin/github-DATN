@@ -23,7 +23,7 @@
 @section('content')
 
 <div class="row g-3 mb-4">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <section class="panel p-3 h-100">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
@@ -40,7 +40,7 @@
         </section>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-md-3">
         <section class="panel p-3 h-100">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
@@ -57,7 +57,7 @@
         </section>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-md-3">
         <section class="panel p-3 h-100">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
@@ -69,6 +69,36 @@
 
                 <div class="fs-3 text-muted">
                     <i class="bi bi-people"></i>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="col-md-3">
+        <section class="panel p-3 h-100">
+            <div>
+                <div class="text-muted small">Đơn hàng theo trạng thái</div>
+                <div class="d-flex flex-column gap-2 mt-3">
+                    @php
+                        $statusCards = [
+                            'pending' => ['label' => 'Chờ xác nhận', 'icon' => 'bi-hourglass-split', 'color' => 'text-warning'],
+                            'shipping' => ['label' => 'Đang giao', 'icon' => 'bi-truck', 'color' => 'text-primary'],
+                            'completed' => ['label' => 'Hoàn thành', 'icon' => 'bi-check-circle', 'color' => 'text-success'],
+                            'cancelled' => ['label' => 'Đã hủy', 'icon' => 'bi-x-circle', 'color' => 'text-danger'],
+                        ];
+                    @endphp
+
+                    @foreach($statusCards as $key => $status)
+                        <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                            <div>
+                                <div class="small text-muted">{{ $status['label'] }}</div>
+                                <div class="fw-semibold">{{ number_format($orderStatusCounts[$key] ?? 0, 0, ',', '.') }}</div>
+                            </div>
+                            <div class="fs-4 {{ $status['color'] }}">
+                                <i class="bi {{ $status['icon'] }}"></i>
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
             </div>
         </section>
@@ -118,7 +148,7 @@
         const topRevenueLabels = @json($topRevenueProducts->pluck('name'));
         const topRevenueData = @json($topRevenueProducts->pluck('revenue')->map(fn($value) => round($value, 0)));
 
-        const lowStockLabels = @json($lowStockVariants->map(fn($variant) => ($variant->product?->name ?? 'Sản phẩm') . ' - ' . $variant->color . ' / ' . $variant->storage));
+        const lowStockLabels = @json($lowStockVariants->map(fn($variant) => ($variant->product?->name ?? 'Sản phẩm') . ' - ' . $variant->color . ($variant->product?->storage ? ' / ' . $variant->product->storage : '')));
         const lowStockData = @json($lowStockVariants->pluck('stock_quantity'));
 
         const topRevenueCtx = document.getElementById('topRevenueChart');

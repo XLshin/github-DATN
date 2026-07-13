@@ -10,64 +10,50 @@ class ProductVariantSeeder extends Seeder
 {
     public function run(): void
     {
-        $variantSets = [
-            'iphone-16-pro' => [
-                ['color' => 'Titan Đen', 'storage' => '128GB', 'stock_quantity' => 10, 'additional_price' => 0, 'status' => true],
-                ['color' => 'Titan Đen', 'storage' => '256GB', 'stock_quantity' => 8, 'additional_price' => 3000000, 'status' => true],
-                ['color' => 'Titan Trắng', 'storage' => '128GB', 'stock_quantity' => 15, 'additional_price' => 0, 'status' => true],
-                ['color' => 'Titan Trắng', 'storage' => '256GB', 'stock_quantity' => 12, 'additional_price' => 3000000, 'status' => true],
-                ['color' => 'Titan Sa Mạc', 'storage' => '128GB', 'stock_quantity' => 10, 'additional_price' => 0, 'status' => true],
-                ['color' => 'Titan Sa Mạc', 'storage' => '256GB', 'stock_quantity' => 8, 'additional_price' => 3000000, 'status' => true],
-            ],
-            'samsung-galaxy-s25' => [
-                ['color' => 'Đen', 'storage' => '256GB', 'stock_quantity' => 20, 'additional_price' => 0, 'status' => true],
-                ['color' => 'Bạc', 'storage' => '512GB', 'stock_quantity' => 10, 'additional_price' => 2000000, 'status' => true],
-            ],
-            'xiaomi-redmi-note-15' => [
-                ['color' => 'Đen', 'storage' => '128GB', 'stock_quantity' => 25, 'additional_price' => 0, 'status' => true],
-                ['color' => 'Xanh', 'storage' => '256GB', 'stock_quantity' => 18, 'additional_price' => 1000000, 'status' => true],
-            ],
-            'oppo-reno-12' => [
-                ['color' => 'Xanh', 'storage' => '128GB', 'stock_quantity' => 22, 'additional_price' => 0, 'status' => true],
-                ['color' => 'Hồng', 'storage' => '256GB', 'stock_quantity' => 16, 'additional_price' => 1200000, 'status' => true],
-            ],
-            'ipad-air-6' => [
-                ['color' => 'Xám', 'storage' => '128GB', 'stock_quantity' => 12, 'additional_price' => 0, 'status' => true],
-                ['color' => 'Bạc', 'storage' => '256GB', 'stock_quantity' => 7, 'additional_price' => 2500000, 'status' => true],
-            ],
-            'samsung-galaxy-tab-s10' => [
-                ['color' => 'Đen', 'storage' => '256GB', 'stock_quantity' => 14, 'additional_price' => 0, 'status' => true],
-                ['color' => 'Trắng', 'storage' => '512GB', 'stock_quantity' => 6, 'additional_price' => 3500000, 'status' => true],
-            ],
-            'apple-airpods-pro-3' => [
-                ['color' => 'Trắng', 'storage' => '1 unit', 'stock_quantity' => 45, 'additional_price' => 0, 'status' => true],
-            ],
-            'samsung-galaxy-buds-3' => [
-                ['color' => 'Đen', 'storage' => '1 unit', 'stock_quantity' => 38, 'additional_price' => 0, 'status' => true],
-            ],
-            'xiaomi-65w-charger' => [
-                ['color' => 'Trắng', 'storage' => '65W', 'stock_quantity' => 60, 'additional_price' => 0, 'status' => true],
-            ],
-        ];
+        ProductVariant::query()->delete();
 
-        foreach ($variantSets as $slug => $variants) {
-            $product = Product::where('slug', $slug)->first();
+        $products = Product::query()->get();
 
-            if (!$product) {
-                throw new \Exception("Không tìm thấy sản phẩm với slug {$slug}. Hãy chạy ProductSeeder trước ProductVariantSeeder.");
+        foreach ($products as $product) {
+            $storage = $product->storage ?: '1 unit';
+            $variantDefinitions = [
+                [
+                    'color' => 'Đen',
+                    'storage' => $storage,
+                    'stock_quantity' => max(5, (int) ceil($product->stock_quantity / 2)),
+                    'additional_price' => 0,
+                    'status' => true,
+                ],
+                [
+                    'color' => 'Trắng',
+                    'storage' => $storage,
+                    'stock_quantity' => max(3, (int) floor($product->stock_quantity / 3)),
+                    'additional_price' => 500000,
+                    'status' => true,
+                ],
+            ];
+
+            if ((int) $product->price >= 15000000) {
+                $variantDefinitions[] = [
+                    'color' => 'Bạc',
+                    'storage' => $storage,
+                    'stock_quantity' => max(2, (int) floor($product->stock_quantity / 4)),
+                    'additional_price' => 1500000,
+                    'status' => true,
+                ];
             }
 
-            foreach ($variants as $variant) {
+            foreach ($variantDefinitions as $variantData) {
                 ProductVariant::updateOrCreate(
                     [
                         'product_id' => $product->id,
-                        'color' => $variant['color'],
-                        'storage' => $variant['storage'],
+                        'color' => $variantData['color'],
                     ],
                     [
-                        'stock_quantity' => $variant['stock_quantity'],
-                        'additional_price' => $variant['additional_price'],
-                        'status' => $variant['status'],
+                        'image_path' => null,
+                        'stock_quantity' => $variantData['stock_quantity'],
+                        'additional_price' => $variantData['additional_price'],
+                        'status' => $variantData['status'],
                     ]
                 );
             }

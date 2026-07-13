@@ -11,11 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasColumn('users', 'phone')) {
-            Schema::table('users', function (Blueprint $table) {
-                $table->string('phone', 20)->nullable()->after('email');
-            });
-        }
+        Schema::table('payments', function (Blueprint $table) {
+            $table->string('payer_name')->nullable()->after('transaction_code');
+            $table->string('payer_note')->nullable()->after('payer_name');
+        });
     }
 
     /**
@@ -23,8 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            //
+        Schema::table('payments', function (Blueprint $table) {
+            $table->dropColumn(['payer_name', 'payer_note']);
         });
     }
 };

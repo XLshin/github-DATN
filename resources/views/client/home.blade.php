@@ -49,7 +49,7 @@
         <div class="row g-2">
             @foreach($categories as $cat)
             <div class="col-6 col-md-3">
-                <a href="{{ route('category.products', $cat) }}"
+                <a href="{{ route('products.index', ['category_id' => $cat->id]) }}"
                     class="text-decoration-none d-flex flex-column align-items-center justify-content-center p-2 bg-white border rounded-3 text-center"
                     style="min-height:80px;">
                     <span style="font-size:1.6rem;">{{ $catIcons[$cat->name] ?? '📦' }}</span>
@@ -65,7 +65,7 @@
     {{-- FLASH SALE --}}
     @if($flashSaleProducts->isNotEmpty())
     <div class="mb-4">
-        <div class="d-flex align-items-center justify-content-between mb-3">
+<div class="d-flex align-items-center justify-content-between mb-3">
             <div class="d-flex align-items-center gap-2">
                 <h2 class="h6 fw-bold mb-0 text-danger">⚡ Flash Sale</h2>
                 <span class="badge bg-dark" id="flashCountdown">--:--:--</span>
@@ -204,7 +204,7 @@
         const diff = end - new Date();
         if (diff <= 0) { el.textContent = '00:00:00'; return; }
         const h = String(Math.floor(diff/3600000)).padStart(2,'0');
-        const m = String(Math.floor((diff%3600000)/60000)).padStart(2,'0');
+const m = String(Math.floor((diff%3600000)/60000)).padStart(2,'0');
         const s = String(Math.floor((diff%60000)/1000)).padStart(2,'0');
         el.textContent = `${h}:${m}:${s}`;
     }

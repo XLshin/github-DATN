@@ -13,11 +13,32 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::with(['category', 'brand', 'variants', 'images'])
+        $query = Product::with([
+            'category',
+            'brand',
+            'variants.images',
+            'images',
+            'productGroup.images',
+        ])
             ->where('status', true);
 
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $search = trim((string) $request->search);
+            $numericSearch = preg_replace('/\D+/', '', $search);
+
+            $query->where(function ($searchQuery) use ($search, $numericSearch) {
+                $searchQuery
+                    ->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('storage', 'like', '%' . $search . '%')
+                    ->orWhereHas('productGroup', fn ($groupQuery) => $groupQuery->where('name', 'like', '%' . $search . '%'))
+                    ->orWhereHas('brand', fn ($brandQuery) => $brandQuery->where('name', 'like', '%' . $search . '%'))
+                    ->orWhereHas('category', fn ($categoryQuery) => $categoryQuery->where('name', 'like', '%' . $search . '%'))
+                    ->orWhereHas('variants', fn ($variantQuery) => $variantQuery->where('color', 'like', '%' . $search . '%'));
+
+                if ($numericSearch !== '') {
+                    $searchQuery->orWhere('price', 'like', '%' . $numericSearch . '%');
+                }
+            });
         }
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
@@ -52,7 +73,7 @@ class ProductController extends Controller
         $categories = Category::orderBy('name')->get();
         $brands     = Brand::orderBy('name')->get();
         $colors     = ProductVariant::distinct()->pluck('color')->filter()->sort()->values();
-        $storages   = Product::distinct()->pluck('storage')->filter()->sort()->values();
+        $storages   = Product::distinct()->whereNotNull('storage')->pluck('storage')->filter()->sort()->values();
 
         return view('client.products.index', compact('products', 'categories', 'brands', 'colors', 'storages'));
     }
@@ -60,85 +81,84 @@ class ProductController extends Controller
     public function show(Product $product)
     {
         $product->load([
-            'brand',
             'category',
+            'brand',
             'images',
-            'variants.images',
-            'reviews' => fn($query) => $query->where('status', true)->with('user'),
+            'variants' => fn ($query) => $query
+                ->where('status', true)
+                ->with('images')
+                ->withCount([
+                    'imeis as available_imeis_count' => fn ($imeiQuery) => $imeiQuery->where('status', 'available'),
+                ])
+                ->orderBy('id'),
+            'productGroup.category',
+            'productGroup.brand',
+            'productGroup.images',
             'productGroup.specifications',
+            'productGroup.products' => fn ($query) => $query
+                ->where('status', true)
+                ->orderByRaw('price IS NULL')
+                ->orderBy('price')
+                ->orderBy('id'),
+            'reviews' => fn ($query) => $query->where('status', true),
+            'reviews.user',
         ]);
 
-        $productImages = collect([$product->thumbnail, ...$product->images->pluck('image_path')])
-            ->filter()
-            ->unique()
-            ->map(fn ($path) => Storage::url($path))
-            ->values();
+        $relatedProducts = Product::query()
+            ->with([
+                'brand',
+                'images',
+                'productGroup.images',
+                'variants.images',
+            ])
+            ->where('status', true)
+            ->where('brand_id', $product->brand_id)
+            ->whereKeyNot($product->id)
+            ->latest()
+            ->limit(4)
+            ->get();
 
-        $variantData = $product->variants->map(function (ProductVariant $variant) use ($product, $productImages) {
-            $variantImages = collect([$variant->image_path, ...$variant->images->pluck('image_path')])
-                ->filter()
-                ->unique()
-                ->map(fn ($path) => Storage::url($path))
-                ->values();
+        return view('client.products.show', compact('product', 'relatedProducts'));
+    }
 
-            return [
-                'id' => $variant->id,
-                'color' => $variant->color,
-                'storage' => $product->storage,
-                'stock_quantity' => (int) $variant->stock_quantity,
-                'additional_price' => (float) $variant->additional_price,
-                'price' => (float) $product->price + (float) $variant->additional_price,
-                'image_url' => $variantImages->first() ?: $productImages->first(),
-                'images' => $variantImages->values(),
-                'is_available' => (int) $variant->stock_quantity > 0,
-            ];
-        })->values();
-
-        $versionOptions = $variantData
-            ->pluck('storage')
-            ->filter(fn ($value) => is_string($value) && trim($value) !== '')
-            ->map(fn ($value) => trim((string) $value))
-            ->unique()
-            ->sort()
-            ->values();
-
-        $defaultStorage = $product->storage ?: ($versionOptions->first() ?? '');
-        $defaultVariant = $variantData->firstWhere('storage', $defaultStorage) ?? $variantData->first();
-
-        $initialColorOptions = collect();
-        if ($defaultVariant) {
-            $initialColorOptions = $variantData
-                ->filter(fn ($variant) => (string) ($variant['storage'] ?? '') === (string) $defaultStorage)
-                ->groupBy('color')
-                ->filter(fn ($items, $color) => trim((string) $color) !== '')
-                ->map(function ($items, $color) {
-                    $variant = $items->first();
-
-                    return [
-                        'name' => $color,
-                        'id' => $variant['id'],
-                        'price' => $variant['price'],
-                        'additional_price' => $variant['additional_price'],
-                        'stock_quantity' => $variant['stock_quantity'],
-                        'is_available' => $variant['is_available'],
-                        'image_url' => $variant['image_url'],
-                    ];
-                })
-                ->sortBy('name')
-                ->values();
+    private function preferredAvailableProduct(Product $product): ?Product
+    {
+        if (! $product->product_group_id || $this->hasAvailableStock($product)) {
+            return null;
         }
 
-        $specifications = $product->productGroup?->specifications ?? collect();
-
-        return view('client.products.show', compact(
-            'product',
-            'productImages',
-            'variantData',
-            'versionOptions',
-            'defaultStorage',
-            'defaultVariant',
-            'initialColorOptions',
-            'specifications'
-        ));
+        return Product::query()
+            ->where('product_group_id', $product->product_group_id)
+            ->where('status', true)
+            ->whereKeyNot($product->id)
+            ->where(function ($query) {
+                $query
+                    ->where(function ($quantityQuery) {
+                        $quantityQuery
+                            ->where('product_type', 'quantity')
+                            ->whereHas('variants', fn ($variantQuery) => $variantQuery->where('stock_quantity', '>', 0));
+                    })
+                    ->orWhere(function ($imeiQuery) {
+                        $imeiQuery
+                            ->where('product_type', 'imei/serial')
+                            ->whereHas('variants.imeis', fn ($imeiStockQuery) => $imeiStockQuery->where('status', 'available'));
+                    });
+            })
+            ->orderBy('price')
+            ->orderBy('id')
+            ->first();
     }
-}
+
+    private function hasAvailableStock(Product $product): bool
+    {
+        if ($product->product_type === 'imei/serial') {
+            return $product->variants()
+                ->whereHas('imeis', fn ($query) => $query->where('status', 'available'))
+                ->exists();
+        }
+
+        return $product->variants()
+            ->where('stock_quantity', '>', 0)
+            ->exists();
+    }
+} 

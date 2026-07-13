@@ -193,8 +193,8 @@
                                             Biến thể:
                                             {{ $item->variant->color ?? '-' }}
 
-                                            @if(!empty($item->variant->storage))
-                                                - {{ $item->variant->storage }}
+                                            @if(!empty($item->product?->storage))
+                                                - {{ $item->product->storage }}
                                             @endif
                                         </div>
                                     @else
@@ -315,10 +315,10 @@
                         </td>
 
                         <td class="text-end">
-                            <div class="d-flex gap-2 justify-content-end flex-wrap">
+                            <div class="d-flex gap-1 justify-content-end">
                                 <a href="{{ route('admin.orders.show', $order) }}"
-                                   class="btn btn-light btn-sm">
-                                    Chi tiết
+                                   class="btn btn-light btn-sm" title="Chi tiết">
+                                    <i class="bi bi-eye"></i>
                                 </a>
 
                                 @php
@@ -328,86 +328,107 @@
                                     });
                                 @endphp
 
-                                @if($missingRequiredImeis)
-                                    <button type="button"
-                                            class="btn btn-outline-secondary btn-sm"
-                                            disabled
-                                            title="Cần nhập IMEI trước khi in phiếu.">
-                                        In phiếu
+                                <div class="dropdown">
+                                    <button type="button" class="btn btn-light btn-sm" data-bs-toggle="dropdown" aria-expanded="false" title="Thao tác khác">
+                                        <i class="bi bi-three-dots-vertical"></i>
                                     </button>
-                                @else
-                                    <a href="{{ route('admin.orders.printShippingLabel', $order) }}"
-                                    target="_blank"
-                                    class="btn btn-outline-dark btn-sm">
-                                        In phiếu
-                                    </a>
-                                @endif
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            @if($missingRequiredImeis)
+                                                <span class="dropdown-item disabled text-muted" title="Cần nhập IMEI trước khi in phiếu.">
+                                                    <i class="bi bi-printer me-2"></i>In phiếu
+                                                </span>
+                                            @else
+                                                <a href="{{ route('admin.orders.printShippingLabel', $order) }}"
+                                                   target="_blank"
+                                                   class="dropdown-item">
+                                                    <i class="bi bi-printer me-2"></i>In phiếu
+                                                </a>
+                                            @endif
+                                        </li>
 
-                                @if($order->fulfillment_status === 'pending')
-                                    <form action="{{ route('admin.orders.confirm', $order) }}" method="POST">
-                                        @csrf
+                                        @if($order->fulfillment_status === 'pending')
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form action="{{ route('admin.orders.confirm', $order) }}" method="POST">
+                                                    @csrf
+                                                    <button type="submit" class="dropdown-item">
+                                                        <i class="bi bi-check2-circle me-2"></i>Xác nhận đơn
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        @endif
 
-                                        <button type="submit" class="btn btn-primary btn-sm">
-                                            Xác nhận
-                                        </button>
-                                    </form>
-                                @endif
+                                        @if($order->fulfillment_status === 'waiting_pack')
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <button type="button"
+                                                        class="dropdown-item"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#packedModal-{{ $order->id }}">
+                                                    <i class="bi bi-box-seam me-2"></i>Đã đóng gói
+                                                </button>
+                                            </li>
+                                        @endif
 
-                                @if($order->fulfillment_status === 'waiting_pack')
-                                    <button type="button"
-                                            class="btn btn-warning btn-sm"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#packedModal-{{ $order->id }}">
-                                        Đã đóng gói
-                                    </button>
-                                @endif
+                                        @if($order->fulfillment_status === 'waiting_handover')
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form action="{{ route('admin.orders.handover', $order) }}" method="POST">
+                                                    @csrf
+                                                    <button type="submit" class="dropdown-item">
+                                                        <i class="bi bi-truck me-2"></i>Bắt đầu giao
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        @endif
 
-                                @if($order->fulfillment_status === 'waiting_handover')
-                                    <form action="{{ route('admin.orders.handover', $order) }}" method="POST">
-                                        @csrf
+                                        @if($order->fulfillment_status === 'shipping')
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <button type="button"
+                                                        class="dropdown-item"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#deliveredModal-{{ $order->id }}">
+                                                    <i class="bi bi-check2-circle me-2"></i>Đã giao
+                                                </button>
+                                            </li>
+                                            <li>
+                                                <button type="button"
+                                                        class="dropdown-item text-danger"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#failedModal-{{ $order->id }}">
+                                                    <i class="bi bi-x-circle me-2"></i>Giao thất bại
+                                                </button>
+                                            </li>
+                                        @endif
 
-                                        <button type="submit" class="btn btn-primary btn-sm">
-                                            Bắt đầu giao
-                                        </button>
-                                    </form>
-                                @endif
+                                        @if($order->fulfillment_status === 'failed')
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form action="{{ route('admin.orders.retryDelivery', $order) }}" method="POST"
+                                                      onsubmit="return confirm('Bạn có chắc muốn giao lại đơn hàng này không?');">
+                                                    @csrf
+                                                    <button type="submit" class="dropdown-item">
+                                                        <i class="bi bi-arrow-repeat me-2"></i>Giao lại
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        @endif
 
-                                @if($order->fulfillment_status === 'shipping')
-                                    <button type="button"
-                                            class="btn btn-success btn-sm"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#deliveredModal-{{ $order->id }}">
-                                        Đã giao
-                                    </button>
-
-                                    <button type="button"
-                                            class="btn btn-outline-danger btn-sm"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#failedModal-{{ $order->id }}">
-                                        Giao thất bại
-                                    </button>
-                                @endif
-
-                                @if($order->fulfillment_status === 'failed')
-                                    <form action="{{ route('admin.orders.retryDelivery', $order) }}"
-                                          method="POST"
-                                          onsubmit="return confirm('Bạn có chắc muốn giao lại đơn hàng này không?');">
-                                        @csrf
-
-                                        <button type="submit" class="btn btn-primary btn-sm">
-                                            Giao lại
-                                        </button>
-                                    </form>
-                                @endif
-
-                                @if(!in_array($order->fulfillment_status, ['completed', 'cancelled'], true))
-                                    <button type="button"
-                                            class="btn btn-danger btn-sm"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#cancelModal-{{ $order->id }}">
-                                        Hủy
-                                    </button>
-                                @endif
+                                        @if(!in_array($order->fulfillment_status, ['completed', 'cancelled'], true))
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <button type="button"
+                                                        class="dropdown-item text-danger"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#cancelModal-{{ $order->id }}">
+                                                    <i class="bi bi-trash3 me-2"></i>Hủy đơn
+                                                </button>
+                                            </li>
+                                        @endif
+                                    </ul>
+                                </div>
                             </div>
                         </td>
                     </tr>

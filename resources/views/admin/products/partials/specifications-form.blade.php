@@ -28,6 +28,16 @@
     </div>
 
     <div class="p-3">
+        <div class="alert alert-info d-flex gap-2 align-items-start">
+            <i class="bi bi-info-circle mt-1"></i>
+            <div>
+                <div class="fw-semibold">Thông số kỹ thuật là phần bổ sung</div>
+                <div class="small">
+                    Có thể để trống khi tạo sản phẩm. Phần này dùng để hiển thị chi tiết ở trang khách hàng và có thể cập nhật sau.
+                </div>
+            </div>
+        </div>
+
         @if(isset($specificationSourceGroups) && $specificationSourceGroups->isNotEmpty())
         <div class="row g-2 align-items-end mb-3">
             <div class="col-md-9">
