@@ -70,8 +70,8 @@ class DatabaseSeeder extends Seeder
             |--------------------------------------------------------------------------
             | Seeder bảo hành
             |--------------------------------------------------------------------------
-            | Seeder này vẫn cần IMEI sold/warranty để test chức năng bảo hành,
-            | nên giữ sau các seeder đơn hàng.
+            | Seeder này tự tạo đơn riêng ORD_TEST_WARRANTY_001 để chứa 4 IMEI test
+            | (sold + warranty), không còn gắn vào đơn ORD_TEST_SHIPMENT_001 nữa.
             */
             WarrantyTestSeeder::class,
         ]);

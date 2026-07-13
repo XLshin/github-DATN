@@ -34,7 +34,8 @@
                     @php
                         $needsImei = ($item->product->product_type ?? null) === 'imei/serial';
                         $variantImeis = $availableImeisByVariant[$item->product_variant_id] ?? collect();
-                        $datalistId = 'imei-options-' . $order->id . '-' . $item->id;
+                        $assignedImeis = $item->imeis ?? collect();
+                        $remaining = $needsImei ? max(0, (int) $item->quantity - $assignedImeis->count()) : 0;
                     @endphp
 
                     <div class="border rounded p-3 mb-3">
@@ -57,34 +58,46 @@
                         </div>
 
                         @if($needsImei)
-                            @if($item->imei)
-                                <div class="alert alert-success mb-0">
-                                    IMEI đã gán:
-                                    <strong>{{ $item->imei->imei ?? '-' }}</strong>
-                                    <br>
-                                    Trạng thái:
-                                    <strong>{{ $item->imei->status ?? '-' }}</strong>
+                            @if($assignedImeis->isNotEmpty())
+                                <div class="alert alert-success mb-2">
+                                    IMEI đã gán ({{ $assignedImeis->count() }}/{{ $item->quantity }}):
+                                    <ul class="mb-0 ps-3">
+                                        @foreach($assignedImeis as $assignedImei)
+                                            <li>
+                                                <strong>{{ $assignedImei->imei ?? '-' }}</strong>
+                                                - {{ $assignedImei->status ?? '-' }}
+                                            </li>
+                                        @endforeach
+                                    </ul>
                                 </div>
-                            @else
+                            @endif
+
+                            @if($remaining > 0)
                                 <label class="form-label">
-                                    Nhập hoặc chọn IMEI <span class="text-danger">*</span>
+                                    Nhập hoặc chọn thêm {{ $remaining }} IMEI còn thiếu <span class="text-danger">*</span>
                                 </label>
 
-                                <input type="text"
-                                       name="imei_values[{{ $item->id }}]"
-                                       class="form-control"
-                                       list="{{ $datalistId }}"
-                                       value="{{ old('imei_values.' . $item->id) }}"
-                                       placeholder="Nhập IMEI hoặc chọn từ danh sách gợi ý"
-                                       required>
+                                @for($slot = 0; $slot < $remaining; $slot++)
+                                    @php
+                                        $datalistId = 'imei-options-' . $order->id . '-' . $item->id . '-' . $slot;
+                                    @endphp
 
-                                <datalist id="{{ $datalistId }}">
-                                    @foreach($variantImeis as $imei)
-                                        <option value="{{ $imei->imei }}">
-                                            {{ $imei->imei }}
-                                        </option>
-                                    @endforeach
-                                </datalist>
+                                    <input type="text"
+                                           name="imei_values[{{ $item->id }}][]"
+                                           class="form-control mb-2"
+                                           list="{{ $datalistId }}"
+                                           value="{{ old('imei_values.' . $item->id . '.' . $slot) }}"
+                                           placeholder="Nhập IMEI hoặc chọn từ danh sách gợi ý"
+                                           required>
+
+                                    <datalist id="{{ $datalistId }}">
+                                        @foreach($variantImeis as $imei)
+                                            <option value="{{ $imei->imei }}">
+                                                {{ $imei->imei }}
+                                            </option>
+                                        @endforeach
+                                    </datalist>
+                                @endfor
 
                                 <div class="form-text">
                                     Có {{ $variantImeis->count() }} IMEI available cho biến thể này.
