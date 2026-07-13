@@ -337,13 +337,23 @@
         </div>
 
         <div class="col-lg-4">
-            <div class="card shadow-sm border-0">
+            <div class="card shadow-sm border-0 mb-4">
                 <div class="card-body">
 
                     {{-- Thông tin người đặt hàng --}}
                     <h6 class="fw-bold mb-3">
                         <i class="bi bi-person-circle me-2"></i>Thông tin người đặt
                     </h6>
+
+                    <p class="mb-1"><strong>Trạng thái:</strong> {{ $order->status }}</p>
+
+                    @if($order->buyer_type === 'proxy')
+                        <p class="mb-1">
+                            <strong>Người đặt mua:</strong> {{ $order->buyer_name }}
+                            <span class="badge bg-info text-dark ms-1">Mua hộ</span>
+                        </p>
+                        <p class="mb-1"><strong>SĐT người đặt:</strong> {{ $order->buyer_phone }}</p>
+                    @endif
 
                     <p class="mb-1">
                         <strong>Họ tên:</strong>
@@ -442,6 +452,78 @@
 
                 </div>
             </div>
+
+            @php
+                $payment = $order->payment;
+                $methodLabels = [
+                    'cod'           => 'Thanh toán khi nhận hàng (COD)',
+                    'card'          => 'Thẻ tín dụng/ghi nợ',
+                    'bank_transfer' => 'Chuyển khoản ngân hàng',
+                    'momo'          => 'Ví MoMo',
+                    'vnpay'         => 'VNPAY',
+                ];
+                $statusLabels = [
+                    'pending'   => 'Chờ thanh toán',
+                    'paid'      => 'Đã thanh toán',
+                    'failed'    => 'Thanh toán thất bại',
+                    'cancelled' => 'Đã hủy',
+                    'refunded'  => 'Đã hoàn tiền',
+                ];
+                $statusClasses = [
+                    'pending'   => 'bg-warning text-dark',
+                    'paid'      => 'bg-success',
+                    'failed'    => 'bg-danger',
+                    'cancelled' => 'bg-danger',
+                    'refunded'  => 'bg-secondary',
+                ];
+            @endphp
+
+            @if($payment)
+                <div class="card shadow-sm border-0">
+                    <div class="card-body">
+                        <h6 class="mb-3">Thông tin thanh toán</h6>
+                        <table class="table table-sm table-borderless mb-0 small">
+                            <tr>
+                                <td class="text-muted ps-0" style="width:130px">Phương thức</td>
+                                <td class="fw-semibold">{{ $methodLabels[$payment->payment_method] ?? strtoupper($payment->payment_method) }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-0">Trạng thái</td>
+                                <td>
+                                    <span class="badge {{ $statusClasses[$payment->payment_status] ?? 'bg-secondary' }}">
+                                        {{ $statusLabels[$payment->payment_status] ?? $payment->payment_status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-0">Số tiền</td>
+                                <td class="fw-semibold">{{ number_format($payment->amount, 0, ',', '.') }} đ</td>
+                            </tr>
+                            @if($payment->payment_status === 'paid')
+                                <tr>
+                                    <td class="text-muted ps-0">Người thanh toán</td>
+                                    <td>
+                                        {{ $payment->payer_name ?? $order->customer_name }}
+                                        @if($payment->payer_note)
+                                            <div class="text-muted">{{ $payment->payer_note }}</div>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @if($payment->transaction_code)
+                                    <tr>
+                                        <td class="text-muted ps-0">Mã giao dịch</td>
+                                        <td><code>{{ $payment->transaction_code }}</code></td>
+                                    </tr>
+                                @endif
+                                <tr>
+                                    <td class="text-muted ps-0">Thời gian</td>
+                                    <td>{{ $payment->paid_at?->format('H:i d/m/Y') }}</td>
+                                </tr>
+                            @endif
+                        </table>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 

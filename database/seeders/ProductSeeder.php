@@ -5,7 +5,9 @@ namespace Database\Seeders;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductGroup;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class ProductSeeder extends Seeder
 {
@@ -140,11 +142,25 @@ class ProductSeeder extends Seeder
         ];
 
         foreach ($products as $productData) {
+            $productGroup = ProductGroup::updateOrCreate(
+                ['slug' => Str::slug($productData['name'])],
+                [
+                    'category_id' => $categories[$productData['category']]->id,
+                    'brand_id' => $brands[$productData['brand']]->id,
+                    'name' => $productData['name'],
+                    'slug' => Str::slug($productData['name']),
+                    'description' => $productData['description'],
+                    'status' => $productData['status'],
+                    'product_type' => $productData['product_type'],
+                ]
+            );
+
             Product::updateOrCreate(
                 ['slug' => $productData['slug']],
                 [
                     'category_id' => $categories[$productData['category']]->id,
                     'brand_id' => $brands[$productData['brand']]->id,
+                    'product_group_id' => $productGroup->id,
                     'name' => $productData['name'],
                     'description' => $productData['description'],
                     'price' => $productData['price'],

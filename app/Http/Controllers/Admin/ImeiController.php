@@ -115,6 +115,11 @@ class ImeiController extends Controller
             ]);
         });
 
+        // Cập nhật stock_quantity theo số IMEI available thực tế
+        $variant->update([
+            'stock_quantity' => $variant->imeis()->where('status', 'available')->count(),
+        ]);
+
         return redirect()
             ->route('admin.stocks')
             ->with('success', 'Đã nhập ' . count($imeis) . ' IMEI thành công.');

@@ -19,6 +19,7 @@
 
     <div class="row g-3">
         <div class="col-lg-8">
+
             {{-- Thông tin cơ bản --}}
             <section class="panel mb-3">
                 <div class="panel-header">
@@ -27,7 +28,6 @@
                         <div class="text-muted small">Nhập tên, danh mục, thương hiệu và mô tả.</div>
                     </div>
                 </div>
-
                 <div class="p-3">
                     <div class="mb-3">
                         <label class="form-label">Nhóm sản phẩm <span class="text-danger">*</span></label>
@@ -55,8 +55,7 @@
                     <div class="mb-3">
                         <label class="form-label">Tên sản phẩm <span class="text-danger">*</span></label>
                         <input type="text" name="name" value="{{ old('name', $product->name) }}"
-                            class="form-control @error('name') is-invalid @enderror"
-                            placeholder="Nhập tên sản phẩm">
+                            class="form-control @error('name') is-invalid @enderror">
                         @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
@@ -92,7 +91,7 @@
                     </div>
 
                     <div class="row g-3">
-<div class="col-md-6">
+                        <div class="col-md-6">
                             <label class="form-label">Danh mục <span class="text-danger">*</span></label>
                             <select id="categorySelect" class="form-select @error('category_id') is-invalid @enderror" disabled>
                                 <option value="">-- Chọn danh mục --</option>
@@ -103,7 +102,6 @@
                             </select>
                             @error('category_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
-
                         <div class="col-md-6">
                             <label class="form-label">Thương hiệu <span class="text-danger">*</span></label>
                             <select id="brandSelect" class="form-select @error('brand_id') is-invalid @enderror" disabled>
@@ -116,11 +114,10 @@
                         </div>
                     </div>
 
-                    <div class="mb-0 mt-3">
+                    <div class="mt-3">
                         <label class="form-label">Mô tả <span class="text-danger">*</span></label>
                         <textarea name="description" rows="4"
-                            class="form-control @error('description') is-invalid @enderror"
-                            placeholder="Nhập mô tả sản phẩm">{{ old('description', $product->description) }}</textarea>
+                            class="form-control @error('description') is-invalid @enderror">{{ old('description', $product->description) }}</textarea>
                         @error('description')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                 </div>
@@ -131,15 +128,59 @@
                 <div class="panel-header">
                     <div>
                         <h5 class="mb-1">Biến thể sản phẩm</h5>
-                        <div class="text-muted small">Thêm biến thể mới nếu cần.</div>
+                        <div class="text-muted small">Biến thể hiện có và thêm biến thể mới nếu cần.</div>
                     </div>
                     <button type="button" class="btn btn-outline-primary btn-sm" id="addVariant">
                         <i class="bi bi-plus-lg"></i> Thêm biến thể
                     </button>
                 </div>
 
+                {{-- Danh sách biến thể hiện có --}}
+                @if($product->variants->count())
+                <div class="table-responsive border-bottom">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Màu</th>
+                                <th>Bộ nhớ</th>
+                                <th class="text-end">Giá thêm</th>
+                                <th class="text-end">Tồn kho</th>
+                                <th>Trạng thái</th>
+                                <th class="text-end">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($product->variants as $v)
+                            <tr>
+                                <td><span class="badge text-bg-secondary">{{ $v->color }}</span></td>
+                                <td>{{ $v->storage ?: '—' }}</td>
+                                <td class="text-end">{{ $v->additional_price > 0 ? '+'.number_format($v->additional_price,0,',','.') : '0' }} đ</td>
+                                <td class="text-end fw-semibold">{{ $v->stock_quantity }}</td>
+                                <td>
+                                    @if($v->status)
+                                        <span class="badge text-bg-success">Active</span>
+                                    @else
+                                        <span class="badge text-bg-secondary">Ẩn</span>
+                                    @endif
+                                </td>
+                                <td class="text-end">
+                                    {{-- Dùng form attribute để tránh lồng form --}}
+                                    <button type="submit" form="delete-variant-{{ $v->id }}"
+                                        class="btn btn-outline-danger btn-sm"
+                                        onclick="return confirm('Xóa biến thể {{ addslashes($v->color) }}?')">
+                                        <i class="bi bi-trash"></i> Xóa
+                                    </button>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @endif
+
+                {{-- Vùng thêm biến thể mới --}}
                 <div class="p-3" id="variantsContainer">
-<p class="text-muted small mb-0" id="noVariantMsg">Chưa có biến thể nào.</p>
+                    <p class="text-muted small mb-0" id="noVariantMsg">Chưa có biến thể nào được thêm mới.</p>
                 </div>
 
                 @error('variants')
@@ -153,17 +194,17 @@
         <div class="col-lg-4">
             <section class="panel">
                 <div class="panel-header">
-                    <div>
-                        <h5 class="mb-1">Ảnh và trạng thái</h5>
-                    </div>
+                    <h5 class="mb-1">Ảnh và trạng thái</h5>
                 </div>
-
                 <div class="p-3">
                     <div class="mb-3">
                         <label class="form-label">Ảnh đại diện</label>
                         <input type="file" name="thumbnail" accept="image/*" id="thumbnailInput"
                             class="form-control @error('thumbnail') is-invalid @enderror">
                         @error('thumbnail')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        @if($product->thumbnail)
+                        <img src="{{ Storage::url($product->thumbnail) }}" class="img-fluid mt-2 rounded border" style="max-height:220px;object-fit:cover;">
+                        @endif
                         <img id="thumbnailPreview" src="#" class="img-fluid mt-2 rounded border d-none" style="max-height:220px;object-fit:cover;">
                     </div>
 
@@ -195,13 +236,14 @@
 
                     <div class="mb-3">
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" name="status" id="status" value="1" @checked(old('status', $product->status))>
-<label class="form-check-label" for="status">Đang bán</label>
+                            <input class="form-check-input" type="checkbox" name="status" id="status" value="1"
+                                @checked(old('status', $product->status))>
+                            <label class="form-check-label" for="status">Đang bán</label>
                         </div>
                     </div>
 
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary btn-sm">
+                        <button type="submit" form="productForm" class="btn btn-primary btn-sm">
                             <i class="bi bi-save"></i> Lưu sản phẩm
                         </button>
                         <a href="{{ route('admin.products.index') }}" class="btn btn-light btn-sm">Hủy</a>
@@ -212,12 +254,24 @@
     </div>
 </form>
 
-@foreach($product->images as $img)
-<form id="delete-product-image-{{ $img->id }}" method="POST" action="{{ route('admin.products.image.destroy', $img) }}">
-    @csrf
-    @method('DELETE')
+{{-- Form xóa variant — đặt ngoài form chính --}}
+@foreach($product->variants as $v)
+<form id="delete-variant-{{ $v->id }}"
+    action="{{ route('admin.variants.destroy', $v) }}"
+    method="POST" class="d-none">
+    @csrf @method('DELETE')
 </form>
 @endforeach
+
+{{-- Form xóa ảnh — đặt ngoài form chính --}}
+@foreach($product->images as $img)
+<form id="delete-image-{{ $img->id }}"
+    action="{{ route('admin.products.image.destroy', $img) }}"
+    method="POST" class="d-none">
+    @csrf @method('DELETE')
+</form>
+@endforeach
+
 @endsection
 
 @push('styles')
@@ -327,17 +381,24 @@ function stockInputHtml(index) {
         </div>`;
     }
     return `<div class="col-md-2 stock-col">
-        <label class="form-label small">Số lượng</label>
+        <label class="form-label small">Số lượng nhập thêm</label>
         <input type="number" name="variants[${index}][stock_quantity]"
             class="form-control form-control-sm" value="0" min="0">
     </div>`;
 }
 
+function storageColHtml(index) {
+    return `<div class="col-md-2 storage-col">
+        <label class="form-label small">Kiểu loại</label>
+        <input type="text" name="variants[${index}][storage]"
+            class="form-control form-control-sm" placeholder="VD: 128GB">
+    </div>`;
+}
+
 function updateTypeHint() {
     typeHint.textContent = getProductType() === 'imei/serial'
-        ? 'Tồn kho tự động tính từ số IMEI đã nhập, không cần nhập tay.'
+        ? 'Tồn kho tự động tính từ số IMEI, không cần nhập tay.'
         : 'Nhập số lượng tồn kho cho từng biến thể.';
-
     document.querySelectorAll('.variant-row').forEach(row => {
         const stockCol = row.querySelector('.stock-col');
         if (stockCol) {
@@ -348,8 +409,20 @@ function updateTypeHint() {
     });
 }
 
-function updateStorageVisibility() {
-    toggleStorageByProductType();
+function updateStorageCols() {
+    document.querySelectorAll('.variant-row').forEach(row => {
+        const storageCol = row.querySelector('.storage-col');
+        if (hasStorage()) {
+            if (!storageCol) {
+                const colorCol = row.querySelector('.color-col');
+                const tmp = document.createElement('div');
+                tmp.innerHTML = storageColHtml(row.dataset.index);
+                colorCol.after(tmp.firstElementChild);
+            }
+        } else {
+            if (storageCol) storageCol.remove();
+        }
+    });
 }
 
 initProductGroupSearch();
@@ -364,7 +437,6 @@ document.getElementById('addVariant').addEventListener('click', function () {
     const div = document.createElement('div');
     div.className = 'border rounded p-3 mb-2 variant-row';
     div.dataset.index = variantIndex;
-
     div.innerHTML = `
         <div class="row g-2 align-items-end">
             <div class="col-md-3 color-col">
@@ -373,7 +445,7 @@ document.getElementById('addVariant').addEventListener('click', function () {
                     class="form-control form-control-sm" placeholder="VD: Đen">
             </div>
             <div class="col-md-4 image-col">
-                <label class="form-label small">Ảnh biến thể (có thể thêm nhiều ảnh)</label>
+                <label class="form-label small">Ảnh biến thể</label>
                 <input type="file" name="variants[${variantIndex}][images][]"
                     class="form-control form-control-sm" accept="image/*" multiple>
             </div>
@@ -389,10 +461,8 @@ document.getElementById('addVariant').addEventListener('click', function () {
                 </button>
             </div>
         </div>`;
-
     container.appendChild(div);
     variantIndex++;
-
     div.querySelector('.remove-variant').addEventListener('click', function () {
         div.remove();
         if (!container.querySelectorAll('.variant-row').length) {
@@ -405,7 +475,7 @@ document.getElementById('thumbnailInput').addEventListener('change', function ()
     const preview = document.getElementById('thumbnailPreview');
     if (this.files[0]) {
         preview.src = URL.createObjectURL(this.files[0]);
-preview.classList.remove('d-none');
+        preview.classList.remove('d-none');
     }
 });
 

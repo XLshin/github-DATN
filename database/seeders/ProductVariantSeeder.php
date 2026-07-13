@@ -16,9 +16,8 @@ class ProductVariantSeeder extends Seeder
                 ['color' => 'Titan Đen', 'storage' => '256GB', 'stock_quantity' => 8, 'additional_price' => 3000000, 'status' => true],
                 ['color' => 'Titan Trắng', 'storage' => '128GB', 'stock_quantity' => 15, 'additional_price' => 0, 'status' => true],
                 ['color' => 'Titan Trắng', 'storage' => '256GB', 'stock_quantity' => 12, 'additional_price' => 3000000, 'status' => true],
-                [
-                    'color' => 'Titan Sa Mạc', 'storage' => '128GB', 'stock_quantity' => 10, 'additional_price' => 0, 'status' => true,
-                ],
+                ['color' => 'Titan Sa Mạc', 'storage' => '128GB', 'stock_quantity' => 10, 'additional_price' => 0, 'status' => true],
+                ['color' => 'Titan Sa Mạc', 'storage' => '256GB', 'stock_quantity' => 8, 'additional_price' => 3000000, 'status' => true],
             ],
             'samsung-galaxy-s25' => [
                 ['color' => 'Đen', 'storage' => '256GB', 'stock_quantity' => 20, 'additional_price' => 0, 'status' => true],

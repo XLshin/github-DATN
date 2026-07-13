@@ -13,7 +13,6 @@
     @include('partials.client.styles')
     @stack('styles')
 
-
 </head>
 
 <body class="client-body d-flex flex-column min-vh-100">
@@ -34,6 +33,12 @@
         </main>
 
     @include('partials.client.footer')
+
+    @auth
+        @if (auth()->user()->role === 'customer')
+            @include('partials.client.assistant-widget')
+        @endif
+    @endauth
 
     @include('partials.client.scripts')
     @stack('scripts')

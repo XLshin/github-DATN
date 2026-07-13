@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             BrandSeeder::class,
 
             ProductSeeder::class,
+            ProductSpecificationSeeder::class,
             ProductVariantSeeder::class,
             TestCartProductSeeder::class,
             ProductImageSeeder::class,
