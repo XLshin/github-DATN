@@ -64,7 +64,7 @@ class HomeController extends Controller
             $query->whereHas('variants', fn($q) => $q->where('color', $request->color));
         }
         if ($request->filled('storage')) {
-            $query->whereHas('variants', fn($q) => $q->where('storage', $request->storage));
+            $query->where('storage', $request->storage);
         }
         if ($request->filled('price_min')) {
             $query->where('price', '>=', $request->price_min);
@@ -87,7 +87,7 @@ class HomeController extends Controller
         $allCategories = Category::orderBy('name')->get();
         $allBrands     = Brand::orderBy('name')->get();
         $colors        = ProductVariant::distinct()->pluck('color')->filter()->sort()->values();
-        $storages      = ProductVariant::distinct()->pluck('storage')->filter()->sort()->values();
+        $storages      = Product::distinct()->pluck('storage')->filter()->sort()->values();
 
         return view('client.home', compact(
             'banners', 'categories', 'brands', 'newProducts', 'bestSellers',
@@ -117,7 +117,10 @@ class HomeController extends Controller
             ->when(request('category_id'), fn($q) => $q->where('category_id', request('category_id')))
             ->paginate(12)->withQueryString();
 
-        $categories = Category::whereHas('products', fn($q) => $q->where('status', true)->where('brand_id', $brand->id))->get();
+        $categories = Category::whereHas('products', fn($q) => $q
+            ->where('status', true)
+            ->where('brand_id', $brand->id)
+        )->get();
 
         return view('client.products.by_brand', compact('brand', 'products', 'categories'));
     }
