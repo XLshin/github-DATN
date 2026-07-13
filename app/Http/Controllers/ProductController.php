@@ -52,7 +52,7 @@ class ProductController extends Controller
         $categories = Category::orderBy('name')->get();
         $brands     = Brand::orderBy('name')->get();
         $colors     = ProductVariant::distinct()->pluck('color')->filter()->sort()->values();
-        $storages   = Product::distinct()->pluck('storage')->filter()->sort()->values();
+        $storages   = Product::distinct()->whereNotNull('storage')->pluck('storage')->filter()->sort()->values();
 
         return view('client.products.index', compact('products', 'categories', 'brands', 'colors', 'storages'));
     }
@@ -60,13 +60,26 @@ class ProductController extends Controller
     public function show(Product $product)
     {
         $product->load([
-            'brand',
             'category',
+            'brand',
             'images',
-            'variants' => fn ($query) => $query->where('status', true),
-            'variants.images',
-            'reviews' => fn ($query) => $query->where('status', true)->with('user'),
+            'variants' => fn ($query) => $query
+                ->where('status', true)
+                ->with('images')
+                ->withCount([
+                    'imeis as available_imeis_count' => fn ($imeiQuery) => $imeiQuery->where('status', 'available'),
+                ])
+                ->orderBy('id'),
+            'productGroup.category',
+            'productGroup.brand',
+            'productGroup.images',
             'productGroup.specifications',
+            'productGroup.products' => fn ($query) => $query
+                ->where('status', true)
+                ->orderByRaw('price IS NULL')
+                ->orderBy('price')
+                ->orderBy('id'),
+            'reviews' => fn ($query) => $query->where('status', true)->with('user'),
         ]);
 
         $productImages = collect([$product->thumbnail, ...$product->images->pluck('image_path')])
@@ -74,6 +87,20 @@ class ProductController extends Controller
             ->unique()
             ->map(fn ($path) => Storage::url($path))
             ->values();
+
+        $relatedProducts = Product::query()
+            ->with([
+                'brand',
+                'images',
+                'productGroup.images',
+                'variants.images',
+            ])
+            ->where('status', true)
+            ->where('brand_id', $product->brand_id)
+            ->whereKeyNot($product->id)
+            ->latest()
+            ->limit(4)
+            ->get();
 
         $variantData = $product->variants->map(function (ProductVariant $variant) use ($product, $productImages) {
             $variantImages = collect([$variant->image_path, ...$variant->images->pluck('image_path')])
@@ -138,6 +165,7 @@ class ProductController extends Controller
 
         return view('client.products.show', compact(
             'product',
+            'relatedProducts',
             'productImages',
             'variantData',
             'versionOptions',

@@ -69,7 +69,6 @@
                     <th class="text-end">Số lượng</th>
                     <th>Ghi chú</th>
                     <th>Thời gian</th>
-                    <th class="text-end">Thao tác</th>
                 </tr>
             </thead>
 
@@ -102,15 +101,10 @@
                         </td>
                         <td>{{ $item->note ?? 'N/A' }}</td>
                         <td>{{ $item->created_at?->format('d/m/Y H:i') ?? 'N/A' }}</td>
-                        <td class="text-end">
-                            <a href="{{ route('admin.inventory.edit', $item->id) }}" class="btn btn-sm btn-light">
-                                Sửa ghi chú
-                            </a>
-                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="text-center text-muted py-4">
+                        <td colspan="9" class="text-center text-muted py-4">
                             Không có dữ liệu
                         </td>
                     </tr>

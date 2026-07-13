@@ -7,7 +7,7 @@
 @section('page_subtitle', 'Cập nhật tên và mô tả danh mục sản phẩm.')
 
 @section('heading_actions')
-<a href="{{ route(admin_categories.index') }}" class="btn btn-light btn-sm">
+<a href="{{ route('admin.categories.index') }}" class="btn btn-light btn-sm">
     <i class="bi bi-arrow-left"></i> Quay lại
 </a>
 @endsection

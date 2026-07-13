@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -102,5 +103,22 @@ class User extends Authenticatable
             self::ROLE_ADMIN,
             self::ROLE_STAFF,
         ], true);
+    }
+
+    public function addresses(): HasMany
+    {
+        return $this->hasMany(Address::class);
+    }
+
+    public function warranties(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            \App\Models\Warranty::class,
+            \App\Models\Order::class,
+            'user_id', // Foreign key on orders table
+            'order_id', // Foreign key on warranties table
+            'id', // Local key on users table
+            'id' // Local key on orders table
+        );
     }
 }

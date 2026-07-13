@@ -9,6 +9,10 @@ class ProductGroup extends Model
 {
     use HasFactory;
 
+    protected $casts = [
+        'product_type' => 'string',
+    ];
+
     protected $fillable = [
         'category_id',
         'brand_id',
@@ -42,5 +46,12 @@ class ProductGroup extends Model
     public function images()
     {
         return $this->hasMany(ProductImage::class);
+    }
+
+    public function getProductTypeAttribute($value): string
+    {
+        $normalized = is_string($value) ? trim($value) : '';
+
+        return in_array($normalized, ['imei/serial', 'quantity'], true) ? $normalized : 'quantity';
     }
 }

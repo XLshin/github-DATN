@@ -31,9 +31,9 @@
 
     $statusLabels = [
         'available' => ['class' => 'text-bg-success', 'label' => 'Còn hàng'],
-        'reserved' => ['class' => 'text-bg-info', 'label' => 'Đang giữ chỗ'],
-        'sold' => ['class' => 'text-bg-primary', 'label' => 'Đã bán'],
-        'warranty' => ['class' => 'text-bg-warning', 'label' => 'Bảo hành'],
+        'reserved' => ['class' => 'text-bg-warning', 'label' => 'Đang giữ chỗ'],
+        'sold' => ['class' => 'text-bg-danger', 'label' => 'Đã bán'],
+        'warranty' => ['class' => 'text-bg-primary', 'label' => 'Bảo hành'],
         'returned' => ['class' => 'text-bg-secondary', 'label' => 'Đã loại khỏi kho'],
     ];
 @endphp

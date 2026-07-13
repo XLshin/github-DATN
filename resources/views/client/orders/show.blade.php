@@ -279,7 +279,7 @@
 
                                             Dung lượng:
 
-                                            {{ $item->product->storage }}
+                                            {{ $item->product->storage ?? "-" }}
 
                                             </div>
 
