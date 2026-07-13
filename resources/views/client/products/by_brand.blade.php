@@ -60,7 +60,7 @@
                         @include('client.partials.product_card', ['product' => $product])
                     @endforeach
                 </div>
-                <div class="mt-4">{{ $products->links() }}</div>
+                <div class="mt-4">{{ $products->links('pagination::simple-bootstrap-5') }}</div>
             @endif
         </div>
     </div>

@@ -54,7 +54,7 @@
                                     <label style="font-size:12px; font-weight:600; color:#555; margin-bottom:4px; display:block;">Dung lượng</label>
                                     <select id="fsStorage" class="form-select form-select-sm">
                                         <option value="">Tất cả</option>
-                                        @foreach(\App\Models\ProductVariant::distinct()->pluck('storage')->filter()->sort() as $s)
+                                        @foreach(\App\Models\Product::distinct()->pluck('storage')->filter()->sort() as $s)
                                         <option value="{{ $s }}" @selected(request('storage')===$s)>{{ $s }}</option>
                                         @endforeach
                                     </select>
@@ -251,7 +251,18 @@
 .search-wrap button:hover { background: #0d47a1; }
 
 /* Account dropdown */
-.account-dropdown { position: relative; }
+.account-dropdown{
+    position: relative;
+}
+
+.account-dropdown::after{
+    content:"";
+    position:absolute;
+    left:0;
+    right:0;
+    top:100%;
+    height:12px;
+}
 .account-btn {
     background: none;
     border: 1.5px solid #1565c0;
