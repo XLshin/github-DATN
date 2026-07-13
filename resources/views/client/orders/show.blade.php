@@ -10,7 +10,7 @@
 @section('content')
     <div class="row g-4">
         <div class="col-lg-8">
-            
+
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body">
                     @if($order->fulfillment_status === 'pending')
@@ -26,7 +26,7 @@
         </div>
     @endif
                     <h5 class="mb-3"><i class="bi bi-truck me-2"></i>Thông Tin Vận Chuyển</h5>
-                    
+
                     @php
                         // Định nghĩa màu sắc khung theo trạng thái để tăng tính trực quan cho hộp thông báo hiện tại
                         $borderClass = match($order->fulfillment_status) {
@@ -58,8 +58,8 @@
                             @case('shipping')
                                 <h6 class="text-warning fw-bold mb-1">🚚 Đơn hàng đang được giao đến bạn</h6>
                                 <p class="text-dark small mb-0">
-                                    Đơn hàng đã được bàn giao cho bưu tá vận chuyển lúc <strong>{{ $order->handed_over_at ? $order->handed_over_at->format('H:i d/m/Y') : '-' }}</strong>. 
-                                    Hiện tại, đơn hàng đang trên đường di chuyển và <strong>dự kiến sẽ giao tới bạn trong vòng một vài giờ tới hoặc trong ngày hôm nay</strong>. 
+                                    Đơn hàng đã được bàn giao cho bưu tá vận chuyển lúc <strong>{{ $order->handed_over_at ? $order->handed_over_at->format('H:i d/m/Y') : '-' }}</strong>.
+                                    Hiện tại, đơn hàng đang trên đường di chuyển và <strong>dự kiến sẽ giao tới bạn trong vòng một vài giờ tới hoặc trong ngày hôm nay</strong>.
                                     Bạn hãy chú ý điện thoại để shipper tiện liên hệ nhé!
                                 </p>
                                 @break
@@ -69,7 +69,7 @@
                                 <p class="text-dark small mb-1">
                                     Shipper báo cáo không thể giao kiện hàng này đến bạn. Nguyên nhân thường gặp do không liên hệ được số điện thoại hoặc sai lệch thông tin địa chỉ giao nhận.
                                 </p>
-                                
+
                                 @php
                                     $failedProof = $order->proofs->where('type', 'failed_delivery')->last();
                                 @endphp
@@ -78,7 +78,7 @@
                                         <strong>Chi tiết từ shipper:</strong> {{ $failedProof->note }}
                                     </div>
                                 @endif
-                                
+
                                 <p class="text-muted small mb-0">💡 <em>Đừng lo lắng! Nhân viên chăm sóc khách hàng sẽ kiểm tra lại đơn và lên lịch <strong>giao lại</strong> cho bạn sớm nhất có thể.</em></p>
                                 @break
 
@@ -134,9 +134,9 @@
 
                     <div class="mt-4 pt-2">
                         <h6 class="fw-bold text-dark mb-3"><i class="bi bi-clock-history me-2"></i>Lịch sử hành trình đơn hàng</h6>
-                        
+
                         <div class="position-relative ps-3 ms-2 border-start border-2 border-primary-subtle" style="list-style: none;">
-                            
+
                             <div class="position-relative mb-3">
                                 <span class="position-absolute bg-success rounded-circle" style="width: 12px; height: 12px; left: -22px; top: 6px;"></span>
                                 <div class="fw-bold small text-success">🛍️ Đặt hàng thành công</div>
@@ -263,7 +263,13 @@
                         <tbody>
                             @foreach ($order->items as $item)
                                 <tr>
-                                    <td>{{ $item->product->name ?? 'Sản phẩm' }}</td>
+                                    <td>
+                                        @if($item->product)
+                                            <a href="{{ route('products.show', $item->product) }}?hide_reviews=1" class="text-decoration-none text-dark">{{ $item->product->name }}</a>
+                                        @else
+                                            Sản phẩm
+                                        @endif
+                                    </td>
                                     <td>
                                         @if($item->variant)
 
@@ -283,31 +289,7 @@
 
                                             </div>
 
-                                            @endif
-
-                                            <!-- @if($item->imeis->count())
-
-                                                <div class="mt-2">
-
-                                                <div class="fw-semibold">
-
-                                                IMEI
-
-                                                </div>
-
-                                                @foreach($item->imeis as $imei)
-
-                                                <div class="small text-success">
-
-                                                {{ $imei->imei }}
-
-                                                </div>
-
-                                                @endforeach
-
-                                                </div>
-
-                                                @endif -->
+                                        @endif
                                     </td>
                                     <td>
                                         @php
@@ -317,18 +299,67 @@
                                             ?? $item->product?->image_path;
 
                                         @endphp
-                                            @if($image)
+                                        @if($image)
 
-                                                <img
-                                                    src="{{ asset('storage/'.$image) }}"
-                                                    width="80"
-                                                    class="rounded border me-3">
+                                            <img
+                                                src="{{ asset('storage/'.$image) }}"
+                                                width="80"
+                                                class="rounded border me-3">
 
-                                                @endif
+                                        @endif
                                     </td>
                                     <td class="text-end">{{ $item->quantity }}</td>
                                     <td class="text-end">{{ number_format($item->total, 0, ',', '.') }} đ</td>
                                 </tr>
+
+                                @if($order->fulfillment_status === 'completed')
+                                    @auth
+                                        @if($item->product)
+                                            @php
+                                                $hasReviewed = \App\Models\Review::where('product_id', $item->product->id)
+                                                    ->where('user_id', auth()->id())
+                                                    ->where('status', 1)
+                                                    ->exists();
+                                            @endphp
+                                            @if(! $hasReviewed)
+                                                <tr>
+                                                    <td colspan="5">
+                                                        <form action="{{ route('reviews.store', $item->product) }}" method="POST" class="mt-2" enctype="multipart/form-data">
+                                                            @csrf
+                                                            <div class="row g-2 align-items-end">
+                                                                <div class="col-auto">
+                                                                    <label class="form-label small mb-0">Đánh giá</label>
+                                                                    <select name="rating" class="form-select form-select-sm">
+                                                                        @for($r = 5; $r >= 1; $r--)
+                                                                            <option value="{{ $r }}">{{ $r }} ★</option>
+                                                                        @endfor
+                                                                    </select>
+                                                                </div>
+                                                                <div class="col">
+                                                                    <label class="form-label small mb-0">Nhận xét</label>
+                                                                    <input name="comment" class="form-control form-control-sm" placeholder="Viết nhận xét về sản phẩm (tùy chọn)">
+                                                                </div>
+                                                                <div class="col-12">
+                                                                    <label class="form-label small mb-0">Ảnh/Video (tùy chọn)</label>
+                                                                    <input type="file" name="attachments[]" multiple accept="image/*,video/*" class="form-control form-control-sm">
+                                                                </div>
+                                                                <div class="col-auto">
+                                                                    <button class="btn btn-sm btn-outline-primary">Gửi</button>
+                                                                </div>
+                                                            </div>
+                                                        </form>
+                                                    </td>
+                                                </tr>
+                                            @else
+                                                    <tr>
+                                                        <td colspan="5"><div class="small text-muted">Bạn đã đánh giá sản phẩm này.</div></td>
+                                                    </tr>
+                                                @endif
+
+
+                                        @endif
+                                    @endauth
+                                @endif
                             @endforeach
                         </tbody>
                     </table>
