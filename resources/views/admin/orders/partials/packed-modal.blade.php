@@ -49,8 +49,8 @@
                             @if($item->variant)
                                 {{ $item->variant->color ?? '-' }}
 
-                                @if(!empty($item->variant->storage))
-                                    - {{ $item->variant->storage }}
+                                @if(!empty($item->product?->storage))
+                                    - {{ $item->product->storage }}
                                 @endif
                             @else
                                 -

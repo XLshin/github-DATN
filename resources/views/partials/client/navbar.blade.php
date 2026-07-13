@@ -123,7 +123,7 @@
                                 <span class="cart-badge" id="cart-count">0</span>
                             </a>
                         @else
-                            <a href="{{ route('admin.dashboard') }}" class="cart-btn">
+                            <a href="{{ route('cart.index') }}" class="cart-btn">
                                 <i class="lni lni-cart"></i>
                                 <span class="cart-text">Giỏ hàng</span>
                             </a>
@@ -237,7 +237,18 @@
 .search-wrap button:hover { background: #0d47a1; }
 
 /* Account dropdown */
-.account-dropdown { position: relative; }
+.account-dropdown{
+    position: relative;
+}
+
+.account-dropdown::after{
+    content:"";
+    position:absolute;
+    left:0;
+    right:0;
+    top:100%;
+    height:12px;
+}
 .account-btn {
     background: none;
     border: 1.5px solid #1565c0;

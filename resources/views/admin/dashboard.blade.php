@@ -118,7 +118,7 @@
         const topRevenueLabels = @json($topRevenueProducts->pluck('name'));
         const topRevenueData = @json($topRevenueProducts->pluck('revenue')->map(fn($value) => round($value, 0)));
 
-        const lowStockLabels = @json($lowStockVariants->map(fn($variant) => ($variant->product?->name ?? 'Sản phẩm') . ' - ' . $variant->color . ' / ' . $variant->storage));
+        const lowStockLabels = @json($lowStockVariants->map(fn($variant) => ($variant->product?->name ?? 'Sản phẩm') . ' - ' . $variant->color . ($variant->product?->storage ? ' / ' . $variant->product->storage : '')));
         const lowStockData = @json($lowStockVariants->pluck('stock_quantity'));
 
         const topRevenueCtx = document.getElementById('topRevenueChart');

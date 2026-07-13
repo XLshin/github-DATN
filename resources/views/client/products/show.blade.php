@@ -586,7 +586,7 @@
                             </div>
 
                             <button
-                                type="button"
+                                type="button"   
                                 id="outOfStockButton"
                                 @class(['btn btn-secondary btn-lg w-100', 'd-none' => ($selectedVariantData['in_stock'] ?? false)])
                                 disabled>

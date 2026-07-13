@@ -217,10 +217,10 @@
                         @if($item->variant)
                             <strong>{{ $item->variant->color ?? '-' }}</strong>
 
-                            @if(!empty($item->variant->storage))
+                            @if(!empty($item->product?->storage))
                                 <br>
                                 <span class="small">
-                                    {{ $item->variant->storage }}
+                                    {{ $item->product->storage }}
                                 </span>
                             @endif
                         @else

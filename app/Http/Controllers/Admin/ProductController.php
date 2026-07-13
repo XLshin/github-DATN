@@ -91,7 +91,6 @@ class ProductController extends Controller
             'variants'     => 'required|array|min:1',
             'variants.*.color'   => 'required|string|max:100',
             'variants.*.stock_quantity'   => 'nullable|integer|min:0',
-            'storage' => 'nullable|string|max:255',
             'price' => 'required|numeric|min:0',
             'variants.*.additional_price' => 'nullable|numeric|min:0',
             'variants.*.imeis'   => 'nullable|string',
@@ -103,6 +102,20 @@ class ProductController extends Controller
         if (!$requiresStorage) {
             $validated['storage'] = null;
         }
+
+        if (
+            $this->productHasInventory($product)
+            && (
+                (int) $validated['product_group_id'] !== (int) $product->product_group_id
+                || trim((string) $validated['storage']) !== trim((string) $product->storage)
+                || trim((string) $validated['name']) !== trim((string) $product->name)
+            )
+        ) {
+            return back()
+                ->withErrors(['name' => 'Không thể đổi tên, dung lượng hoặc dòng sản phẩm vì phiên bản đã có IMEI hoặc tồn kho.'])
+                ->withInput();
+        }
+
         $validated['category_id'] = $productGroup->category_id;
         $validated['brand_id'] = $productGroup->brand_id;
         $validated['product_type'] = $productGroup->product_type;
@@ -366,6 +379,10 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
+        if ($this->productHasInventory($product)) {
+            return back()->with('error', 'Không thể xóa phiên bản đã có IMEI hoặc tồn kho.');
+        }
+
         if ($product->thumbnail) {
             Storage::disk('public')->delete($product->thumbnail);
         }
@@ -408,6 +425,8 @@ class ProductController extends Controller
 
     public function updateVariant(Request $request, ProductVariant $variant)
     {
+        $variant->load('product');
+
         $validated = $request->validate([
             'color'            => 'required|string|max:100',
             'stock_quantity'   => 'nullable|integer|min:0',
@@ -419,6 +438,15 @@ class ProductController extends Controller
 
         $validated['status']           = $request->boolean('status', false);
         $validated['additional_price'] = $validated['additional_price'] ?? 0;
+
+        if (
+            $this->variantHasInventory($variant)
+            && trim((string) $variant->color) !== trim((string) $validated['color'])
+        ) {
+            return back()
+                ->withErrors(['color' => 'Không thể đổi màu vì biến thể đã có IMEI hoặc tồn kho.'])
+                ->withInput();
+        }
 
         if ($request->hasFile('images')) {
             if ($variant->image_path) {
@@ -458,8 +486,8 @@ class ProductController extends Controller
             }
             // Cập nhật stock_quantity theo số IMEI available
             $validated['stock_quantity'] = $variant->imeis()->where('status', 'available')->count();
-        } else {
-            $validated['stock_quantity'] = $validated['stock_quantity'] ?? 0;
+        } elseif (!$request->has('stock_quantity')) {
+            unset($validated['stock_quantity']);
         }
 
         $variant->update($validated);
@@ -470,6 +498,10 @@ class ProductController extends Controller
 
     public function destroyVariant(ProductVariant $variant)
     {
+        if ($this->variantHasInventory($variant)) {
+            return back()->with('error', 'Không thể xóa biến thể đã có IMEI hoặc tồn kho.');
+        }
+
         if ($variant->image_path) {
             Storage::disk('public')->delete($variant->image_path);
         }
@@ -483,6 +515,21 @@ class ProductController extends Controller
 
         return redirect()->route('admin.products.index')
             ->with('success', 'Đã xóa biến thể.');
+    }
+
+    private function variantHasInventory(ProductVariant $variant): bool
+    {
+        return $variant->imeis()->exists() || (int) $variant->stock_quantity > 0;
+    }
+
+    private function productHasInventory(Product $product): bool
+    {
+        return $product->variants()
+            ->where(function ($query) {
+                $query->where('stock_quantity', '>', 0)
+                    ->orWhereHas('imeis');
+            })
+            ->exists();
     }
 
     public function ajaxStore(Request $request)
