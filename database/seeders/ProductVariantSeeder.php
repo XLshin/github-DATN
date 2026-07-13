@@ -62,7 +62,6 @@ class ProductVariantSeeder extends Seeder
                     [
                         'product_id' => $product->id,
                         'color' => $variant['color'],
-                        'storage' => $variant['storage'],
                     ],
                     [
                         'stock_quantity' => $variant['stock_quantity'],
