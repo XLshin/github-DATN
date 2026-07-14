@@ -107,7 +107,7 @@ class ProductImageSeeder extends Seeder
             $svg = $this->makeVariantSvg(
                 $product->name ?? 'Sản phẩm',
                 $variant->color,
-                $variant->storage,
+                $product->storage ?? '',
                 $colorHex,
             );
 
@@ -116,7 +116,7 @@ class ProductImageSeeder extends Seeder
             DB::table('product_variants')->where('id', $variant->id)
                 ->update(['image_path' => $filename]);
 
-            $this->command->line("  ✓ Variant #{$variant->id}: {$variant->color} / {$variant->storage}");
+            $this->command->line("  ✓ Variant #{$variant->id}: {$variant->color} / {$product->storage}");
         }
 
         $this->command->newLine();
