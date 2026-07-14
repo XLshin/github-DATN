@@ -199,7 +199,7 @@
                                         <span class="payment-dot"></span>
                                     </label>
 
-                                    <input type="radio" class="payment-radio btn-check" name="payment_method" id="pm_momo" value="momo" @checked(old('payment_method') === 'momo')>
+                                    {{-- <input type="radio" class="payment-radio btn-check" name="payment_method" id="pm_momo" value="momo" @checked(old('payment_method') === 'momo')>
                                     <label class="payment-card" for="pm_momo">
                                         <span class="payment-icon payment-brand" style="background:#ae2070">M</span>
                                         <span class="flex-grow-1">
@@ -227,7 +227,7 @@
                                             <span class="small text-muted">Visa, Mastercard, JCB</span>
                                         </span>
                                         <span class="payment-dot"></span>
-                                    </label>
+                                    </label> --}}
                                 </div>
                             </div>
                         </section>

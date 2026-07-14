@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Imei extends Model
 {
@@ -72,5 +73,11 @@ class Imei extends Model
             'status' => 'sold',
             'reserved_at' => null,
         ]);
+    }
+
+    public function warranties(): HasMany
+    {
+        return $this->hasMany(Warranty::class, 'imei_id')
+            ->orderByDesc('created_at');
     }
 }
