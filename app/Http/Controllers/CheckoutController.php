@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\User;
+use App\Services\BankTransactionLogService;
 use App\Services\CartService;
 use App\Services\CheckoutService;
 use App\Models\Coupon;
@@ -18,6 +19,7 @@ class CheckoutController extends Controller
     public function __construct(
         private readonly CartService $cartService,
         private readonly CheckoutService $checkoutService,
+        private readonly BankTransactionLogService $logService,
     ) {}
 
     public function show(Request $request)
@@ -47,7 +49,13 @@ class CheckoutController extends Controller
         // Load danh sách voucher được cấp cho user này
         $availableCoupons = $user->coupons()->valid()->get();
 
-        return view('client.checkout.index', compact('items', 'total', 'availableCoupons', 'selectedIds'));
+        // Địa chỉ đã lưu của khách, mặc định lên đầu để chọn sẵn
+        $addresses = $user->addresses()
+            ->orderByDesc('is_default')
+            ->latest()
+            ->get();
+
+        return view('client.checkout.index', compact('items', 'total', 'availableCoupons', 'selectedIds', 'addresses'));
     }
 
     /**
@@ -85,7 +93,7 @@ class CheckoutController extends Controller
             'buyer_type' => ['required', 'string', 'in:self,proxy'],
             'buyer_name' => ['required_if:buyer_type,proxy', 'nullable', 'string', 'max:255'],
             'buyer_phone' => ['required_if:buyer_type,proxy', 'nullable', 'string', 'max:20'],
-            'payment_method' => ['required', 'string', 'in:cod,card,bank_transfer,momo,vnpay'],
+            'payment_method' => ['required', 'string', 'in:cod,card,bank_transfer,momo,vnpay,wallet'],
             'coupon_id' => ['nullable', 'integer', 'exists:coupons,id'],
             'coupon_code' => ['nullable', 'string', 'max:50'],
             'points_to_use' => ['nullable', 'integer', 'min:0'],
@@ -137,6 +145,8 @@ class CheckoutController extends Controller
         return match ($validated['payment_method']) {
             'cod'           => redirect()->route('checkout.success', $order)
                 ->with('success', 'Đặt hàng thành công! Thanh toán khi nhận hàng.'),
+            'wallet'        => redirect()->route('checkout.success', $order)
+                ->with('success', 'Đặt hàng thành công! Đã thanh toán bằng số dư ví.'),
             'bank_transfer' => redirect()->route('checkout.payment', $order),
             'momo'          => redirect()->route('checkout.payment', $order),
             'vnpay'         => redirect()->route('checkout.payment', $order),
@@ -199,7 +209,9 @@ class CheckoutController extends Controller
     }
 
     /**
-     * Xác nhận thanh toán (momo / vnpay / card / bank_transfer).
+     * Khách xác nhận đã thanh toán (momo / vnpay / card / bank_transfer). Áp dụng cho MỌI phương
+     * thức: bắt buộc ảnh bằng chứng, KHÔNG tự động cộng/paid ngay — luôn chờ admin đối soát và
+     * xác nhận đúng số tiền trước khi đơn được coi là đã thanh toán (đồng bộ với luồng nạp ví).
      */
     public function confirmPayment(Request $request, Order $order)
     {
@@ -222,25 +234,35 @@ class CheckoutController extends Controller
 
         $method = $payment->payment_method;
 
-        if ($method === 'bank_transfer') {
-            // Khách xác nhận đã chuyển khoản: ghi nhận, chờ nhân viên đối soát thủ công
-            $payment->update([
-                'payment_status' => 'pending',
-                'payer_name'     => $order->customer_name,
-                'payer_note'     => 'Khách báo đã chuyển khoản lúc ' . now()->format('H:i d/m/Y') . ' — chờ đối soát.',
-            ]);
-            return redirect()->route('checkout.success', $order)
-                ->with('info', 'Chúng tôi đã ghi nhận. Đơn sẽ được xác nhận sau khi xác minh chuyển khoản (thường trong 30 phút).');
-        }
+        $rules = [
+            'proof_image' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:4096'],
+        ];
+        $messages = [
+            'proof_image.required' => 'Vui lòng tải lên ảnh chụp màn hình xác nhận giao dịch.',
+            'proof_image.image' => 'File tải lên phải là hình ảnh.',
+        ];
+
+        $payerName = $order->customer_name;
+        $payerNote = match ($method) {
+            'bank_transfer' => 'Khách báo đã chuyển khoản lúc ' . now()->format('H:i d/m/Y') . ' — chờ đối soát.',
+            'momo' => 'Khách báo đã thanh toán qua Ví MoMo — chờ đối soát.',
+            'vnpay' => 'Khách báo đã thanh toán qua VNPAY — chờ đối soát.',
+            'card' => 'Khách báo đã thanh toán bằng thẻ — chờ đối soát.',
+            default => 'Khách báo đã thanh toán — chờ đối soát.',
+        };
 
         if ($method === 'card') {
-            $validated = $request->validate([
+            $rules = array_merge($rules, [
                 'card_number' => ['required', 'string'],
                 'card_expiry' => ['required', 'string', 'regex:/^\d{2}\/\d{2}$/'],
                 'card_cvv'    => ['required', 'string', 'min:3', 'max:4'],
                 'card_name'   => ['required', 'string', 'max:255'],
             ]);
+        }
 
+        $validated = $request->validate($rules, $messages);
+
+        if ($method === 'card') {
             $digits = preg_replace('/\D/', '', $validated['card_number']);
 
             if (! $this->isValidCardNumber($digits)) {
@@ -267,33 +289,23 @@ class CheckoutController extends Controller
                 ]);
             }
 
-            $payment->update([
-                'payment_status'   => 'paid',
-                'transaction_code' => 'CARD' . strtoupper(Str::random(10)),
-                'payer_name'       => Str::upper($validated['card_name']),
-                'payer_note'       => '**** **** **** ' . substr($digits, -4),
-                'paid_at'          => now(),
-            ]);
-            $order->update(['status' => 'confirmed']);
-
-            return redirect()->route('checkout.success', $order)
-                ->with('success', 'Thanh toán thành công!');
+            $payerName = Str::upper($validated['card_name']);
+            $payerNote = 'Thẻ **** **** **** ' . substr($digits, -4) . ' — chờ đối soát.';
         }
 
-        // Momo / VNPay: xác nhận từ trang giả lập ví/cổng thanh toán → đơn confirmed
+        $path = $request->file('proof_image')->store('order-payment-proofs', 'public');
+
         $payment->update([
-            'payment_status'   => 'paid',
-            'transaction_code' => strtoupper($method) . strtoupper(Str::random(10)),
-            'payer_name'       => $order->customer_name,
-            'payer_note'       => $method === 'momo'
-                ? 'Ví MoMo liên kết SĐT ' . $order->customer_phone
-                : 'Tài khoản ngân hàng liên kết VNPAY',
-            'paid_at'          => now(),
+            'payment_status' => 'pending',
+            'payer_name'     => $payerName,
+            'payer_note'     => $payerNote,
+            'proof_image'    => $path,
         ]);
-        $order->update(['status' => 'confirmed']);
+
+        $this->logService->logOrderPayment($payment->fresh(), 'pending', null, 'Khách gửi bằng chứng thanh toán, chờ đối soát.');
 
         return redirect()->route('checkout.success', $order)
-            ->with('success', 'Thanh toán thành công!');
+            ->with('info', 'Chúng tôi đã ghi nhận yêu cầu thanh toán. Đơn sẽ được xác nhận sau khi đối soát (thường trong 30 phút).');
     }
 
     /**
