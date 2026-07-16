@@ -7,14 +7,28 @@ use App\Models\Imei;
 use App\Models\InventoryTransaction;
 use App\Models\Order;
 use App\Models\OrderProof;
+use App\Notifications\PaymentFailedNotification;
+use App\Services\BankTransactionLogService;
+use App\Services\CheckoutService;
+use App\Services\RefundService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
+    /** Phương thức trả trước — nếu thanh toán thất bại thì đơn chưa có tiền, phải tự động hủy. COD không áp dụng vì thu tiền khi giao hàng. */
+    private const PREPAID_METHODS = ['card', 'bank_transfer', 'momo', 'vnpay'];
+
+    public function __construct(
+        private readonly RefundService $refundService,
+        private readonly BankTransactionLogService $logService,
+        private readonly CheckoutService $checkoutService,
+    ) {}
+
     public function index(Request $request)
     {
         $query = Order::with([
@@ -105,10 +119,22 @@ class OrderController extends Controller
         return back()->with('success', 'Đã cập nhật thông tin người nhận.');
     }
 
+    /**
+     * Xác nhận đơn hàng để chuyển sang chờ đóng gói. Với phương thức trả trước, đơn chỉ được
+     * xác nhận sau khi thanh toán đã được admin đối soát và duyệt (payment_status = paid) —
+     * không cho phép đóng gói/gửi đi một đơn trả trước mà tiền chưa được xác nhận.
+     */
     public function confirm(Order $order)
     {
         if ($order->fulfillment_status !== 'pending') {
             return back()->with('error', 'Chỉ đơn hàng chờ xử lý mới được xác nhận.');
+        }
+
+        $payment = $order->payment;
+        $isPrepaid = $payment && in_array($payment->payment_method, self::PREPAID_METHODS, true);
+
+        if ($isPrepaid && $payment->payment_status !== 'paid') {
+            return back()->with('error', 'Đơn hàng thanh toán trả trước nhưng chưa được xác nhận đã nhận tiền. Vui lòng đối soát và xác nhận thanh toán trước khi xác nhận đơn.');
         }
 
         $order->update([
@@ -120,20 +146,113 @@ class OrderController extends Controller
         return back()->with('success', 'Đã xác nhận đơn hàng. Đơn đã chuyển sang chờ đóng gói.');
     }
 
-    public function confirmBankTransfer(Order $order)
+    /**
+     * Admin xác nhận đã nhận được tiền thanh toán đơn hàng (mọi phương thức: bank_transfer,
+     * momo, vnpay, card) — bắt buộc nhập đúng số tiền thực nhận để tránh duyệt nhầm, đơn chỉ
+     * chuyển sang "processing" sau khi admin xác nhận, không tự động theo lời khai của khách.
+     */
+    public function confirmPayment(Request $request, Order $order)
     {
         $payment = $order->payment;
 
-        if (! $payment || $payment->payment_method !== 'bank_transfer' || $payment->payment_status === 'paid') {
-            return back()->with('error', 'Đơn hàng không ở trạng thái chờ xác nhận chuyển khoản.');
+        if (! $payment || $payment->payment_status !== 'pending') {
+            return back()->with('error', 'Đơn hàng không ở trạng thái chờ xác nhận thanh toán.');
         }
 
-        $payment->update([
-            'payment_status' => 'paid',
-            'paid_at'        => now(),
+        $validated = $request->validate([
+            'confirmed_amount' => ['required', 'numeric', 'min:0'],
+            'admin_note' => ['nullable', 'string', 'max:500'],
+        ], [
+            'confirmed_amount.required' => 'Vui lòng nhập số tiền thực nhận để xác nhận.',
         ]);
 
-        return back()->with('success', 'Đã xác nhận nhận được tiền chuyển khoản.');
+        if (abs((float) $validated['confirmed_amount'] - (float) $payment->amount) > 0.01) {
+            return back()->with('error', 'Số tiền xác nhận (' . number_format((float) $validated['confirmed_amount'], 0, ',', '.')
+                . ' đ) không khớp với số tiền đơn hàng (' . number_format((float) $payment->amount, 0, ',', '.')
+                . ' đ). Vui lòng kiểm tra lại hoặc từ chối yêu cầu này.');
+        }
+
+        DB::transaction(function () use ($payment, $order, $request, $validated) {
+            $payment->update([
+                'payment_status'   => 'paid',
+                'transaction_code' => $payment->transaction_code ?? (strtoupper($payment->payment_method) . strtoupper(Str::random(10))),
+                'paid_at'          => now(),
+                'confirmed_by'     => $request->user()->id,
+                'admin_note'       => $validated['admin_note'] ?? null,
+            ]);
+
+            $order->update(['status' => 'processing']);
+
+            $this->logService->logOrderPayment($payment->fresh(), 'paid', $request->user(), $validated['admin_note'] ?? null);
+        });
+
+        return back()->with('success', 'Đã xác nhận thanh toán và chuyển đơn sang xử lý.');
+    }
+
+    /**
+     * Admin từ chối yêu cầu thanh toán (không nhận được tiền / sai số tiền / sai nội dung...).
+     */
+    /**
+     * Admin từ chối yêu cầu thanh toán (không nhận được tiền / sai số tiền / sai nội dung...).
+     * Với các phương thức trả trước (chuyển khoản/thẻ/MoMo/VNPAY), đơn coi như CHƯA thanh toán
+     * nên phải tự động hủy ngay — không cho phép tiếp tục đóng gói/giao hàng một đơn chưa có tiền.
+     * Khách hàng được thông báo qua email để kiểm tra lại giao dịch ngân hàng của mình.
+     */
+    public function rejectPayment(Request $request, Order $order)
+    {
+        $payment = $order->payment;
+
+        if (! $payment || $payment->payment_status !== 'pending') {
+            return back()->with('error', 'Đơn hàng không ở trạng thái chờ xác nhận thanh toán.');
+        }
+
+        $validated = $request->validate([
+            'reject_reason' => ['required', 'string', 'max:500'],
+        ], [
+            'reject_reason.required' => 'Vui lòng nhập lý do từ chối.',
+        ]);
+
+        $isPrepaid = in_array($payment->payment_method, self::PREPAID_METHODS, true);
+
+        DB::transaction(function () use ($payment, $order, $request, $validated, $isPrepaid) {
+            $payment->update([
+                'payment_status' => 'failed',
+                'rejected_by'    => $request->user()->id,
+                'reject_reason'  => $validated['reject_reason'],
+            ]);
+
+            $this->logService->logOrderPayment($payment->fresh(), 'failed', $request->user(), 'Từ chối: ' . $validated['reject_reason']);
+
+            if ($isPrepaid && ! in_array($order->fulfillment_status, ['completed', 'cancelled'], true)) {
+                $this->checkoutService->restoreInventoryForCancelledOrder($order);
+
+                $order->update([
+                    'status' => 'cancelled',
+                    'fulfillment_status' => 'cancelled',
+                    'cancelled_at' => now(),
+                    'cancel_reason' => 'Giao dịch chuyển tiền đã thất bại. Vui lòng kiểm tra lại giao dịch ngân hàng của bạn.',
+                    'cancelled_by' => 'admin',
+                ]);
+
+                if ($order->shipment) {
+                    $order->shipment->update([
+                        'shipping_status' => 'failed',
+                        'status' => 'cancelled',
+                    ]);
+                }
+
+                if ($order->user) {
+                    $order->user->notify(new PaymentFailedNotification($order));
+                }
+            }
+        });
+
+        return back()->with(
+            'success',
+            $isPrepaid
+                ? 'Đã từ chối thanh toán. Đơn hàng chưa có tiền nên đã được tự động hủy và thông báo cho khách hàng.'
+                : 'Đã từ chối yêu cầu thanh toán.'
+        );
     }
 
     public function markPacked(Request $request, Order $order)
@@ -435,15 +554,20 @@ class OrderController extends Controller
         return back()->with('error', 'Không thể hủy đơn hàng đã hoàn thành hoặc đã hủy.');
     }
 
-    DB::transaction(function () use ($order, $request) {
+    $needsRefund = false;
+
+    DB::transaction(function () use ($order, $request, &$needsRefund) {
 
         $order->loadMissing(
             'items.product',
             'items.variant',
             'items.imeis',
             'shipment',
-            'proofs'
+            'proofs',
+            'payment'
         );
+
+        $needsRefund = $order->payment && $order->payment->payment_status === 'paid';
 
         $shouldRestoreInventory = $order->status !== 'returned';
 
@@ -537,11 +661,18 @@ class OrderController extends Controller
 
         }
 
+        if ($needsRefund) {
+            // Admin hủy đơn thay khách: mặc định hoàn ngay vào ví để không phải chờ khách cung cấp thông tin ngân hàng.
+            $this->refundService->request($order, $order->user, 'wallet');
+        }
+
     });
 
     return back()->with(
         'success',
-        'Đã hủy đơn hàng và hoàn lại tồn kho/IMEI.'
+        $needsRefund
+            ? 'Đã hủy đơn hàng, hoàn lại tồn kho/IMEI và hoàn tiền vào ví khách hàng.'
+            : 'Đã hủy đơn hàng và hoàn lại tồn kho/IMEI.'
     );
 }
 
