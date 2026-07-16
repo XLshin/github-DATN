@@ -109,11 +109,19 @@
             const form = e.target;
             if (!form.matches('.add-to-cart-form')) return;
 
+            // Nếu nút được bấm có formaction (ví dụ: "Mua ngay") → submit bình thường, không AJAX
+            const submitter = e.submitter;
+            const targetAction = (submitter && submitter.getAttribute('formaction')) || form.action;
+            if (targetAction !== form.action) {
+                // Đây là nút "Mua ngay" — để browser submit với formaction
+                return;
+            }
+
             e.preventDefault();
 
             const tokenMeta = document.querySelector('meta[name="csrf-token"]');
             const token = tokenMeta ? tokenMeta.getAttribute('content') : null;
-            const submitBtn = form.querySelector('[type="submit"]');
+            const submitBtn = submitter || form.querySelector('[type="submit"]');
             const originalHtml = submitBtn ? submitBtn.innerHTML : null;
 
             if (submitBtn) {
