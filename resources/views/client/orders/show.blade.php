@@ -279,13 +279,13 @@
 
                                             Dung lượng:
 
-                                            {{ $item->variant->storage }}
+                                            {{ $item->product->storage ?? "-" }}
 
                                             </div>
 
                                             @endif
 
-                                            @if($item->imeis->count())
+                                            <!-- @if($item->imeis->count())
 
                                                 <div class="mt-2">
 
@@ -307,7 +307,7 @@
 
                                                 </div>
 
-                                                @endif
+                                                @endif -->
                                     </td>
                                     <td>
                                         @php

@@ -159,7 +159,7 @@
                                 @if($item->variant)
                                     <small class="d-block mb-1">
                                         <span class="badge bg-light text-dark border border-secondary-subtle">
-                                            {{ $item->variant->color }} - {{ $item->variant->storage }}
+                                            {{ $item->variant->color }} - {{ $item->product->storage }}
                                         </span>
                                     </small>
                                 @endif
