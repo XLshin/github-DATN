@@ -26,7 +26,7 @@
                 <span class="badge bg-light text-muted border small">{{ $product->brand?->name }}</span>
                 <span class="badge bg-light text-muted border small">{{ $product->category?->name }}</span>
             </div>
-            <h3 class="h6 fw-semibold mb-2">
+            <h3 class="h6 fw-semibold mb-2" style="min-height:2.8em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
                 <a href="{{ route('products.show', $product) }}" class="text-dark text-decoration-none">
                     {{ $product->name }}
                 </a>
