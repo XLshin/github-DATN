@@ -570,7 +570,7 @@
                     </div>
 
                     @auth
-                        <form method="POST" action="{{ route('cart.add') }}" class="d-grid gap-2">
+                        <form method="POST" action="{{ route('cart.add') }}" id="productPurchaseForm" class="d-grid gap-2 add-to-cart-form">
                             @csrf
                             <input type="hidden" name="product_id" value="{{ $product->id }}">
                             <input type="hidden" name="variant_id" id="selectedVariantId" value="{{ $selectedVariant?->id }}">
@@ -580,7 +580,7 @@
                                 <button type="submit" class="btn btn-outline-primary cart-icon-button" title="Thêm vào giỏ" aria-label="Thêm vào giỏ">
                                     <i class="lni lni-cart"></i>
                                 </button>
-                                <button type="button" class="btn btn-danger btn-lg">
+                                <button type="button" id="buyNowButton" class="btn btn-danger btn-lg">
                                     Mua ngay
                                 </button>
                             </div>
@@ -965,6 +965,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
         setRating(input ? input.value : 5);
     });
+
+    const buyNowButton = document.getElementById('buyNowButton');
+    const productPurchaseForm = document.getElementById('productPurchaseForm');
+
+    if (buyNowButton && productPurchaseForm) {
+        buyNowButton.addEventListener('click', function () {
+            const originalAction = productPurchaseForm.action;
+            productPurchaseForm.action = @json(route('buy.now'));
+            productPurchaseForm.submit();
+            productPurchaseForm.action = originalAction;
+        });
+    }
 });
 </script>
 @endpush

@@ -93,6 +93,7 @@
                             @if(auth()->user()->role === 'customer')
                             <li><a href="{{ route('dashboard') }}"><i class="lni lni-user me-2"></i>Tài khoản</a></li>
                             <li><a href="{{ route('orders.index') }}"><i class="lni lni-package me-2"></i>Đơn hàng</a></li>
+                            <li><a href="{{ route('wallet.index') }}"><i class="lni lni-wallet me-2"></i>Ví ({{ number_format((float) (auth()->user()->wallet_balance ?? 0), 0, ',', '.') }} đ)</a></li>
                             @else
                             <li><a href="{{ route('admin.dashboard') }}"><i class="lni lni-dashboard me-2"></i>Quản trị</a></li>
                             @endif
@@ -120,7 +121,7 @@
                     <a href="{{ route('cart.index') }}" class="cart-btn">
                         <i class="lni lni-cart"></i>
                         <span class="cart-text">Giỏ hàng</span>
-                        <span class="cart-badge" id="cart-count">0</span>
+                        <span class="cart-badge total-items" id="cart-count">{{ app(\App\Services\CartService::class)->getCartCount(auth()->user()) }}</span>
                     </a>
                     @else
                     <a href="{{ route('admin.dashboard') }}" class="cart-btn">
