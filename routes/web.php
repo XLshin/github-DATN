@@ -25,9 +25,13 @@ use App\Http\Controllers\PointController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\ClientCouponController;
+use App\Http\Controllers\ClientWarrantyController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\CarrierWebhookController;
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 /*
 |--------------------------------------------------------------------------
@@ -48,6 +52,25 @@ Route::middleware('auth')->group(function () {
     Route::post('/cart/update', [CartController::class, 'update'])->name('cart.update');
     Route::post('/cart/remove', [CartController::class, 'remove'])->name('cart.remove');
 });
+
+// DEV helper: quick-login demo user (only in local)
+if (app()->environment('local')) {
+    Route::get('/dev-login-xuanbac', function () {
+        $email = 'xuanbac@example.com';
+        $user = User::firstWhere('email', $email);
+        if (! $user) {
+            $user = User::create([
+                'name' => 'Xuân Bắc',
+                'email' => $email,
+                'password' => bcrypt('password'),
+                'role' => 'customer',
+            ]);
+        }
+        Auth::login($user);
+        request()->session()->regenerate();
+        return redirect()->route('dashboard');
+    });
+}
 
 // Webhook endpoints
 Route::post('/webhook/payment', [WebhookController::class, 'paymentCallback']);
@@ -107,6 +130,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::post('/products/{product}/reviews', [ReviewController::class, 'store'])->name('reviews.store');
+
+    // Client: My vouchers & warranty lookup
+    Route::get('/my-vouchers', [ClientCouponController::class, 'index'])->name('client.vouchers.index');
+
+    Route::get('/warranty', [ClientWarrantyController::class, 'showLookupForm'])->name('warranties.lookup');
+    Route::post('/warranty/lookup', [ClientWarrantyController::class, 'lookup'])->name('warranties.lookup.post');
+    Route::get('/warranty/{warranty}', [ClientWarrantyController::class, 'show'])->name('warranties.show');
 
     Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
     Route::post('/checkout', [CheckoutController::class, 'process'])->name('checkout.process');
@@ -280,6 +310,9 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
             */
             Route::get('warranties/lookup-imei', [WarrantyController::class, 'lookupImei'])
                 ->name('warranties.lookupImei');
+
+            Route::get('warranties/{warranty}/receipt', [App\Http\Controllers\Admin\WarrantyController::class, 'receipt'])->name('warranties.receipt');
+            Route::put('warranties/{warranty}/receipt', [App\Http\Controllers\Admin\WarrantyController::class, 'updateReceipt'])->name('warranties.updateReceipt');
 
             Route::resource('warranties', WarrantyController::class)->except([
                 'destroy',
