@@ -154,7 +154,8 @@ class CartService
     public function getAvailableStock(Product $product, ?ProductVariant $variant): int
     {
         if (! $variant) {
-            return 0;
+            // Không có variant cụ thể → dùng tổng stock của product làm fallback
+            return (int) $product->stock_quantity;
         }
 
         if ($product->product_type === 'imei/serial') {

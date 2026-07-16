@@ -34,13 +34,18 @@ class CartController extends Controller
         $quantity = (int) ($data['quantity'] ?? 1);
         $variantId = $data['variant_id'] ?? null;
 
+        // Auto-pick variant đầu tiên nếu không truyền lên (giống buyNow)
+        if (! $variantId) {
+            $firstVariant = $product->variants()->where('status', 1)->first();
+            $variantId = $firstVariant?->id;
+        }
+
         if ($variantId) {
             $stockError = $this->validateStockForCart($request, $product, (int) $variantId, $quantity);
 
             if ($stockError) {
                 return back()->with('error', $stockError);
             }
-
         }
 
         $item = $this->cartService->addItem(
@@ -86,13 +91,19 @@ class CartController extends Controller
         }
 
         if ($variantId) {
-            $stockError = $this->validateStockForCart($request, $product, $variantId, $quantity);
+            $stockError = $this->validateStockForCartFresh($request, $product, $variantId, $quantity);
 
             if ($stockError) {
                 return back()->with('error', $stockError);
             }
-
         }
+
+        // buyNow: xóa item cũ (nếu có) rồi thêm mới, tránh cộng dồn quantity
+        $cart = $this->cartService->getOrCreateCart($request->user());
+        $cart->items()
+            ->where('product_id', $product->id)
+            ->where('product_variant_id', $variantId)
+            ->delete();
 
         $this->cartService->addItem($request->user(), $product, $quantity, $variantId);
 
@@ -186,6 +197,31 @@ class CartController extends Controller
         $availableStock = $this->cartService->getAvailableStock($product, $variant);
 
         if ($availableStock < $requestedQuantity) {
+            return $availableStock > 0
+                ? "Sản phẩm chỉ còn {$availableStock} sản phẩm trong kho."
+                : 'Sản phẩm hiện đã hết hàng.';
+        }
+
+        return null;
+    }
+
+    /**
+     * Validate stock không tính existing quantity trong cart (dùng cho buyNow vì sẽ replace item).
+     */
+    private function validateStockForCartFresh(Request $request, Product $product, int $variantId, int $quantity): ?string
+    {
+        $variant = ProductVariant::query()
+            ->whereKey($variantId)
+            ->where('product_id', $product->id)
+            ->first();
+
+        if (! $variant) {
+            return 'Biến thể sản phẩm không hợp lệ.';
+        }
+
+        $availableStock = $this->cartService->getAvailableStock($product, $variant);
+
+        if ($availableStock < $quantity) {
             return $availableStock > 0
                 ? "Sản phẩm chỉ còn {$availableStock} sản phẩm trong kho."
                 : 'Sản phẩm hiện đã hết hàng.';
