@@ -618,6 +618,72 @@
 
                 </div>
 
+                @if($order->payment && $order->payment->payment_status === 'paid')
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        Đơn hàng đã thanh toán — chọn phương thức nhận hoàn tiền <span class="text-danger">*</span>
+                    </label>
+
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="refund_method" id="refundWallet" value="wallet" checked>
+                        <label class="form-check-label" for="refundWallet">
+                            Hoàn vào Ví ByteZone <span class="text-success small">(nhận ngay lập tức)</span>
+                        </label>
+                    </div>
+
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="refund_method" id="refundBank" value="bank">
+                        <label class="form-check-label" for="refundBank">
+                            Hoàn qua tài khoản ngân hàng <span class="text-muted small">(xử lý trong tối đa 7 ngày)</span>
+                        </label>
+                    </div>
+
+                    <div id="refundBankFields" class="d-none border rounded p-3 bg-light mt-2">
+                        @if($bankAccounts->isNotEmpty())
+                            <div class="mb-3">
+                                <label class="form-label small">Chọn nhanh tài khoản đã liên kết</label>
+                                <select id="savedBankAccountSelect" class="form-select form-select-sm">
+                                    <option value="">-- Nhập thủ công --</option>
+                                    @foreach($bankAccounts as $account)
+                                        <option value="{{ $account->id }}"
+                                                data-bank-name="{{ $account->bank_name }}"
+                                                data-account-number="{{ $account->account_number }}"
+                                                data-account-holder-name="{{ $account->account_holder_name }}"
+                                                {{ $account->is_default ? 'selected' : '' }}>
+                                            {{ $account->bank_name }} — {{ $account->account_number }} ({{ $account->account_holder_name }})
+                                            {{ $account->is_verified ? '' : ' — chưa xác minh' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
+                        <div class="mb-2">
+                            <label class="form-label small">Ngân hàng</label>
+                            <select name="bank_name" class="form-select form-select-sm">
+                                <option value="">-- Chọn ngân hàng --</option>
+                                @foreach([
+                                    'Vietcombank', 'VietinBank', 'BIDV', 'Agribank', 'Techcombank',
+                                    'MB Bank', 'ACB', 'VPBank', 'Sacombank', 'TPBank',
+                                    'HDBank', 'SHB', 'VIB', 'Eximbank', 'MSB',
+                                    'OCB', 'SeABank', 'SCB', 'Nam A Bank', 'BacA Bank',
+                                    'PVcomBank', 'Vietbank', 'ABBANK', 'LPBank', 'Kienlongbank',
+                                ] as $bankOption)
+                                    <option value="{{ $bankOption }}">{{ $bankOption }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">Số tài khoản</label>
+                            <input type="text" name="bank_account_number" class="form-control form-control-sm">
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label small">Chủ tài khoản</label>
+                            <input type="text" name="bank_account_name" class="form-control form-control-sm">
+                        </div>
+                    </div>
+                </div>
+                @endif
+
             </div>
 
             <div class="modal-footer">
@@ -693,9 +759,90 @@ document.addEventListener('DOMContentLoaded', function () {
 
         });
 
+        const refundBankFields = modal.querySelector('#refundBankFields');
+        const refundRadios = modal.querySelectorAll('input[name="refund_method"]');
+        const bankInputs = refundBankFields ? refundBankFields.querySelectorAll('input, select[name="bank_name"]') : [];
+
+        function toggleRefundBankFields() {
+            const isBank = modal.querySelector('#refundBank')?.checked;
+            refundBankFields?.classList.toggle('d-none', !isBank);
+            bankInputs.forEach(input => input.required = !!isBank);
+        }
+
+        refundRadios.forEach(function (radio) {
+            radio.addEventListener('change', toggleRefundBankFields);
+        });
+
+        toggleRefundBankFields();
+
+        // Chọn nhanh tài khoản ngân hàng đã liên kết -> tự điền 3 ô bên dưới
+        const savedBankSelect = modal.querySelector('#savedBankAccountSelect');
+        const bankNameSelect = modal.querySelector('select[name="bank_name"]');
+        const accountNumberInput = modal.querySelector('input[name="bank_account_number"]');
+        const accountHolderInput = modal.querySelector('input[name="bank_account_name"]');
+
+        function applySavedBankAccount() {
+            const option = savedBankSelect?.selectedOptions[0];
+            if (!option || !option.value) return;
+
+            const bankName = option.dataset.bankName || '';
+
+            if (bankNameSelect) {
+                const hasOption = Array.from(bankNameSelect.options).some(opt => opt.value === bankName);
+                if (!hasOption && bankName) {
+                    const newOpt = document.createElement('option');
+                    newOpt.value = bankName;
+                    newOpt.textContent = bankName;
+                    bankNameSelect.appendChild(newOpt);
+                }
+                bankNameSelect.value = bankName;
+            }
+
+            if (accountNumberInput) accountNumberInput.value = option.dataset.accountNumber || '';
+            if (accountHolderInput) accountHolderInput.value = option.dataset.accountHolderName || '';
+        }
+
+        savedBankSelect?.addEventListener('change', applySavedBankAccount);
+        applySavedBankAccount();
+
     });
 
 });
 
+// Tự động phát hiện thay đổi trạng thái đơn hàng (xác nhận/đóng gói/hủy...) và cập nhật
+// trang mà khách không cần bấm tải lại thủ công.
+(function () {
+    var statusCheckUrl = @json(route('orders.statusCheck', $order->id));
+    var initialState = @json([
+        'status' => $order->status,
+        'fulfillment_status' => $order->fulfillment_status,
+        'payment_status' => $order->payment->payment_status ?? null,
+    ]);
+    var pollIntervalMs = 15000;
+    var reloading = false;
+
+    function poll() {
+        if (reloading) return;
+
+        fetch(statusCheckUrl, { headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var changed = data.status !== initialState.status
+                    || data.fulfillment_status !== initialState.fulfillment_status
+                    || data.payment_status !== initialState.payment_status;
+
+                if (changed) {
+                    reloading = true;
+                    if (typeof window.showToast === 'function') {
+                        window.showToast('Đơn hàng của bạn vừa được cập nhật trạng thái. Đang tải lại...');
+                    }
+                    setTimeout(function () { window.location.reload(); }, 1500);
+                }
+            })
+            .catch(function () {});
+    }
+
+    setInterval(poll, pollIntervalMs);
+})();
 </script>
 @endsection

@@ -44,7 +44,7 @@
     {{-- DANH MỤC --}}
     @if($categories->isNotEmpty())
     <div class="mb-4">
-        <h2 class="h6 fw-bold mb-3">Danh mục sản phẩm</h2>
+        <h2 class="h6 fw-bold bz-section-title mb-3">Danh mục sản phẩm</h2>
         @php $catIcons = ['Điện thoại'=>'📱','Máy tính bảng'=>'💻','Phụ kiện'=>'🎧','Đồng hồ'=>'⌚']; @endphp
         <div class="row g-2">
             @foreach($categories as $cat)
@@ -67,7 +67,7 @@
     <div class="mb-4">
 <div class="d-flex align-items-center justify-content-between mb-3">
             <div class="d-flex align-items-center gap-2">
-                <h2 class="h6 fw-bold mb-0 text-danger">⚡ Flash Sale</h2>
+                <h2 class="h6 fw-bold bz-section-title mb-0 text-danger">⚡ Flash Sale</h2>
                 <span class="badge bg-dark" id="flashCountdown">--:--:--</span>
             </div>
             <a href="#tat-ca-san-pham" class="btn btn-outline-danger btn-sm">Xem tất cả</a>
@@ -84,7 +84,7 @@
     @if($bestSellers->isNotEmpty())
     <div class="mb-4">
         <div class="d-flex align-items-center justify-content-between mb-3">
-            <h2 class="h6 fw-bold mb-0">🔥 Sản phẩm bán chạy</h2>
+            <h2 class="h6 fw-bold bz-section-title mb-0">🔥 Sản phẩm bán chạy</h2>
             <a href="#tat-ca-san-pham" class="btn btn-outline-primary btn-sm">Xem tất cả</a>
         </div>
         <div class="row g-3">
@@ -99,7 +99,7 @@
     @if($newProducts->isNotEmpty())
     <div class="mb-4">
         <div class="d-flex align-items-center justify-content-between mb-3">
-            <h2 class="h6 fw-bold mb-0">✨ Sản phẩm mới</h2>
+            <h2 class="h6 fw-bold bz-section-title mb-0">✨ Sản phẩm mới</h2>
             <a href="#tat-ca-san-pham" class="btn btn-outline-primary btn-sm">Xem tất cả</a>
         </div>
         <div class="row g-3">
@@ -115,7 +115,7 @@
     @if($catProducts->isNotEmpty())
     <div class="mb-4">
         <div class="d-flex align-items-center justify-content-between mb-3">
-            <h2 class="h6 fw-bold mb-0">{{ $catName }}</h2>
+            <h2 class="h6 fw-bold bz-section-title mb-0">{{ $catName }}</h2>
             <a href="#tat-ca-san-pham" class="btn btn-outline-primary btn-sm">Xem thêm</a>
         </div>
         <div class="row g-3">
@@ -130,7 +130,7 @@
     {{-- THƯƠNG HIỆU --}}
     @if($brands->isNotEmpty())
     <div class="mb-4">
-        <h2 class="h6 fw-bold mb-3 text-center">Thương hiệu nổi bật</h2>
+        <h2 class="h6 fw-bold bz-section-title mb-3 text-center">Thương hiệu nổi bật</h2>
         <div class="row g-2 align-items-center justify-content-center">
             @foreach($brands as $brand)
             <div class="col-4 col-md-2">
@@ -156,7 +156,7 @@ onmouseover="this.style.borderColor='#1565c0';this.style.boxShadow='0 2px 8px rg
     {{-- TẤT CẢ SẢN PHẨM --}}
     <div id="tat-ca-san-pham" class="mb-4">
         <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-            <h2 class="h6 fw-bold mb-0">Tất cả sản phẩm
+            <h2 class="h6 fw-bold bz-section-title mb-0">Tất cả sản phẩm
                 @if($allProducts->total())
                 <span class="text-muted fw-normal">({{ $allProducts->total() }})</span>
                 @endif
