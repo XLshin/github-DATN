@@ -29,6 +29,7 @@ class User extends Authenticatable
         'points',
         'membership_level',
         'is_locked',
+        'wallet_balance',
     ];
 
     protected $hidden = [
@@ -44,6 +45,7 @@ class User extends Authenticatable
             'is_locked' => 'boolean',
             'total_spent' => 'decimal:2',
             'points' => 'integer',
+            'wallet_balance' => 'decimal:2',
         ];
     }
 
@@ -108,6 +110,31 @@ class User extends Authenticatable
     public function addresses(): HasMany
     {
         return $this->hasMany(Address::class);
+    }
+
+    public function walletTransactions(): HasMany
+    {
+        return $this->hasMany(WalletTransaction::class);
+    }
+
+    public function walletTopups(): HasMany
+    {
+        return $this->hasMany(WalletTopup::class);
+    }
+
+    public function refundRequests(): HasMany
+    {
+        return $this->hasMany(RefundRequest::class);
+    }
+
+    public function bankAccounts(): HasMany
+    {
+        return $this->hasMany(BankAccount::class);
+    }
+
+    public function walletWithdrawals(): HasMany
+    {
+        return $this->hasMany(WalletWithdrawal::class);
     }
 
     public function warranties(): HasManyThrough

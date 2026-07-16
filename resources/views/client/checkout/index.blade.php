@@ -163,6 +163,9 @@
 
     .pm-card:hover { border-color: #9fc2ff; background: #f8faff; }
 
+    .pm-card--disabled { opacity: .55; cursor: not-allowed; pointer-events: none; }
+    .pm-card--disabled a { pointer-events: auto; }
+
     .pm-icon {
         width: 44px;
         height: 44px;
@@ -504,6 +507,28 @@
                         </div>
 
                         <div class="pm-list" id="payment-methods">
+
+                            @php
+                                $walletBalance = (float) (auth()->user()->wallet_balance ?? 0);
+                                $walletEnough = $walletBalance >= $total;
+                            @endphp
+
+                            {{-- Ví ByteZone --}}
+                            <input type="radio" class="pm-radio btn-check" name="payment_method" id="pm_wallet" value="wallet" {{ $walletEnough ? '' : 'disabled' }}>
+                            <label class="pm-card {{ $walletEnough ? '' : 'pm-card--disabled' }}" for="pm_wallet">
+                                <span class="pm-icon pm-icon--brand" style="background:#0d6efd"><i class="bi bi-wallet2"></i></span>
+                                <span class="pm-text">
+                                    <span class="pm-title">Ví ByteZone</span>
+                                    <span class="pm-subtitle">
+                                        Số dư: {{ number_format($walletBalance, 0, ',', '.') }} đ
+                                        @if(! $walletEnough)
+                                            — không đủ để thanh toán đơn này
+                                        @endif
+                                        · <a href="{{ route('wallet.index') }}" target="_blank" class="link-primary">Nạp thêm</a>
+                                    </span>
+                                </span>
+                                <span class="pm-dot"></span>
+                            </label>
 
                             {{-- COD --}}
                             <input type="radio" class="pm-radio btn-check" name="payment_method" id="pm_cod" value="cod" checked>

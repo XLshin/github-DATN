@@ -283,14 +283,69 @@
                         <div>{{ $order->payment?->paid_at?->format('d/m/Y H:i') ?? '-' }}</div>
                     </div>
 
-                    @if($paymentStatus === 'pending' && $order->payment?->payment_method === 'bank_transfer')
-                        <form action="{{ route('admin.orders.confirmBankTransfer', $order) }}" method="POST"
-                              onsubmit="return confirm('Xác nhận đã nhận được tiền chuyển khoản cho đơn hàng này?');">
-                            @csrf
-                            <button type="submit" class="btn btn-success btn-sm mt-2">
-                                <i class="bi bi-check2-circle me-1"></i>Xác nhận đã nhận tiền
-                            </button>
-                        </form>
+                    @if($order->payment?->proof_image)
+                        <div class="mb-3">
+                            <div class="text-muted small">Ảnh bằng chứng khách gửi</div>
+                            <a href="{{ \Illuminate\Support\Facades\Storage::url($order->payment->proof_image) }}" target="_blank">
+                                <img src="{{ \Illuminate\Support\Facades\Storage::url($order->payment->proof_image) }}"
+                                     alt="Bằng chứng thanh toán" class="img-fluid rounded border mt-1" style="max-height:280px">
+                            </a>
+                        </div>
+                    @endif
+
+                    @if($order->payment?->confirmed_by)
+                        <div class="mb-2">
+                            <div class="text-muted small">Admin xác nhận</div>
+                            <div>{{ $order->payment->confirmedBy->name ?? '-' }}</div>
+                            @if($order->payment->admin_note)
+                                <div class="text-muted small">Ghi chú: {{ $order->payment->admin_note }}</div>
+                            @endif
+                        </div>
+                    @endif
+
+                    @if($order->payment?->rejected_by)
+                        <div class="mb-2">
+                            <div class="text-muted small">Admin từ chối</div>
+                            <div>{{ $order->payment->rejectedBy->name ?? '-' }}</div>
+                            <div class="text-danger small">Lý do: {{ $order->payment->reject_reason }}</div>
+                        </div>
+                    @endif
+
+                    @if($paymentStatus === 'pending')
+                        <div class="border rounded p-3 mt-3 bg-light">
+                            <div class="fw-semibold small mb-2">Đối soát &amp; xác nhận thanh toán</div>
+
+                            <form action="{{ route('admin.orders.confirmPayment', $order) }}" method="POST" class="mb-3"
+                                  onsubmit="return confirm('Xác nhận đã nhận đủ tiền cho đơn hàng này?');">
+                                @csrf
+                                <div class="mb-2">
+                                    <label class="form-label small">Số tiền thực nhận <span class="text-danger">*</span></label>
+                                    <input type="number" name="confirmed_amount" class="form-control form-control-sm" step="1"
+                                           value="{{ (int) ($order->payment->amount ?? 0) }}" required>
+                                    <div class="form-text">Phải khớp đúng số tiền đơn hàng ({{ number_format($order->payment->amount ?? 0, 0, ',', '.') }} đ).</div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">Ghi chú (tùy chọn)</label>
+                                    <textarea name="admin_note" class="form-control form-control-sm" rows="2"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-success btn-sm w-100">
+                                    <i class="bi bi-check2-circle me-1"></i>Xác nhận đã nhận tiền
+                                </button>
+                            </form>
+
+                            <form action="{{ route('admin.orders.rejectPayment', $order) }}" method="POST"
+                                  onsubmit="return confirm('Từ chối yêu cầu thanh toán này?');">
+                                @csrf
+                                <div class="mb-2">
+                                    <label class="form-label small">Lý do từ chối</label>
+                                    <textarea name="reject_reason" class="form-control form-control-sm" rows="2"
+                                              placeholder="VD: Không nhận được tiền, sai số tiền..." required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                                    <i class="bi bi-x-circle me-1"></i>Từ chối
+                                </button>
+                            </form>
+                        </div>
                     @endif
                 </div>
             </div>
@@ -301,15 +356,31 @@
         <div class="card-body">
             <h5 class="mb-3">Thao tác xử lý</h5>
 
+            @php
+                $isPrepaidOrder = $order->payment && in_array($order->payment->payment_method, ['card', 'bank_transfer', 'momo', 'vnpay'], true);
+                $paymentNotConfirmed = $isPrepaidOrder && $order->payment->payment_status !== 'paid';
+            @endphp
+
             <div class="d-flex flex-wrap gap-2">
                 @if($order->fulfillment_status === 'pending')
-                    <form action="{{ route('admin.orders.confirm', $order) }}" method="POST">
-                        @csrf
-
-                        <button type="submit" class="btn btn-primary">
+                    @if($paymentNotConfirmed)
+                        <button type="button" class="btn btn-primary" disabled
+                                title="Đơn trả trước chưa được xác nhận đã nhận tiền — hãy đối soát thanh toán trước.">
                             Xác nhận đơn
                         </button>
-                    </form>
+                        <div class="text-danger small align-self-center">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Chưa thể xác nhận đơn: thanh toán trả trước chưa được duyệt.
+                        </div>
+                    @else
+                        <form action="{{ route('admin.orders.confirm', $order) }}" method="POST">
+                            @csrf
+
+                            <button type="submit" class="btn btn-primary">
+                                Xác nhận đơn
+                            </button>
+                        </form>
+                    @endif
                 @endif
 
                 @if($order->fulfillment_status === 'waiting_pack')

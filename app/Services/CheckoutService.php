@@ -25,6 +25,7 @@ class CheckoutService
     public function __construct(
         private readonly CartService $cartService,
         private readonly PointService $pointService,
+        private readonly WalletService $walletService,
     ) {}
 
     /**
@@ -170,17 +171,36 @@ class CheckoutService
                 ]);
             }
 
+            $isWalletPayment = $data['payment_method'] === 'wallet';
+
+            if ($isWalletPayment) {
+                // Trừ ví ngay lúc đặt hàng; nếu không đủ số dư sẽ ném lỗi và rollback toàn bộ transaction.
+                $this->walletService->debit(
+                    $user,
+                    (float) $order->total_amount,
+                    'payment',
+                    'Thanh toán đơn hàng #' . $order->order_code,
+                    Order::class,
+                    $order->id
+                );
+            }
+
             Payment::query()->create([
                 'order_id'         => $order->id,
                 'payment_method'   => $data['payment_method'],
                 'amount'           => $order->total_amount,
-                'payment_status'   => 'pending',   // Luôn pending, xác nhận sau qua trang thanh toán
-                'transaction_code' => null,
-                'paid_at'          => null,
+                'payment_status'   => $isWalletPayment ? 'paid' : 'pending',
+                'transaction_code' => $isWalletPayment ? ('WALLET' . strtoupper(Str::random(10))) : null,
+                'paid_at'          => $isWalletPayment ? now() : null,
                 'expires_at'       => in_array($data['payment_method'], self::EXPIRING_METHODS, true)
                     ? now()->addMinutes(self::PAYMENT_EXPIRY_MINUTES)
                     : null,
             ]);
+
+            if ($isWalletPayment) {
+                // Thanh toán ví hoàn tất ngay, đơn chuyển sang xử lý giống các cổng online khác sau khi xác nhận.
+                $order->update(['status' => 'processing']);
+            }
 
             if ($pointsToUse > 0) {
                 $this->pointService->deductPoints(
@@ -287,6 +307,14 @@ class CheckoutService
                 'expires_at'       => now()->addMinutes(self::PAYMENT_EXPIRY_MINUTES),
             ]);
         });
+    }
+
+    /**
+     * Hoàn lại tồn kho/IMEI đã tạm giữ cho 1 đơn hàng khi khách/admin hủy đơn.
+     */
+    public function restoreInventoryForCancelledOrder(Order $order): void
+    {
+        $this->restoreInventory($order);
     }
 
     /**
