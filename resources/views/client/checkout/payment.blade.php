@@ -125,8 +125,17 @@
                     <code>{{ $code }}</code> để chúng tôi xác nhận nhanh nhất.
                 </div>
 
-                <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}">
+                <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}" enctype="multipart/form-data">
                     @csrf
+                    @if($errors->any())
+                        <div class="alert alert-danger small text-start">{{ $errors->first() }}</div>
+                    @endif
+                    <div class="text-start mb-3">
+                        <label class="form-label small fw-semibold">
+                            Ảnh chụp màn hình sao kê/biên lai chuyển khoản <span class="text-danger">*</span>
+                        </label>
+                        <input type="file" name="proof_image" class="form-control" accept="image/*" required>
+                    </div>
                     <button class="btn btn-success btn-lg w-100 mt-2">
                         <i class="bi bi-check2-circle me-2"></i>Tôi đã chuyển khoản
                     </button>
@@ -183,15 +192,24 @@
                     Mở app <strong>MoMo</strong> → <strong>Quét mã QR</strong> → Xác nhận thanh toán
                 </div>
 
-                <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}">
+                <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}" enctype="multipart/form-data">
                     @csrf
+                    @if($errors->any())
+                        <div class="alert alert-danger small text-start">{{ $errors->first() }}</div>
+                    @endif
+                    <div class="text-start mb-3">
+                        <label class="form-label small fw-semibold">
+                            Ảnh chụp màn hình xác nhận thanh toán MoMo <span class="text-danger">*</span>
+                        </label>
+                        <input type="file" name="proof_image" class="form-control" accept="image/*" required>
+                    </div>
                     <button class="btn btn-lg w-100 text-white fw-bold"
                             style="background:#AE2070">
                         <i class="bi bi-check-circle me-2"></i>Xác nhận đã thanh toán MoMo
                     </button>
                 </form>
-                <a href="{{ route('cart.index') }}" class="btn btn-link text-muted small mt-2 d-block">
-                    ← Quay lại giỏ hàng
+                <a href="{{ route('checkout.success', $order) }}" class="btn btn-link text-muted small mt-2 d-block">
+                    Xem đơn hàng
                 </a>
             </div>
         </div>
@@ -260,8 +278,17 @@
                     </div>
                 </div>
 
-                <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}">
+                <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}" enctype="multipart/form-data">
                     @csrf
+                    @if($errors->any())
+                        <div class="alert alert-danger small text-start">{{ $errors->first() }}</div>
+                    @endif
+                    <div class="text-start mb-3">
+                        <label class="form-label small fw-semibold">
+                            Ảnh chụp màn hình xác nhận thanh toán VNPAY <span class="text-danger">*</span>
+                        </label>
+                        <input type="file" name="proof_image" class="form-control" accept="image/*" required>
+                    </div>
                     <button class="btn btn-lg w-100 text-white fw-bold" style="background:#005BAA">
                         <i class="bi bi-check-circle me-2"></i>Xác nhận đã thanh toán VNPAY
                     </button>
@@ -324,11 +351,18 @@
                     <code>4111 1111 1111 1111</code>. Thẻ kết thúc bằng <code>0000</code> sẽ mô phỏng bị ngân hàng từ chối.
                 </div>
 
-                <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}">
+                <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}" enctype="multipart/form-data">
                     @csrf
                     @if($errors->any())
                         <div class="alert alert-danger small">{{ $errors->first() }}</div>
                     @endif
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">
+                            Ảnh chụp màn hình xác nhận giao dịch <span class="text-danger">*</span>
+                        </label>
+                        <input type="file" name="proof_image" class="form-control" accept="image/*" required>
+                    </div>
 
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Số thẻ</label>

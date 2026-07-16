@@ -1,9 +1,17 @@
 @extends('layouts.app')
 
-@section('title', 'Đặt hàng thành công')
+@php
+    $isCancelled = $order->status === 'cancelled';
+@endphp
+
+@section('title', $isCancelled ? 'Đơn hàng đã bị hủy' : 'Đặt hàng thành công')
 
 @section('header')
-    <h1 class="h2 mb-1 text-success"><i class="bi bi-check-circle-fill me-2"></i>Đặt hàng thành công</h1>
+    @if($isCancelled)
+        <h1 class="h2 mb-1 text-danger"><i class="bi bi-x-circle-fill me-2"></i>Đơn hàng đã bị hủy</h1>
+    @else
+        <h1 class="h2 mb-1 text-success"><i class="bi bi-check-circle-fill me-2"></i>Đặt hàng thành công</h1>
+    @endif
 @endsection
 
 @section('content')
@@ -20,6 +28,16 @@
         'vnpay'         => 'VNPAY',
     ];
 @endphp
+
+@if($isCancelled)
+    <div class="alert alert-danger">
+        <div class="fw-bold mb-1"><i class="bi bi-exclamation-triangle me-2"></i>Đơn hàng này đã bị hủy</div>
+        <div>{{ $order->cancel_reason ?? 'Không có lý do cụ thể.' }}</div>
+        @if($order->cancelled_at)
+            <div class="text-muted small mt-1">Hủy lúc: {{ $order->cancelled_at->format('H:i d/m/Y') }}</div>
+        @endif
+    </div>
+@endif
 
 {{-- Flash messages --}}
 @if(session('success'))
@@ -57,7 +75,11 @@
             </div>
             <div class="col-md-6">
                 <h6 class="text-muted mb-3">Trạng thái thanh toán</h6>
-                @if($method === 'cod' && !$paid)
+                @if($isCancelled)
+                    <div class="alert alert-secondary mb-2 py-2 small">
+                        <i class="bi bi-slash-circle me-2"></i>Đơn hàng đã hủy — không cần thanh toán.
+                    </div>
+                @elseif($method === 'cod' && !$paid)
                     <div class="alert alert-info mb-2 py-2 small">
                         <i class="bi bi-truck me-2"></i>
                         <strong>COD</strong> — Thanh toán <strong>{{ number_format($order->total_amount,0,',','.') }} đ</strong>
@@ -122,4 +144,35 @@
         </div>
     </div>
 </div>
+
+@if(!$isCancelled)
+<script>
+// Tự động phát hiện nếu đơn hàng bị hủy/đổi trạng thái sau khi trang này đã tải, để khách
+// không tiếp tục thấy "Đặt hàng thành công" khi thực tế đơn đã bị hủy.
+(function () {
+    var statusCheckUrl = @json(route('orders.statusCheck', $order->id));
+    var initialStatus = @json($order->status);
+    var reloading = false;
+
+    function poll() {
+        if (reloading) return;
+
+        fetch(statusCheckUrl, { headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.status !== initialStatus) {
+                    reloading = true;
+                    if (typeof window.showToast === 'function') {
+                        window.showToast('Trạng thái đơn hàng vừa thay đổi. Đang tải lại...');
+                    }
+                    setTimeout(function () { window.location.reload(); }, 1500);
+                }
+            })
+            .catch(function () {});
+    }
+
+    setInterval(poll, 15000);
+})();
+</script>
+@endif
 @endsection

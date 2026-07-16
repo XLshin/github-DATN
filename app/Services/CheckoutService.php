@@ -26,6 +26,7 @@ class CheckoutService
     public function __construct(
         private readonly CartService $cartService,
         private readonly PointService $pointService,
+        private readonly WalletService $walletService,
     ) {}
 
     /**
@@ -68,6 +69,7 @@ class CheckoutService
             }
 
             // 2. Xử lý giảm giá bằng Điểm thưởng (Points)
+            $buyerType = $data['buyer_type'] ?? 'self';
             $pointsToUse = (int) ($data['points_to_use'] ?? 0);
             $pointsDiscount = 0;
 
@@ -83,7 +85,6 @@ class CheckoutService
             }
 
             $totalAmount = max($subtotal - $couponDiscount - $pointsDiscount, 0);
-            $buyerType = $data['buyer_type'] ?? 'self';
 
             // 3. Khởi tạo đơn hàng (Order)
             $order = Order::query()->create([
@@ -136,9 +137,7 @@ class CheckoutService
                 }
 
                 $quantity = (int) $item->quantity;
-                $price = method_exists($this->cartService, 'unitPrice') 
-                    ? $this->cartService->unitPrice($item) 
-                    : $this->cartService->itemUnitPrice($item);
+                $price = $this->cartService->unitPrice($item);
                 $productType = $product->product_type;
 
                 if ($productType === 'imei/serial') {
@@ -183,17 +182,36 @@ class CheckoutService
             }
 
             // 6. Khởi tạo cổng thanh toán (Payment)
+            $isWalletPayment = $data['payment_method'] === 'wallet';
+
+            if ($isWalletPayment) {
+                // Trừ ví ngay lúc đặt hàng; nếu không đủ số dư sẽ ném lỗi và rollback toàn bộ transaction.
+                $this->walletService->debit(
+                    $user,
+                    (float) $order->total_amount,
+                    'payment',
+                    'Thanh toán đơn hàng #' . $order->order_code,
+                    Order::class,
+                    $order->id
+                );
+            }
+
             Payment::query()->create([
                 'order_id'         => $order->id,
                 'payment_method'   => $data['payment_method'],
                 'amount'           => $order->total_amount,
-                'payment_status'   => 'pending',
-                'transaction_code' => null,
-                'paid_at'          => null,
+                'payment_status'   => $isWalletPayment ? 'paid' : 'pending',
+                'transaction_code' => $isWalletPayment ? ('WALLET' . strtoupper(Str::random(10))) : null,
+                'paid_at'          => $isWalletPayment ? now() : null,
                 'expires_at'       => in_array($data['payment_method'], self::EXPIRING_METHODS, true)
                     ? now()->addMinutes(self::PAYMENT_EXPIRY_MINUTES)
                     : null,
             ]);
+
+            if ($isWalletPayment) {
+                // Thanh toán ví hoàn tất ngay, đơn chuyển sang xử lý giống các cổng online khác sau khi xác nhận.
+                $order->update(['status' => 'processing']);
+            }
 
             // 7. Khấu trừ điểm thưởng của User nếu có sử dụng
             if ($pointsToUse > 0) {
@@ -307,6 +325,14 @@ class CheckoutService
 
     /**
      * Hoàn lại tồn kho phụ kiện nếu đơn hàng bị huỷ/quá hạn thanh toán.
+     */
+    public function restoreInventoryForCancelledOrder(Order $order): void
+    {
+        $this->restoreInventory($order);
+    }
+
+    /**
+     * Hoàn lại tồn kho/IMEI đã tạm giữ cho 1 đơn hàng (khi giao dịch hết hạn/thất bại), không hủy đơn.
      */
     private function restoreInventory(Order $order): void
     {

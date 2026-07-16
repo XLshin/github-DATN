@@ -100,9 +100,14 @@ class ProductController extends Controller
                 ->orderByRaw('price IS NULL')
                 ->orderBy('price')
                 ->orderBy('id'),
-            'reviews' => fn ($query) => $query->where('status', true),
-            'reviews.user',
+            'reviews' => fn ($query) => $query->where('status', true)->with('user'),
         ]);
+
+        $productImages = collect([$product->thumbnail, ...$product->images->pluck('image_path')])
+            ->filter()
+            ->unique()
+            ->map(fn ($path) => Storage::url($path))
+            ->values();
 
         $relatedProducts = Product::query()
             ->with([

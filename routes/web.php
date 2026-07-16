@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\AddressController;
+use App\Http\Controllers\BankAccountController;
+use App\Http\Controllers\Admin\BankAccountController as AdminBankAccountController;
+use App\Http\Controllers\Admin\WalletWithdrawalController as AdminWalletWithdrawalController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\AssistantController;
 use App\Http\Controllers\Admin\CategoryController;
@@ -28,6 +31,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ClientCouponController;
 use App\Http\Controllers\ClientWarrantyController;
+use App\Http\Controllers\WalletController;
+use App\Http\Controllers\Admin\RefundController;
+use App\Http\Controllers\Admin\WalletTopupController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\CarrierWebhookController;
@@ -150,7 +156,19 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{id}', [OrderController::class, 'show'])->name('orders.show');
+    Route::get('/orders/{id}/status-check', [OrderController::class, 'statusCheck'])->name('orders.statusCheck');
     Route::post('/orders/{id}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
+
+    Route::get('/wallet', [WalletController::class, 'index'])->name('wallet.index');
+    Route::post('/wallet/topup', [WalletController::class, 'topup'])->name('wallet.topup');
+    Route::get('/wallet/topup/{topup}', [WalletController::class, 'showTopupPayment'])->name('wallet.topup.payment');
+    Route::post('/wallet/topup/{topup}/confirm', [WalletController::class, 'confirmTopupPayment'])->name('wallet.topup.confirm');
+    Route::post('/wallet/topup/{topup}/retry', [WalletController::class, 'retryTopupPayment'])->name('wallet.topup.retry');
+    Route::post('/wallet/withdraw', [WalletController::class, 'withdraw'])->name('wallet.withdraw');
+
+    Route::post('/bank-accounts', [BankAccountController::class, 'store'])->name('bank-accounts.store');
+    Route::delete('/bank-accounts/{bankAccount}', [BankAccountController::class, 'destroy'])->name('bank-accounts.destroy');
+    Route::patch('/bank-accounts/{bankAccount}/default', [BankAccountController::class, 'setDefault'])->name('bank-accounts.default');
 
     Route::get('/my-points', [PointController::class, 'index'])->name('points.index');
     Route::get('/point-history', [PointController::class, 'history'])->name('points.history');
@@ -169,6 +187,9 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
 
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        Route::get('/notifications/pending-count', [\App\Http\Controllers\Admin\NotificationController::class, 'pendingCount'])
+            ->name('notifications.pendingCount');
 
         /*
         |--------------------------------------------------------------------------
@@ -263,8 +284,10 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
         Route::post('orders/{order}/confirm', [AdminOrderController::class, 'confirm'])
             ->name('orders.confirm');
 
-        Route::post('orders/{order}/confirm-bank-transfer', [AdminOrderController::class, 'confirmBankTransfer'])
-            ->name('orders.confirmBankTransfer');
+        Route::post('orders/{order}/confirm-payment', [AdminOrderController::class, 'confirmPayment'])
+            ->name('orders.confirmPayment');
+        Route::post('orders/{order}/reject-payment', [AdminOrderController::class, 'rejectPayment'])
+            ->name('orders.rejectPayment');
 
         Route::post('orders/{order}/mark-packed', [AdminOrderController::class, 'markPacked'])
             ->name('orders.markPacked');
@@ -289,6 +312,48 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
 
         Route::post('/orders/{order}/receiver', [OrderController::class, 'updateReceiver'])
         ->name('orders.updateReceiver');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Ví & hoàn tiền
+        |--------------------------------------------------------------------------
+        */
+        Route::get('wallet-topups', [WalletTopupController::class, 'index'])
+            ->name('wallet-topups.index');
+        Route::get('wallet-topups/{topup}', [WalletTopupController::class, 'show'])
+            ->name('wallet-topups.show');
+        Route::post('wallet-topups/{topup}/confirm', [WalletTopupController::class, 'confirm'])
+            ->name('wallet-topups.confirm');
+        Route::post('wallet-topups/{topup}/reject', [WalletTopupController::class, 'reject'])
+            ->name('wallet-topups.reject');
+
+        Route::get('refunds', [RefundController::class, 'index'])
+            ->name('refunds.index');
+        Route::get('refunds/{refund}', [RefundController::class, 'show'])
+            ->name('refunds.show');
+        Route::post('refunds/{refund}/processing', [RefundController::class, 'markProcessing'])
+            ->name('refunds.processing');
+        Route::post('refunds/{refund}/complete', [RefundController::class, 'complete'])
+            ->name('refunds.complete');
+
+        Route::get('wallet-withdrawals', [AdminWalletWithdrawalController::class, 'index'])
+            ->name('wallet-withdrawals.index');
+        Route::get('wallet-withdrawals/{withdrawal}', [AdminWalletWithdrawalController::class, 'show'])
+            ->name('wallet-withdrawals.show');
+        Route::post('wallet-withdrawals/{withdrawal}/processing', [AdminWalletWithdrawalController::class, 'markProcessing'])
+            ->name('wallet-withdrawals.processing');
+        Route::post('wallet-withdrawals/{withdrawal}/complete', [AdminWalletWithdrawalController::class, 'complete'])
+            ->name('wallet-withdrawals.complete');
+        Route::post('wallet-withdrawals/{withdrawal}/reject', [AdminWalletWithdrawalController::class, 'reject'])
+            ->name('wallet-withdrawals.reject');
+
+        Route::get('bank-accounts', [AdminBankAccountController::class, 'index'])
+            ->name('bank-accounts.index');
+        Route::post('bank-accounts/{bankAccount}/verify', [AdminBankAccountController::class, 'verify'])
+            ->name('bank-accounts.verify');
+
+        Route::get('bank-transaction-logs', [\App\Http\Controllers\Admin\BankTransactionLogController::class, 'index'])
+            ->name('bank-transaction-logs.index');
 
         /*
         |--------------------------------------------------------------------------

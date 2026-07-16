@@ -114,6 +114,38 @@
         </a>
         @endif
 
+        @if ($canViewWarranties)
+        <a class="nav-link {{ request()->routeIs('admin.wallet-topups.*') ? 'active' : '' }}"
+            href="{{ route('admin.wallet-topups.index') }}">
+            <span class="nav-icon"><i class="bi bi-wallet2"></i></span>
+            <span class="nav-text">Nạp ví</span>
+        </a>
+
+        <a class="nav-link {{ request()->routeIs('admin.refunds.*') ? 'active' : '' }}"
+            href="{{ route('admin.refunds.index') }}">
+            <span class="nav-icon"><i class="bi bi-arrow-return-left"></i></span>
+            <span class="nav-text">Hoàn tiền</span>
+        </a>
+
+        <a class="nav-link {{ request()->routeIs('admin.wallet-withdrawals.*') ? 'active' : '' }}"
+            href="{{ route('admin.wallet-withdrawals.index') }}">
+            <span class="nav-icon"><i class="bi bi-arrow-down-circle"></i></span>
+            <span class="nav-text">Rút tiền</span>
+        </a>
+
+        <a class="nav-link {{ request()->routeIs('admin.bank-accounts.*') ? 'active' : '' }}"
+            href="{{ route('admin.bank-accounts.index') }}">
+            <span class="nav-icon"><i class="bi bi-bank2"></i></span>
+            <span class="nav-text">TK ngân hàng</span>
+        </a>
+
+        <a class="nav-link {{ request()->routeIs('admin.bank-transaction-logs.*') ? 'active' : '' }}"
+            href="{{ route('admin.bank-transaction-logs.index') }}">
+            <span class="nav-icon"><i class="bi bi-journal-text"></i></span>
+            <span class="nav-text">Lịch sử GD ngân hàng</span>
+        </a>
+        @endif
+
         @if ($canViewReviews)
         <a class="nav-link {{ request()->routeIs('admin.reviews.*') ? 'active' : '' }}"
             href="{{ route('admin.reviews.index') }}">

@@ -103,6 +103,7 @@
                                 @if($isCustomer)
                                     <li><a href="{{ route('dashboard') }}"><i class="lni lni-user me-2"></i>Tài khoản</a></li>
                                     <li><a href="{{ route('orders.index') }}"><i class="lni lni-package me-2"></i>Đơn hàng</a></li>
+                                    <li><a href="{{ route('wallet.index') }}"><i class="lni lni-wallet me-2"></i>Ví ({{ number_format((float) ($user->wallet_balance ?? 0), 0, ',', '.') }} đ)</a></li>
                                     <li><a href="{{ route('points.index') }}"><i class="lni lni-star me-2"></i>Điểm tích lũy</a></li>
                                 @elseif($isAdminUser)
                                     <li><a href="{{ route('admin.dashboard') }}"><i class="lni lni-dashboard me-2"></i>Quản trị</a></li>

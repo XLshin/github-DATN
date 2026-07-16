@@ -6,3 +6,4 @@
 <link rel="stylesheet" href="{{ asset('assets-client/css/tiny-slider.css') }}">
 <link rel="stylesheet" href="{{ asset('assets-client/css/glightbox.min.css') }}">
 <link rel="stylesheet" href="{{ asset('assets-client/css/main.css') }}">
+<link rel="stylesheet" href="{{ asset('assets-client/css/bytezone-theme.css') }}">

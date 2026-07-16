@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Payment extends Model
 {
@@ -14,6 +15,11 @@ class Payment extends Model
         'transaction_code',
         'payer_name',
         'payer_note',
+        'proof_image',
+        'confirmed_by',
+        'rejected_by',
+        'reject_reason',
+        'admin_note',
         'paid_at',
         'expires_at',
     ];
@@ -33,5 +39,15 @@ class Payment extends Model
     public function order()
     {
         return $this->belongsTo(Order::class);
+    }
+
+    public function confirmedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'confirmed_by');
+    }
+
+    public function rejectedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
     }
 }
