@@ -156,6 +156,8 @@
                 </select>
             </div>
 
+            
+
             <div class="row g-3">
                 @forelse($products as $product)
                     @include('client.partials.product_card', ['product' => $product])
