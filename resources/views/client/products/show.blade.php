@@ -28,8 +28,14 @@
 
     $variantPayload = $product->variants->map(function ($variant) use ($product, $mainImageUrl) {
         $imagePath = $variant->image_path ?: $variant->images->first()?->image_path;
-        // Use stock_quantity for all product types (IMEI and regular)
-        $stockCount = (int) ($variant->stock_quantity ?? 0);
+
+        // IMEI/serial: đếm từ bảng imeis (available_imeis_count được load sẵn bởi withCount)
+        // quantity: dùng stock_quantity của variant
+        if ($product->product_type === 'imei/serial') {
+            $stockCount = (int) ($variant->available_imeis_count ?? 0);
+        } else {
+            $stockCount = (int) ($variant->stock_quantity ?? 0);
+        }
 
         return [
             'id' => $variant->id,
