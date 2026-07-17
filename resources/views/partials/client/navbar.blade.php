@@ -116,18 +116,13 @@
                 {{-- Cart --}}
                 <div class="header-cart flex-shrink-0">
                     @auth
-                    @if(auth()->user()->role === 'customer')
                     <a href="{{ route('cart.index') }}" class="cart-btn">
                         <i class="lni lni-cart"></i>
                         <span class="cart-text">Giỏ hàng</span>
+                        @if(auth()->user()->role === 'customer')
                         <span class="cart-badge" id="cart-count">0</span>
+                        @endif
                     </a>
-                    @else
-                    <a href="{{ route('admin.dashboard') }}" class="cart-btn">
-                        <i class="lni lni-cart"></i>
-                        <span class="cart-text">Giỏ hàng</span>
-                    </a>
-                    @endif
                     @else
                     <a href="{{ route('login') }}" class="cart-btn">
                         <i class="lni lni-cart"></i>

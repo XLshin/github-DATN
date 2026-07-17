@@ -570,7 +570,8 @@
                     </div>
 
                     @auth
-                        <form method="POST" action="{{ route('cart.add') }}" class="d-grid gap-2">
+                        {{-- Form thêm vào giỏ --}}
+                        <form method="POST" action="{{ route('cart.add') }}" id="addToCartForm" class="d-grid gap-2">
                             @csrf
                             <input type="hidden" name="product_id" value="{{ $product->id }}">
                             <input type="hidden" name="variant_id" id="selectedVariantId" value="{{ $selectedVariant?->id }}">
@@ -580,7 +581,7 @@
                                 <button type="submit" class="btn btn-outline-primary cart-icon-button" title="Thêm vào giỏ" aria-label="Thêm vào giỏ">
                                     <i class="lni lni-cart"></i>
                                 </button>
-                                <button type="button" class="btn btn-danger btn-lg">
+                                <button type="submit" form="buyNowForm" class="btn btn-danger btn-lg">
                                     Mua ngay
                                 </button>
                             </div>
@@ -592,6 +593,14 @@
                                 disabled>
                                 Tạm hết hàng
                             </button>
+                        </form>
+
+                        {{-- Form mua ngay (ẩn) --}}
+                        <form method="POST" action="{{ route('buy.now') }}" id="buyNowForm" class="d-none">
+                            @csrf
+                            <input type="hidden" name="product_id" value="{{ $product->id }}">
+                            <input type="hidden" name="variant_id" id="buyNowVariantId" value="{{ $selectedVariant?->id }}">
+                            <input type="hidden" name="quantity" value="1">
                         </form>
                     @else
                         <a href="{{ route('login') }}" class="btn btn-primary btn-lg w-100">
@@ -800,6 +809,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     const selectedPrice = document.getElementById('selectedPrice');
     const selectedVariantId = document.getElementById('selectedVariantId');
+    const buyNowVariantId = document.getElementById('buyNowVariantId');
     const selectedStock = document.getElementById('selectedStock');
     const purchaseActions = document.getElementById('purchaseActions');
     const outOfStockButton = document.getElementById('outOfStockButton');
@@ -901,6 +911,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (selectedVariantId) {
                 selectedVariantId.value = button.dataset.variantId;
+            }
+
+            if (buyNowVariantId) {
+                buyNowVariantId.value = button.dataset.variantId;
             }
 
             if (selectedPrice && button.dataset.price) {
