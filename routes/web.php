@@ -100,29 +100,18 @@ Route::middleware('guest')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
-    // Route::get('/dashboard', fn() => view('client.profile.dashboard'))->name('dashboard');
-    // Sửa thành:
     Route::get('/dashboard', [ProfileController::class, 'dashboard'])->name('dashboard');
 
-    // Giữ nguyên các route profile khác nếu cần
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
-    // Thêm group quản lý địa chỉ (vẫn trong middleware auth)
     Route::middleware('auth')->group(function () {
-        // ... các route khác
-
-        // Địa chỉ nhận hàng
         Route::post('/addresses', [AddressController::class, 'store'])->name('addresses.store');
         Route::put('/addresses/{address}', [AddressController::class, 'update'])->name('addresses.update');
         Route::delete('/addresses/{address}', [AddressController::class, 'destroy'])->name('addresses.destroy');
         Route::patch('/addresses/{address}/default', [AddressController::class, 'setDefault'])->name('addresses.default');
     });
-
-    Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
-    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
     Route::get('/change-password', [PasswordController::class, 'showChangePassword'])->name('password.change');
     Route::put('/change-password', [PasswordController::class, 'changePassword'])->name('password.change.update');
@@ -276,8 +265,8 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
         Route::get('orders/{order}/print-shipping-label', [AdminOrderController::class, 'printShippingLabel'])
             ->name('orders.printShippingLabel');
 
-        Route::post('/orders/{order}/receiver', [OrderController::class, 'updateReceiver'])
-        ->name('orders.updateReceiver');
+        Route::post('/orders/{order}/receiver', [AdminOrderController::class, 'updateReceiver'])
+            ->name('orders.updateReceiver');
         
         /*
         |--------------------------------------------------------------------------
