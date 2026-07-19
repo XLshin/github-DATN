@@ -29,6 +29,8 @@ class Order extends Model
         'status',
 
         'fulfillment_status',
+        'delivery_retry_count',
+
         'confirmed_at',
         'packed_at',
         'handed_over_at',
@@ -40,6 +42,7 @@ class Order extends Model
     ];
 
     protected $casts = [
+        'delivery_retry_count' => 'integer',
         'confirmed_at' => 'datetime',
         'packed_at' => 'datetime',
         'handed_over_at' => 'datetime',
@@ -124,5 +127,26 @@ class Order extends Model
             'failed' => 'Giao thất bại',
             default => $this->fulfillment_status ?? 'Không xác định',
         };
+    }
+
+    public const MAX_DELIVERY_RETRIES = 3;
+
+    public function canRetryDelivery(): bool
+    {
+        return $this->fulfillment_status === 'failed'
+            && $this->delivery_retry_count < self::MAX_DELIVERY_RETRIES;
+    }
+
+    public function hasReachedDeliveryRetryLimit(): bool
+    {
+        return $this->delivery_retry_count >= self::MAX_DELIVERY_RETRIES;
+    }
+
+    public function getRemainingDeliveryRetriesAttribute(): int
+    {
+        return max(
+            0,
+            self::MAX_DELIVERY_RETRIES - (int) $this->delivery_retry_count
+        );
     }
 }
