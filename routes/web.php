@@ -334,12 +334,31 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
         | IMEI, kho hàng, tồn kho
         |--------------------------------------------------------------------------
         */
-        Route::resource('imeis', ImeiController::class);
+        Route::resource('imeis', ImeiController::class)->except([
+            'edit',
+            'update',
+            'destroy',
+        ]);
 
-        Route::get('inventory/adjustments/create', [InventoryController::class, 'createAdjustment'])
-            ->name('inventory.adjustments.create');
-        Route::post('inventory/adjustments', [InventoryController::class, 'storeAdjustment'])
-            ->name('inventory.adjustments.store');
+        Route::middleware('only_admin')->group(function () {
+            Route::get('inventory/imeis/bulk-transfer', [ImeiController::class, 'createBulkTransfer'])
+                ->name('imeis.bulk-transfer.create');
+            Route::post('inventory/imeis/bulk-transfer', [ImeiController::class, 'storeBulkTransfer'])
+                ->name('imeis.bulk-transfer.store');
+
+            Route::get('imeis/{imei}/edit', [ImeiController::class, 'edit'])
+                ->name('imeis.edit');
+            Route::put('imeis/{imei}', [ImeiController::class, 'update'])
+                ->name('imeis.update');
+            Route::patch('imeis/{imei}', [ImeiController::class, 'update']);
+            Route::delete('imeis/{imei}', [ImeiController::class, 'destroy'])
+                ->name('imeis.destroy');
+
+            Route::get('inventory/adjustments/create', [InventoryController::class, 'createAdjustment'])
+                ->name('inventory.adjustments.create');
+            Route::post('inventory/adjustments', [InventoryController::class, 'storeAdjustment'])
+                ->name('inventory.adjustments.store');
+        });
 
         Route::resource('inventory', InventoryController::class)->only([
             'index',
