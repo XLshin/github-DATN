@@ -26,6 +26,18 @@
     <div class="alert alert-danger">{{ session('error') }}</div>
 @endif
 
+@if(session('warning'))
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+        {{ session('warning') }}
+
+        <button type="button"
+                class="btn-close"
+                data-bs-dismiss="alert"
+                aria-label="Đóng"></button>
+    </div>
+@endif
+
 @if($errors->any())
     <div class="alert alert-danger">
         <ul class="mb-0">
@@ -405,15 +417,48 @@
 
                                         @if($order->fulfillment_status === 'failed')
                                             <li><hr class="dropdown-divider"></li>
-                                            <li>
-                                                <form action="{{ route('admin.orders.retryDelivery', $order) }}" method="POST"
-                                                      onsubmit="return confirm('Bạn có chắc muốn giao lại đơn hàng này không?');">
-                                                    @csrf
-                                                    <button type="submit" class="dropdown-item">
-                                                        <i class="bi bi-arrow-repeat me-2"></i>Giao lại
+
+                                            @if($order->canRetryDelivery())
+                                                <li>
+                                                    <form
+                                                        action="{{ route('admin.orders.retryDelivery', $order) }}"
+                                                        method="POST"
+                                                        onsubmit="return confirm(
+                                                            'Bạn có chắc muốn giao lại đơn hàng này không? ' +
+                                                            'Đây là lần giao lại thứ {{ $order->delivery_retry_count + 1 }}/{{ \App\Models\Order::MAX_DELIVERY_RETRIES }}.'
+                                                        );"
+                                                    >
+                                                        @csrf
+
+                                                        <button type="submit" class="dropdown-item">
+                                                            <i class="bi bi-arrow-repeat me-2"></i>
+                                                            Giao lại
+                                                            ({{ $order->delivery_retry_count }}/{{ \App\Models\Order::MAX_DELIVERY_RETRIES }})
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            @else
+                                                <li>
+                                                    <button
+                                                        type="button"
+                                                        class="dropdown-item text-danger disabled"
+                                                        disabled
+                                                        aria-disabled="true"
+                                                        title="Đơn hàng đã đạt giới hạn giao lại"
+                                                    >
+                                                        <i class="bi bi-ban me-2"></i>
+                                                        Đã đạt giới hạn giao lại
                                                     </button>
-                                                </form>
-                                            </li>
+                                                </li>
+
+                                                <li>
+                                                    <div class="px-3 py-2 text-danger small"
+                                                        style="white-space: normal; min-width: 280px;">
+                                                        Đơn này đã đạt 3 lần giao lại. Nếu lần giao cuối không thành công,
+                                                        đơn cần được hủy.
+                                                    </div>
+                                                </li>
+                                            @endif
                                         @endif
 
                                         @if(!in_array($order->fulfillment_status, ['completed', 'cancelled'], true))

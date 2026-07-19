@@ -867,12 +867,15 @@ document.addEventListener('DOMContentLoaded', function () {
 // Tự động phát hiện thay đổi trạng thái đơn hàng (xác nhận/đóng gói/hủy...) và cập nhật
 // trang mà khách không cần bấm tải lại thủ công.
 (function () {
-    var statusCheckUrl = @json(route('orders.statusCheck', $order->id));
-    var initialState = @json([
+        var statusCheckUrl = {{ Illuminate\Support\Js::from(
+        route('orders.statusCheck', $order->id)
+    ) }};
+
+    var initialState = {{ Illuminate\Support\Js::from([
         'status' => $order->status,
         'fulfillment_status' => $order->fulfillment_status,
-        'payment_status' => $order->payment->payment_status ?? null,
-    ]);
+        'payment_status' => optional($order->payment)->payment_status,
+    ]) }};
     var pollIntervalMs = 15000;
     var reloading = false;
 
