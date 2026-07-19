@@ -7,6 +7,11 @@
 @section('page_subtitle', 'Tra cứu và điều chỉnh IMEI khi nhập nhầm. Không xóa cứng IMEI khỏi hệ thống.')
 
 @section('heading_actions')
+    @if(auth()->user()?->isAdmin())
+    <a href="{{ route('admin.imeis.bulk-transfer.create') }}" class="btn btn-warning btn-sm">
+        <i class="bi bi-arrow-left-right"></i> Chuyển IMEI hàng loạt
+    </a>
+    @endif
     <a href="{{ route('admin.imeis.create') }}" class="btn btn-primary btn-sm">
         <i class="bi bi-plus-lg"></i> Nhập IMEI
     </a>
@@ -89,9 +94,11 @@
                             <a href="{{ route('admin.imeis.show', $imei->id) }}" class="btn btn-outline-primary btn-sm">
                                 Chi tiết
                             </a>
+                            @if(auth()->user()?->isAdmin())
                             <a href="{{ route('admin.imeis.edit', $imei->id) }}" class="btn btn-light btn-sm">
                                 Điều chỉnh
                             </a>
+                            @endif
                         </td>
                     </tr>
                 @empty

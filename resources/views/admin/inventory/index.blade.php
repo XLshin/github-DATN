@@ -31,7 +31,7 @@
                     name="keyword"
                     value="{{ request('keyword') }}"
                     class="form-control form-control-sm"
-                    placeholder="Tên sản phẩm, dung lượng, màu, thương hiệu, ghi chú hoặc ID biến thể">
+                    placeholder="Tên sản phẩm, phiên bản, màu, thương hiệu, người thao tác, ghi chú hoặc ID biến thể">
             </div>
 
             <div class="col-md-4">
@@ -62,11 +62,12 @@
                 <tr>
                     <th>ID</th>
                     <th>Sản phẩm</th>
-                    <th>Dung lượng</th>
+                    <th>Phiên bản</th>
                     <th>Thương hiệu</th>
                     <th>Màu</th>
                     <th>Loại giao dịch</th>
                     <th class="text-end">Số lượng</th>
+                    <th>Người thao tác</th>
                     <th>Ghi chú</th>
                     <th>Thời gian</th>
                 </tr>
@@ -99,12 +100,20 @@
                                 {{ $type['sign'] }}{{ number_format(abs((int) $item->quantity), 0, ',', '.') }}
                             @endif
                         </td>
+                        <td>
+                            @if($item->user)
+                                <div class="fw-semibold">{{ $item->user->name }}</div>
+                                <div class="text-muted small">{{ $item->user->role === 'admin' ? 'Admin' : 'Nhân viên' }}</div>
+                            @else
+                                <span class="text-muted">Hệ thống</span>
+                            @endif
+                        </td>
                         <td>{{ $item->note ?? 'N/A' }}</td>
                         <td>{{ $item->created_at?->format('d/m/Y H:i') ?? 'N/A' }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9" class="text-center text-muted py-4">
+                        <td colspan="10" class="text-center text-muted py-4">
                             Không có dữ liệu
                         </td>
                     </tr>

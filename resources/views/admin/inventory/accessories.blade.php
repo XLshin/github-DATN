@@ -10,9 +10,11 @@
     <a href="{{ route('admin.inventory.create') }}" class="btn btn-primary btn-sm">
         <i class="bi bi-box-arrow-in-down"></i> Nhập kho phụ kiện
     </a>
+    @if(auth()->user()?->isAdmin())
     <a href="{{ route('admin.inventory.adjustments.create') }}" class="btn btn-warning btn-sm">
         <i class="bi bi-sliders"></i> Điều chỉnh kho
     </a>
+    @endif
     <a href="{{ route('admin.stocks') }}" class="btn btn-secondary btn-sm">
         <i class="bi bi-phone"></i> Kho IMEI/Serial
     </a>
@@ -24,19 +26,21 @@
 @section('content')
 <section class="panel mb-4">
     <div class="panel-header">
-        <form method="GET" class="row g-2 flex-grow-1">
-            <div class="col-md-5">
+        <form method="GET" class="row g-2 align-items-end flex-grow-1">
+            <div class="col-lg-5 col-md-6">
+                <label class="form-label small text-muted mb-1">Từ khóa</label>
                 <input
                     type="text"
                     name="search"
                     value="{{ request('search') }}"
                     class="form-control form-control-sm"
-                    placeholder="Tên sản phẩm, màu sắc hoặc dung lượng">
+                    placeholder="Tên sản phẩm, màu hoặc phiên bản">
             </div>
 
-            <div class="col-md-3">
+            <div class="col-lg-3 col-md-4">
+                <label class="form-label small text-muted mb-1">Thương hiệu</label>
                 <select name="brand_id" class="form-select form-select-sm">
-                    <option value="">-- Tất cả hãng --</option>
+                    <option value="">-- Tất cả thương hiệu --</option>
                     @foreach($brands as $brand)
                         <option
                             value="{{ $brand->id }}"
@@ -47,15 +51,12 @@
                 </select>
             </div>
 
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
-                    Tìm kiếm
+            <div class="col-lg-4 col-md-12 d-flex gap-2 justify-content-lg-end">
+                <button type="submit" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-search"></i> Tìm kiếm
                 </button>
-            </div>
-
-            <div class="col-md-2">
-                <a href="{{ route('admin.stocks.accessories') }}" class="btn btn-light btn-sm w-100">
-                    Làm mới
+                <a href="{{ route('admin.stocks.accessories') }}" class="btn btn-light btn-sm">
+                    <i class="bi bi-arrow-clockwise"></i> Làm mới
                 </a>
             </div>
         </form>
@@ -136,11 +137,15 @@
                             @endif
                         </td>
                         <td class="text-end">
+                            @if(auth()->user()?->isAdmin())
                             <a
                                 href="{{ route('admin.inventory.adjustments.create', ['product_variant_id' => $stock->id]) }}"
                                 class="btn btn-sm btn-outline-warning">
                                 Điều chỉnh
                             </a>
+                            @else
+                                <span class="text-muted small">Chỉ admin</span>
+                            @endif
                         </td>
                     </tr>
                 @empty

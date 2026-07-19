@@ -12,12 +12,18 @@
     $groupedSpecifications = $specifications->groupBy(fn ($specification) => $specification->group_name ?: 'Thông số khác');
     $selectedVariant = $product->variants->first();
 
-    $imagePaths = collect()
-        ->merge($productGroup?->images?->pluck('image_path') ?? [])
+    $groupImagePaths = collect($productGroup?->images?->pluck('image_path') ?? []);
+    $productImagePaths = collect()
         ->merge($product->images?->pluck('image_path') ?? [])
-        ->merge($product->variants->pluck('image_path')->filter())
-        ->merge($product->variants->flatMap(fn ($variant) => $variant->images?->pluck('image_path') ?? []))
-        ->when($product->thumbnail, fn ($collection) => $collection->prepend($product->thumbnail))
+        ->when($product->thumbnail, fn ($collection) => $collection->prepend($product->thumbnail));
+    $variantImagePaths = $product->variants
+        ->flatMap(fn ($variant) => collect([$variant->image_path])
+            ->merge($variant->images?->pluck('image_path') ?? []));
+
+    $imagePaths = collect()
+        ->merge($groupImagePaths)
+        ->merge($productImagePaths)
+        ->merge($variantImagePaths)
         ->filter()
         ->unique()
         ->values();
@@ -27,9 +33,13 @@
     $galleryImageUrls = $imagePaths->map(fn ($imagePath) => Storage::url($imagePath))->values();
 
     $variantPayload = $product->variants->map(function ($variant) use ($product, $mainImageUrl) {
-        $imagePath = $variant->image_path ?: $variant->images->first()?->image_path;
-        // Use stock_quantity for all product types (IMEI and regular)
-        $stockCount = (int) ($variant->stock_quantity ?? 0);
+        $imagePath = collect([$variant->image_path])
+            ->merge($variant->images?->pluck('image_path') ?? [])
+            ->filter()
+            ->first();
+        $stockCount = $product->product_type === 'imei/serial'
+            ? (int) ($variant->available_imeis_count ?? 0)
+            : (int) ($variant->stock_quantity ?? 0);
 
         return [
             'id' => $variant->id,
@@ -37,6 +47,7 @@
             'additional_price' => (float) ($variant->additional_price ?? 0),
             'final_price' => (float) ($product->price ?? 0) + (float) ($variant->additional_price ?? 0),
             'image_url' => $imagePath ? Storage::url($imagePath) : $mainImageUrl,
+            'has_image' => filled($imagePath),
             'stock_count' => $stockCount,
             'in_stock' => $stockCount > 0,
             'stock_text' => $stockCount > 0 ? 'Còn hàng' : 'Tạm hết hàng',
@@ -554,6 +565,7 @@
                                         data-variant-option
                                         data-variant-id="{{ $variant->id }}"
                                         data-image-url="{{ $variantImageUrl }}"
+                                        data-has-image="{{ $variantImage ? '1' : '0' }}"
                                         data-price="{{ number_format($variantFinalPrice, 0, ',', '.') }} đ">
                                         <img src="{{ $variantImageUrl }}" alt="{{ $variant->color ?: 'Không màu' }}">
                                         <span>
@@ -908,7 +920,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 selectedPrice.textContent = button.dataset.price;
             }
 
-            if (button.dataset.imageUrl) {
+            if (button.dataset.hasImage === '1' && button.dataset.imageUrl) {
                 const imageIndex = galleryImages.indexOf(button.dataset.imageUrl);
                 if (imageIndex >= 0) {
                     setGalleryImage(imageIndex);

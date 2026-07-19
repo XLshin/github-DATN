@@ -7,6 +7,9 @@
 @section('page_subtitle', 'Theo dõi doanh thu, đơn hàng, khách hàng, sản phẩm bán chạy và tồn kho thấp.')
 
 @section('heading_actions')
+<a href="{{ route('admin.inventory.index') }}" class="btn btn-light btn-sm">
+    <i class="bi bi-clock-history"></i> Lịch sử giao dịch
+</a>
 <a href="{{ route('admin.orders.index') }}" class="btn btn-light btn-sm">
     <i class="bi bi-receipt"></i> Đơn hàng
 </a>
