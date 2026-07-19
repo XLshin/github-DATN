@@ -68,6 +68,7 @@ class ClientWarrantyController extends Controller
         $warranty->load([
             'order',
             'imei.productVariant.product',
+            'replacementImei.productVariant.product',
             'receptionMedia',
             'completionMedia',
             'receiptMedia',
@@ -155,6 +156,14 @@ class ClientWarrantyController extends Controller
                 'description' => filled($warranty->status_update_note)
                     ? $warranty->status_update_note
                     : 'IMEI đang được tiếp nhận và xử lý bảo hành.',
+            ];
+        }
+
+        if ($warranty->resolution_type === Warranty::RESOLUTION_REPLACE && $warranty->replaced_at) {
+            $histories[] = [
+                'time' => $warranty->replaced_at,
+                'title' => 'Đổi máy mới',
+                'description' => 'Sản phẩm đã được đổi máy mới theo chính sách 30 ngày. IMEI mới: ' . ($warranty->replacementImei?->imei ?? 'Đang cập nhật'),
             ];
         }
 
