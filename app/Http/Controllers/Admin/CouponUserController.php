@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Controller;
 use App\Models\Coupon;
 use App\Models\User;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
 use Illuminate\Validation\Rule;
 
 class CouponUserController extends Controller
@@ -18,7 +18,10 @@ class CouponUserController extends Controller
         abort_unless($coupon->isAssigned(), 404);
 
         $coupon->load('users');
-        $allUsers = User::where('role', 'customer')->orderBy('name')->get();
+        $allUsers = User::where('role', User::ROLE_CUSTOMER)
+            ->withCount('orders')
+            ->orderBy('name')
+            ->get();
 
         return view('admin.coupons.assign-users', compact('coupon', 'allUsers'));
     }
