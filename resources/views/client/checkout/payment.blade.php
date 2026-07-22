@@ -95,13 +95,18 @@
                     <div class="fw-bold">Chuyển khoản ngân hàng</div>
                     <div class="small opacity-75">Vietcombank (VCB)</div>
                 </div>
-                <span class="ms-auto badge bg-white text-success">Đang chờ thanh toán</span>
+                <span class="ms-auto badge bg-white text-success" id="bank_transfer-status-badge">
+                    <span class="spinner-border spinner-border-sm me-1" style="width:.7rem;height:.7rem"></span>Đang chờ thanh toán
+                </span>
             </div>
             <div class="card-body text-center py-4">
                 {{-- QR --}}
                 <img src="{{ $vietQr }}" alt="QR VietQR" class="rounded border mb-3"
                      style="max-width:220px" onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ urlencode($code . ' ' . $amount) }}'">
-                <div class="text-muted small mb-4">Quét mã QR bằng app ngân hàng bất kỳ</div>
+                <div class="text-muted small mb-1">Quét mã QR bằng app ngân hàng bất kỳ</div>
+                <div class="text-success small mb-4">
+                    <i class="bi bi-lightning-charge-fill"></i> Hệ thống tự động xác nhận trong vài giây sau khi bạn chuyển khoản đúng nội dung
+                </div>
 
                 {{-- Bank details --}}
                 <div class="text-start mx-auto" style="max-width:340px">
@@ -122,25 +127,30 @@
                 <div class="alert alert-warning mt-4 text-start small">
                     <i class="bi bi-exclamation-triangle me-1"></i>
                     Vui lòng chuyển <strong>đúng số tiền</strong> và ghi <strong>đúng nội dung</strong>
-                    <code>{{ $code }}</code> để chúng tôi xác nhận nhanh nhất.
+                    <code>{{ $code }}</code> để hệ thống tự động đối chiếu và xác nhận.
                 </div>
 
-                <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}" enctype="multipart/form-data">
-                    @csrf
-                    @if($errors->any())
-                        <div class="alert alert-danger small text-start">{{ $errors->first() }}</div>
-                    @endif
-                    <div class="text-start mb-3">
-                        <label class="form-label small fw-semibold">
-                            Ảnh chụp màn hình sao kê/biên lai chuyển khoản <span class="text-danger">*</span>
-                        </label>
-                        <input type="file" name="proof_image" class="form-control" accept="image/*" required>
-                    </div>
-                    <button class="btn btn-success btn-lg w-100 mt-2">
-                        <i class="bi bi-check2-circle me-2"></i>Tôi đã chuyển khoản
-                    </button>
-                </form>
-                <a href="{{ route('checkout.success', $order) }}" class="btn btn-link text-muted small mt-2 d-block">
+                <details class="text-start mt-3">
+                    <summary class="small text-muted" style="cursor:pointer">
+                        Đã chuyển khoản nhưng chưa thấy xác nhận sau vài phút? Gửi ảnh biên lai để được kiểm tra thủ công
+                    </summary>
+                    <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}" enctype="multipart/form-data" class="mt-3">
+                        @csrf
+                        @if($errors->any())
+                            <div class="alert alert-danger small text-start">{{ $errors->first() }}</div>
+                        @endif
+                        <div class="text-start mb-3">
+                            <label class="form-label small fw-semibold">
+                                Ảnh chụp màn hình sao kê/biên lai chuyển khoản <span class="text-danger">*</span>
+                            </label>
+                            <input type="file" name="proof_image" class="form-control" accept="image/*" required>
+                        </div>
+                        <button class="btn btn-outline-success w-100">
+                            <i class="bi bi-check2-circle me-2"></i>Gửi để đối soát thủ công
+                        </button>
+                    </form>
+                </details>
+                <a href="{{ route('checkout.success', $order) }}" class="btn btn-link text-muted small mt-3 d-block">
                     Xem đơn hàng
                 </a>
             </div>
@@ -167,9 +177,12 @@
 
             <div class="card-body text-center py-4">
                 {{-- Timer --}}
-                <div class="mb-3">
+                <div class="mb-3 d-flex justify-content-center gap-2 flex-wrap">
                     <span class="badge rounded-pill px-3 py-2" style="background:#FFF0F5;color:#AE2070;font-size:.85rem">
                         <i class="bi bi-clock me-1"></i>Hết hạn sau: <span id="momo-timer" class="fw-bold">10:00</span>
+                    </span>
+                    <span class="badge rounded-pill px-3 py-2 bg-light text-dark border" id="momo-status-badge">
+                        <span class="spinner-border spinner-border-sm me-1" style="width:.7rem;height:.7rem"></span>Đang chờ thanh toán
                     </span>
                 </div>
 
@@ -185,30 +198,35 @@
                 <div class="fw-bold fs-4 mb-1" style="color:#AE2070">
                     {{ number_format($amount,0,',','.') }} đ
                 </div>
-                <div class="text-muted small mb-4">Mã đơn: <code>{{ $code }}</code></div>
+                <div class="text-muted small mb-3">Mã đơn: <code>{{ $code }}</code></div>
 
-                <div class="alert alert-light border text-start small">
+                <div class="alert alert-light border text-start small mb-3">
                     <i class="bi bi-phone me-1"></i>
-                    Mở app <strong>MoMo</strong> → <strong>Quét mã QR</strong> → Xác nhận thanh toán
+                    Mở app <strong>MoMo</strong> → <strong>Quét mã QR</strong> → Xác nhận thanh toán. Hệ thống tự động ghi nhận trong vài giây sau khi bạn thanh toán.
                 </div>
 
-                <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}" enctype="multipart/form-data">
-                    @csrf
-                    @if($errors->any())
-                        <div class="alert alert-danger small text-start">{{ $errors->first() }}</div>
-                    @endif
-                    <div class="text-start mb-3">
-                        <label class="form-label small fw-semibold">
-                            Ảnh chụp màn hình xác nhận thanh toán MoMo <span class="text-danger">*</span>
-                        </label>
-                        <input type="file" name="proof_image" class="form-control" accept="image/*" required>
-                    </div>
-                    <button class="btn btn-lg w-100 text-white fw-bold"
-                            style="background:#AE2070">
-                        <i class="bi bi-check-circle me-2"></i>Xác nhận đã thanh toán MoMo
-                    </button>
-                </form>
-                <a href="{{ route('checkout.success', $order) }}" class="btn btn-link text-muted small mt-2 d-block">
+                <details class="text-start">
+                    <summary class="small text-muted" style="cursor:pointer">
+                        Đã thanh toán nhưng chưa thấy xác nhận sau vài phút? Gửi ảnh biên lai để được kiểm tra thủ công
+                    </summary>
+                    <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}" enctype="multipart/form-data" class="mt-3">
+                        @csrf
+                        @if($errors->any())
+                            <div class="alert alert-danger small text-start">{{ $errors->first() }}</div>
+                        @endif
+                        <div class="text-start mb-3">
+                            <label class="form-label small fw-semibold">
+                                Ảnh chụp màn hình xác nhận thanh toán MoMo <span class="text-danger">*</span>
+                            </label>
+                            <input type="file" name="proof_image" class="form-control" accept="image/*" required>
+                        </div>
+                        <button class="btn w-100 text-white fw-bold"
+                                style="background:#AE2070">
+                            <i class="bi bi-check-circle me-2"></i>Gửi để đối soát thủ công
+                        </button>
+                    </form>
+                </details>
+                <a href="{{ route('checkout.success', $order) }}" class="btn btn-link text-muted small mt-3 d-block">
                     Xem đơn hàng
                 </a>
             </div>
@@ -245,9 +263,12 @@
 
                 {{-- QR tab --}}
                 <div id="tab-qr" class="text-center">
-                    <div class="mb-2">
+                    <div class="mb-3 d-flex justify-content-center gap-2 flex-wrap">
                         <span class="badge rounded-pill px-3 py-2" style="background:#EEF5FF;color:#005BAA;font-size:.85rem">
                             <i class="bi bi-clock me-1"></i>Hết hạn sau: <span id="vnpay-timer" class="fw-bold">10:00</span>
+                        </span>
+                        <span class="badge rounded-pill px-3 py-2 bg-light text-dark border" id="vnpay-status-badge">
+                            <span class="spinner-border spinner-border-sm me-1" style="width:.7rem;height:.7rem"></span>Đang chờ thanh toán
                         </span>
                     </div>
                     <div class="position-relative d-inline-block mb-3">
@@ -261,7 +282,7 @@
                     </div>
                     <div class="text-muted small mb-3">Mã đơn: <code>{{ $code }}</code></div>
                     <div class="alert alert-light border text-start small">
-                        Mở app ngân hàng → <strong>Quét QR</strong> hoặc chọn <strong>VNPAY QR</strong>
+                        Mở app ngân hàng → <strong>Quét QR</strong> hoặc chọn <strong>VNPAY QR</strong>. Hệ thống tự động ghi nhận trong vài giây sau khi bạn thanh toán.
                     </div>
                 </div>
 
@@ -278,22 +299,27 @@
                     </div>
                 </div>
 
-                <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}" enctype="multipart/form-data">
-                    @csrf
-                    @if($errors->any())
-                        <div class="alert alert-danger small text-start">{{ $errors->first() }}</div>
-                    @endif
-                    <div class="text-start mb-3">
-                        <label class="form-label small fw-semibold">
-                            Ảnh chụp màn hình xác nhận thanh toán VNPAY <span class="text-danger">*</span>
-                        </label>
-                        <input type="file" name="proof_image" class="form-control" accept="image/*" required>
-                    </div>
-                    <button class="btn btn-lg w-100 text-white fw-bold" style="background:#005BAA">
-                        <i class="bi bi-check-circle me-2"></i>Xác nhận đã thanh toán VNPAY
-                    </button>
-                </form>
-                <a href="{{ route('cart.index') }}" class="btn btn-link text-muted small mt-2 d-block text-center">
+                <details class="text-start">
+                    <summary class="small text-muted" style="cursor:pointer">
+                        Đã thanh toán nhưng chưa thấy xác nhận sau vài phút? Gửi ảnh biên lai để được kiểm tra thủ công
+                    </summary>
+                    <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}" enctype="multipart/form-data" class="mt-3">
+                        @csrf
+                        @if($errors->any())
+                            <div class="alert alert-danger small text-start">{{ $errors->first() }}</div>
+                        @endif
+                        <div class="text-start mb-3">
+                            <label class="form-label small fw-semibold">
+                                Ảnh chụp màn hình xác nhận thanh toán VNPAY <span class="text-danger">*</span>
+                            </label>
+                            <input type="file" name="proof_image" class="form-control" accept="image/*" required>
+                        </div>
+                        <button class="btn w-100 text-white fw-bold" style="background:#005BAA">
+                            <i class="bi bi-check-circle me-2"></i>Gửi để đối soát thủ công
+                        </button>
+                    </form>
+                </details>
+                <a href="{{ route('cart.index') }}" class="btn btn-link text-muted small mt-3 d-block text-center">
                     ← Quay lại
                 </a>
             </div>
@@ -348,21 +374,14 @@
                 <div class="alert alert-light border small mb-3">
                     <i class="bi bi-info-circle me-1"></i>
                     Đây là môi trường thử nghiệm, chưa kết nối cổng thanh toán thật. Dùng số thẻ hợp lệ theo chuẩn Luhn để test, ví dụ
-                    <code>4111 1111 1111 1111</code>. Thẻ kết thúc bằng <code>0000</code> sẽ mô phỏng bị ngân hàng từ chối.
+                    <code>4111 1111 1111 1111</code>. Thẻ kết thúc bằng <code>0000</code> sẽ mô phỏng bị ngân hàng từ chối. Thẻ hợp lệ được xử lý thanh toán ngay lập tức, không cần ảnh minh chứng.
                 </div>
 
-                <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}" enctype="multipart/form-data">
+                <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}">
                     @csrf
                     @if($errors->any())
                         <div class="alert alert-danger small">{{ $errors->first() }}</div>
                     @endif
-
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">
-                            Ảnh chụp màn hình xác nhận giao dịch <span class="text-danger">*</span>
-                        </label>
-                        <input type="file" name="proof_image" class="form-control" accept="image/*" required>
-                    </div>
 
                     <div class="mb-3">
                         <label class="form-label small fw-semibold">Số thẻ</label>
@@ -433,6 +452,30 @@
     startTimer('momo-timer', {{ $secondsLeft }});
     startTimer('vnpay-timer', {{ $secondsLeft }});
     startTimer('card-timer', {{ $secondsLeft }});
+
+    @if(in_array($method, ['bank_transfer', 'momo', 'vnpay'], true) && ! $expired)
+    {{-- Poll trạng thái thanh toán: backend tự mô phỏng cổng/ngân hàng báo có tiền sau một khoảng
+        trễ ngẫu nhiên, trang này tự phát hiện và chuyển sang trang thành công mà không cần khách
+        thao tác gì thêm (đồ án — không kết nối cổng thật). Áp dụng cho cả bank_transfer/momo/vnpay. --}}
+    (function pollPaymentStatus(){
+        const statusUrl = '{{ route('checkout.payment.status', $order) }}';
+        const successUrl = '{{ route('checkout.success', $order) }}';
+        const badge = document.getElementById('{{ $method }}-status-badge');
+
+        const iv = setInterval(() => {
+            fetch(statusUrl, { headers: { 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.paid) {
+                        clearInterval(iv);
+                        if (badge) badge.innerHTML = '<i class="bi bi-check-circle-fill"></i> Đã xác nhận thanh toán!';
+                        window.location.href = successUrl;
+                    }
+                })
+                .catch(() => {});
+        }, 4000);
+    })();
+    @endif
 
     {{-- VNPay tabs --}}
     document.querySelectorAll('#vnpay-tabs [data-tab]').forEach(btn => {

@@ -7,6 +7,7 @@ use App\Models\Imei;
 use App\Models\InventoryTransaction;
 use App\Models\Order;
 use App\Models\OrderProof;
+use App\Notifications\OrderStatusUpdatedNotification;
 use App\Notifications\PaymentFailedNotification;
 use App\Services\BankTransactionLogService;
 use App\Services\CheckoutService;
@@ -143,6 +144,8 @@ class OrderController extends Controller
             'confirmed_at' => now(),
         ]);
 
+        $order->user?->notify(new OrderStatusUpdatedNotification($order, 'waiting_pack'));
+
         return back()->with('success', 'Đã xác nhận đơn hàng. Đơn đã chuyển sang chờ đóng gói.');
     }
 
@@ -243,6 +246,7 @@ class OrderController extends Controller
 
                 if ($order->user) {
                     $order->user->notify(new PaymentFailedNotification($order));
+                    $order->user->notify(new OrderStatusUpdatedNotification($order, 'cancelled'));
                 }
             }
         });
@@ -329,6 +333,8 @@ class OrderController extends Controller
                 'fulfillment_status' => 'waiting_handover',
                 'packed_at' => now(),
             ]);
+
+            $order->user?->notify(new OrderStatusUpdatedNotification($order, 'waiting_handover'));
         });
 
         return back()->with('success', 'Đã xác nhận đóng gói, gán IMEI và chuyển đơn sang chờ bàn giao.');
@@ -354,6 +360,8 @@ class OrderController extends Controller
                     'shipped_at' => now(),
                 ]);
             }
+
+            $order->user?->notify(new OrderStatusUpdatedNotification($order, 'shipping'));
         });
 
         return back()->with('success', 'Đơn hàng đã chuyển sang trạng thái đang giao.');
@@ -461,6 +469,8 @@ class OrderController extends Controller
                     'delivered_at' => now(),
                 ]);
             }
+
+            $order->user?->notify(new OrderStatusUpdatedNotification($order, 'completed'));
         });
 
         return back()->with('success', 'Đã xác nhận giao hàng thành công. Đơn hàng đã hoàn thành.');
@@ -501,6 +511,8 @@ class OrderController extends Controller
                     'status' => 'failed',
                 ]);
             }
+
+            $order->user?->notify(new OrderStatusUpdatedNotification($order, 'failed'));
         });
 
         return back()->with('success', 'Đã cập nhật đơn hàng giao thất bại.');
@@ -526,6 +538,8 @@ class OrderController extends Controller
                     'shipped_at' => now(),
                 ]);
             }
+
+            $order->user?->notify(new OrderStatusUpdatedNotification($order, 'shipping'));
         });
 
         return back()->with('success', 'Đơn hàng đã được chuyển sang giao lại.');
@@ -665,6 +679,8 @@ class OrderController extends Controller
             // Admin hủy đơn thay khách: mặc định hoàn ngay vào ví để không phải chờ khách cung cấp thông tin ngân hàng.
             $this->refundService->request($order, $order->user, 'wallet');
         }
+
+        $order->user?->notify(new OrderStatusUpdatedNotification($order, 'cancelled'));
 
     });
 

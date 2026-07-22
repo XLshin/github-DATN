@@ -28,11 +28,21 @@ class RefundController extends Controller
 
         $refunds = $query->paginate(20)->withQueryString();
 
+        // Đơn tự động hoàn (dưới ngưỡng) đến hạn simulate_confirm_at nhưng chưa có ai load trang
+        // đơn hàng để kích hoạt xác nhận — tiện thể xác nhận luôn khi admin xem danh sách này.
+        $refunds->getCollection()->each(function (RefundRequest $refund) {
+            $this->refundService->confirmSimulatedBankRefund($refund);
+        });
+
         return view('admin.refunds.index', compact('refunds'));
     }
 
     public function show(RefundRequest $refund)
     {
+        // Cùng lý do như index(): admin đang xem chi tiết một yêu cầu đã đến hạn tự động hoàn
+        // thì xác nhận ngay, không để khách phải tự vào trang đơn hàng mới kích hoạt được.
+        $this->refundService->confirmSimulatedBankRefund($refund);
+
         $refund->load(['order', 'user']);
 
         return view('admin.refunds.show', compact('refund'));
