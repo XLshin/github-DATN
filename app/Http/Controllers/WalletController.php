@@ -108,12 +108,47 @@ class WalletController extends Controller
             'payer_name' => null,
             'payer_note' => null,
             'expires_at' => now()->addMinutes(15),
+            'simulate_confirm_at' => in_array($topup->payment_method, WalletService::AUTO_CONFIRM_METHODS, true)
+                ? now()->addSeconds(random_int(8, 20))
+                : null,
         ]);
 
         return redirect()->route('wallet.topup.payment', $topup)
             ->with('info', 'Đã mở lại phiên nạp tiền mới, vui lòng hoàn tất trong thời gian quy định.');
     }
 
+    /**
+     * Trang nạp ví chuyển khoản poll endpoint này để tự động phát hiện khi được xác nhận.
+     * Vì đây là đồ án không kết nối ngân hàng thật, khi đã quá simulate_confirm_at thì lần
+     * poll kế tiếp sẽ tự cộng tiền — hành vi phía người dùng giống hệt một webhook ngân hàng thật.
+     */
+    public function topupStatus(Request $request, WalletTopup $topup)
+    {
+        $this->authorizeTopup($request, $topup);
+
+        if (
+            $topup->payment_status === 'pending'
+            && in_array($topup->payment_method, WalletService::AUTO_CONFIRM_METHODS, true)
+            && $topup->simulate_confirm_at
+            && $topup->simulate_confirm_at->isPast()
+            && ! $topup->isExpired()
+        ) {
+            $this->walletService->confirmSimulated($topup);
+            $topup->refresh();
+        }
+
+        return response()->json([
+            'status' => $topup->payment_status,
+            'paid'   => $topup->payment_status === 'paid',
+        ]);
+    }
+
+    /**
+     * Khách xác nhận thủ công — dùng làm lối dự phòng khi việc tự động xác nhận
+     * (simulate_confirm_at, xem topupStatus()) chưa kịp chạy. Thẻ (card) có dữ liệu xác thực được
+     * (số thẻ hợp lệ theo Luhn, còn hạn, không bị mô phỏng từ chối) nên cộng tiền ngay lập tức;
+     * momo/vnpay/bank_transfer chỉ có ảnh chụp màn hình nên vẫn cần admin đối soát.
+     */
     public function confirmTopupPayment(Request $request, WalletTopup $topup)
     {
         $this->authorizeTopup($request, $topup);
@@ -130,37 +165,14 @@ class WalletController extends Controller
 
         $method = $topup->payment_method;
 
-        // Mọi phương thức đều bắt buộc ảnh bằng chứng và chờ admin đối soát trước khi cộng tiền
-        // (không tự động cộng ngay, kể cả với thẻ/MoMo/VNPAY) để đảm bảo tính chặt chẽ, có thể tra soát.
-        $rules = [
-            'proof_image' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:4096'],
-        ];
-        $messages = [
-            'proof_image.required' => 'Vui lòng tải lên ảnh chụp màn hình xác nhận giao dịch.',
-            'proof_image.image' => 'File tải lên phải là hình ảnh.',
-        ];
-
-        $payerName = $request->user()->name;
-        $payerNote = match ($method) {
-            'bank_transfer' => 'Khách báo đã chuyển khoản lúc ' . now()->format('H:i d/m/Y') . ' — chờ đối soát.',
-            'momo' => 'Khách báo đã thanh toán qua Ví MoMo — chờ đối soát.',
-            'vnpay' => 'Khách báo đã thanh toán qua VNPAY — chờ đối soát.',
-            'card' => 'Khách báo đã thanh toán bằng thẻ — chờ đối soát.',
-            default => 'Khách báo đã thanh toán — chờ đối soát.',
-        };
-
         if ($method === 'card') {
-            $rules = array_merge($rules, [
+            $validated = $request->validate([
                 'card_number' => ['required', 'string'],
                 'card_expiry' => ['required', 'string', 'regex:/^\d{2}\/\d{2}$/'],
                 'card_cvv'    => ['required', 'string', 'min:3', 'max:4'],
                 'card_name'   => ['required', 'string', 'max:255'],
             ]);
-        }
 
-        $validated = $request->validate($rules, $messages);
-
-        if ($method === 'card') {
             $digits = preg_replace('/\D/', '', $validated['card_number']);
 
             if (! $this->isValidCardNumber($digits)) {
@@ -186,14 +198,35 @@ class WalletController extends Controller
                 ]);
             }
 
-            $payerName = Str::upper($validated['card_name']);
-            $payerNote = 'Thẻ **** **** **** ' . substr($digits, -4) . ' — chờ đối soát.';
+            $topup->update([
+                'payer_name' => Str::upper($validated['card_name']),
+                'payer_note' => 'Thẻ **** **** **** ' . substr($digits, -4) . ' — xác thực Luhn hợp lệ.',
+            ]);
+
+            $this->walletService->confirmSimulated($topup->fresh());
+
+            return redirect()->route('wallet.index')
+                ->with('success', 'Nạp ví bằng thẻ thành công!');
         }
+
+        $validated = $request->validate([
+            'proof_image' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:4096'],
+        ], [
+            'proof_image.required' => 'Vui lòng tải lên ảnh chụp màn hình xác nhận giao dịch.',
+            'proof_image.image' => 'File tải lên phải là hình ảnh.',
+        ]);
+
+        $payerNote = match ($method) {
+            'bank_transfer' => 'Khách báo đã chuyển khoản lúc ' . now()->format('H:i d/m/Y') . ' — chờ đối soát.',
+            'momo' => 'Khách báo đã thanh toán qua Ví MoMo — chờ đối soát.',
+            'vnpay' => 'Khách báo đã thanh toán qua VNPAY — chờ đối soát.',
+            default => 'Khách báo đã thanh toán — chờ đối soát.',
+        };
 
         $path = $request->file('proof_image')->store('wallet-topup-proofs', 'public');
 
         $topup->update([
-            'payer_name' => $payerName,
+            'payer_name' => $request->user()->name,
             'payer_note' => $payerNote,
             'proof_image' => $path,
         ]);

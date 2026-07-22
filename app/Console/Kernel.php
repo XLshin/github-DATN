@@ -27,6 +27,10 @@ class Kernel extends ConsoleKernel
 
         // Đồng bộ lịch hẹn bật/tắt banner mỗi phút
         $schedule->command('banner:sync-schedule')->everyMinute();
+
+        // Xác nhận các giao dịch mô phỏng (thanh toán/nạp ví/hoàn tiền) đến hạn, để chúng tự xử
+        // lý dù không có ai đang mở đúng trang để kích hoạt (checkout/wallet/order polling).
+        $schedule->command('transactions:confirm-simulated')->everyMinute();
     }
 
     /**

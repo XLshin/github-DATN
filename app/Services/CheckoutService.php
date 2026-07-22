@@ -21,6 +21,9 @@ class CheckoutService
     /** Phương thức thanh toán trực tuyến có giới hạn thời gian phiên giao dịch. */
     private const EXPIRING_METHODS = ['card', 'momo', 'vnpay'];
 
+    /** Phương thức online được tự động xác nhận (mô phỏng), không cần đối soát thủ công. */
+    public const AUTO_CONFIRM_METHODS = ['bank_transfer', 'card', 'momo', 'vnpay'];
+
     private const PAYMENT_EXPIRY_MINUTES = 15;
 
     public function __construct(
@@ -201,10 +204,20 @@ class CheckoutService
                 'payment_method'   => $data['payment_method'],
                 'amount'           => $order->total_amount,
                 'payment_status'   => $isWalletPayment ? 'paid' : 'pending',
-                'transaction_code' => $isWalletPayment ? ('WALLET' . strtoupper(Str::random(10))) : null,
+                // Dùng order_code làm mã đối soát: khách ghi mã này vào nội dung chuyển khoản,
+                // webhook ngân hàng (SePay...) sẽ khớp theo mã này để tự động xác nhận.
+                'transaction_code' => $isWalletPayment
+                    ? ('WALLET' . strtoupper(Str::random(10)))
+                    : ($data['payment_method'] === 'bank_transfer' ? $order->order_code : null),
                 'paid_at'          => $isWalletPayment ? now() : null,
                 'expires_at'       => in_array($data['payment_method'], self::EXPIRING_METHODS, true)
                     ? now()->addMinutes(self::PAYMENT_EXPIRY_MINUTES)
+                    : null,
+                // Mô phỏng cổng thanh toán/ngân hàng báo giao dịch thành công sau một khoảng trễ
+                // ngẫu nhiên, giống cảm giác chờ đối soát thật (đồ án — không gọi cổng thật). Áp
+                // dụng cho mọi phương thức online (bank_transfer/momo/vnpay/card), không chỉ chuyển khoản.
+                'simulate_confirm_at' => in_array($data['payment_method'], self::AUTO_CONFIRM_METHODS, true)
+                    ? now()->addSeconds(random_int(8, 20))
                     : null,
             ]);
 
@@ -315,10 +328,13 @@ class CheckoutService
 
             $payment->update([
                 'payment_status'   => 'pending',
-                'transaction_code' => null,
+                'transaction_code' => $payment->payment_method === 'bank_transfer' ? $payment->order->order_code : null,
                 'payer_name'       => null,
                 'payer_note'       => null,
                 'expires_at'       => now()->addMinutes(self::PAYMENT_EXPIRY_MINUTES),
+                'simulate_confirm_at' => in_array($payment->payment_method, self::AUTO_CONFIRM_METHODS, true)
+                    ? now()->addSeconds(random_int(8, 20))
+                    : null,
             ]);
         });
     }

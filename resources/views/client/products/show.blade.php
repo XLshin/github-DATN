@@ -194,12 +194,14 @@
     }
 
     .choice-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+        display: flex;
+        flex-wrap: wrap;
         gap: 10px;
     }
 
     .choice-card {
+        flex: 0 1 200px;
+        max-width: 220px;
         border: 1px solid #dbe3ee;
         border-radius: 8px;
         background: #fff;
@@ -655,7 +657,17 @@
                             <p class="mb-0 small text-muted">{{ $review->comment }}</p>
                         </div>
                     @empty
-                        <p class="text-muted mb-0">Chưa có đánh giá.</p>
+                        <div class="text-center py-3">
+                            <svg width="120" height="96" viewBox="0 0 120 96" class="mb-2" aria-hidden="true">
+                                <ellipse cx="60" cy="88" rx="40" ry="6" fill="#f1f3f5"/>
+                                <rect x="20" y="16" width="80" height="54" rx="8" fill="#f8fafc" stroke="#e6ebf2" stroke-width="2"/>
+                                <path d="M30 76 L42 70 H78 L90 76 Z" fill="#f8fafc" stroke="#e6ebf2" stroke-width="2"/>
+                                <path d="M40 39 l4 -8 l4 8 l9 1 l-7 6 l2 9 l-8 -5 l-8 5 l2 -9 l-7 -6 z" fill="#f59e0b"/>
+                                <path d="M64 39 l4 -8 l4 8 l9 1 l-7 6 l2 9 l-8 -5 l-8 5 l2 -9 l-7 -6 z" fill="#e2e8f0"/>
+                                <path d="M16 39 l4 -8 l4 8 l9 1 l-7 6 l2 9 l-8 -5 l-8 5 l2 -9 l-7 -6 z" fill="#e2e8f0"/>
+                            </svg>
+                            <p class="text-muted mb-0">Chưa có đánh giá.</p>
+                        </div>
                     @endforelse
 
                     @error('review')

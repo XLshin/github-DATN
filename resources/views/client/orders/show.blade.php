@@ -555,6 +555,96 @@
                     </div>
                 </div>
             @endif
+
+            @if($order->refundRequest)
+                @php
+                    $refund = $order->refundRequest;
+                    $refundStatusLabels = [
+                        'pending'   => 'Đang xử lý',
+                        'processing'=> 'Đang xử lý',
+                        'completed' => 'Đã hoàn tiền',
+                    ];
+                    $refundStatusClasses = [
+                        'pending'   => 'bg-warning text-dark',
+                        'processing'=> 'bg-warning text-dark',
+                        'completed' => 'bg-success',
+                    ];
+                @endphp
+                <div class="card shadow-sm border-0 mt-3">
+                    <div class="card-body">
+                        <h6 class="mb-3">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i>Thông tin hoàn tiền
+                        </h6>
+                        <table class="table table-sm table-borderless mb-0 small">
+                            <tr>
+                                <td class="text-muted ps-0" style="width:150px">Hình thức nhận</td>
+                                <td class="fw-semibold">{{ $refund->method === 'wallet' ? 'Ví ByteZone' : 'Chuyển khoản ngân hàng' }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-0">Trạng thái</td>
+                                <td>
+                                    <span class="badge {{ $refundStatusClasses[$refund->status] ?? 'bg-secondary' }}">
+                                        {{ $refundStatusLabels[$refund->status] ?? $refund->status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-0">Số tiền hoàn</td>
+                                <td class="fw-semibold text-success">{{ number_format($refund->amount, 0, ',', '.') }} đ</td>
+                            </tr>
+                            @if($refund->method === 'bank')
+                                <tr>
+                                    <td class="text-muted ps-0">Ngân hàng</td>
+                                    <td>{{ $refund->bank_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted ps-0">Số tài khoản</td>
+                                    <td><code>{{ $refund->maskedBankAccountNumber() }}</code></td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted ps-0">Chủ tài khoản</td>
+                                    <td>{{ $refund->bank_account_name }}</td>
+                                </tr>
+                            @endif
+                            <tr>
+                                <td class="text-muted ps-0">Thời gian yêu cầu</td>
+                                <td>{{ $refund->requested_at?->format('H:i d/m/Y') }}</td>
+                            </tr>
+                            @if($refund->status === 'completed')
+                                <tr>
+                                    <td class="text-muted ps-0">Thời gian hoàn</td>
+                                    <td>{{ $refund->completed_at?->format('H:i d/m/Y') }}</td>
+                                </tr>
+                            @elseif($refund->method === 'bank')
+                                <tr>
+                                    <td class="text-muted ps-0">Dự kiến hoàn trước</td>
+                                    <td>{{ $refund->eligible_at?->format('d/m/Y') }}</td>
+                                </tr>
+                            @endif
+                        </table>
+
+                        @if($refund->status === 'completed')
+                            <div class="alert alert-success small mt-3 mb-0 d-flex align-items-start gap-2">
+                                <i class="bi bi-check-circle-fill mt-1"></i>
+                                <div>
+                                    <div class="fw-semibold">Tiền đã được hoàn thành công.</div>
+                                    @if($refund->notified_at)
+                                        Đã gửi thông báo qua Email và SMS lúc {{ $refund->notified_at->format('H:i d/m/Y') }}.
+                                    @endif
+                                </div>
+                            </div>
+                        @else
+                            <div class="alert alert-warning small mt-3 mb-0 d-flex align-items-start gap-2">
+                                <i class="bi bi-hourglass-split mt-1"></i>
+                                <div>
+                                    Yêu cầu đang được xử lý{{ $refund->method === 'bank' ? ', tiền sẽ về tài khoản ngân hàng của bạn' : '' }}.
+                                    Trang này sẽ tự cập nhật khi hoàn tất, không cần tải lại thủ công.
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 
@@ -867,16 +957,18 @@ document.addEventListener('DOMContentLoaded', function () {
 // Tự động phát hiện thay đổi trạng thái đơn hàng (xác nhận/đóng gói/hủy...) và cập nhật
 // trang mà khách không cần bấm tải lại thủ công.
 (function () {
-        var statusCheckUrl = {{ Illuminate\Support\Js::from(
-        route('orders.statusCheck', $order->id)
-    ) }};
-
-    var initialState = {{ Illuminate\Support\Js::from([
-        'status' => $order->status,
-        'fulfillment_status' => $order->fulfillment_status,
-        'payment_status' => optional($order->payment)->payment_status,
-    ]) }};
-    var pollIntervalMs = 15000;
+    @php
+        $orderInitialState = [
+            'status' => $order->status,
+            'fulfillment_status' => $order->fulfillment_status,
+            'payment_status' => $order->payment->payment_status ?? null,
+            'refund_status' => $order->refundRequest->status ?? null,
+        ];
+    @endphp
+    var statusCheckUrl = @json(route('orders.statusCheck', $order->id));
+    var initialState = @json($orderInitialState);
+    // Có yêu cầu hoàn tiền ngân hàng đang chờ thì poll nhanh hơn để thấy kết quả mô phỏng sớm.
+    var pollIntervalMs = {{ ($order->refundRequest->status ?? null) === 'pending' ? 4000 : 15000 }};
     var reloading = false;
 
     function poll() {
@@ -887,7 +979,8 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(function (data) {
                 var changed = data.status !== initialState.status
                     || data.fulfillment_status !== initialState.fulfillment_status
-                    || data.payment_status !== initialState.payment_status;
+                    || data.payment_status !== initialState.payment_status
+                    || data.refund_status !== initialState.refund_status;
 
                 if (changed) {
                     reloading = true;

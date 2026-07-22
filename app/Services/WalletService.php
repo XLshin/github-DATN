@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\WalletTopup;
 use App\Models\WalletTransaction;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -13,6 +14,9 @@ class WalletService
 {
     /** Phương thức nạp qua cổng có phiên giao dịch giới hạn thời gian (giống thực tế QR/thẻ hết hạn). */
     private const EXPIRING_METHODS = ['card', 'momo', 'vnpay'];
+
+    /** Phương thức online được tự động xác nhận (mô phỏng), không cần đối soát thủ công. */
+    public const AUTO_CONFIRM_METHODS = ['bank_transfer', 'card', 'momo', 'vnpay'];
 
     private const TOPUP_EXPIRY_MINUTES = 15;
 
@@ -92,6 +96,12 @@ class WalletService
             'expires_at' => in_array($paymentMethod, self::EXPIRING_METHODS, true)
                 ? now()->addMinutes(self::TOPUP_EXPIRY_MINUTES)
                 : null,
+            // Mô phỏng cổng thanh toán/ngân hàng báo có tiền sau một khoảng trễ ngẫu nhiên, giống
+            // cảm giác chờ đối soát thật (đồ án — không gọi cổng thật). Áp dụng cho mọi phương thức
+            // online (bank_transfer/momo/vnpay/card), không chỉ chuyển khoản.
+            'simulate_confirm_at' => in_array($paymentMethod, self::AUTO_CONFIRM_METHODS, true)
+                ? now()->addSeconds(random_int(8, 20))
+                : null,
         ]);
 
         $this->logService->logTopup($topup, 'pending', null, 'Khách tạo yêu cầu nạp ví.');
@@ -121,13 +131,32 @@ class WalletService
             ]);
         }
 
-        DB::transaction(function () use ($topup, $admin, $adminNote) {
+        $this->markPaid($topup, $admin->id, $adminNote);
+    }
+
+    /**
+     * Mô phỏng ngân hàng báo có tiền: dùng cho demo đồ án, được gọi khi đã quá thời điểm
+     * simulate_confirm_at của topup (xem WalletController::topupStatus). Cộng tiền và đóng
+     * yêu cầu y hệt như admin xác nhận thủ công, chỉ khác là không có admin thực hiện.
+     */
+    public function confirmSimulated(WalletTopup $topup): void
+    {
+        if ($topup->payment_status !== 'pending') {
+            return;
+        }
+
+        $this->markPaid($topup, null, 'Tự động xác nhận (mô phỏng ngân hàng báo có).');
+    }
+
+    private function markPaid(WalletTopup $topup, ?int $adminId, ?string $note): void
+    {
+        DB::transaction(function () use ($topup, $adminId, $note) {
             $topup->update([
                 'payment_status' => 'paid',
                 'transaction_code' => strtoupper($topup->payment_method) . strtoupper(Str::random(10)),
                 'paid_at' => now(),
-                'confirmed_by' => $admin->id,
-                'admin_note' => $adminNote,
+                'confirmed_by' => $adminId,
+                'admin_note' => $note,
             ]);
 
             $this->credit(
@@ -139,8 +168,40 @@ class WalletService
                 $topup->id
             );
 
-            $this->logService->logTopup($topup->fresh(), 'paid', $admin, $adminNote);
+            $admin = $adminId ? User::find($adminId) : null;
+            $this->logService->logTopup($topup->fresh(), 'paid', $admin, $note);
+
+            $this->sendTopupNotifications($topup->fresh());
         });
+    }
+
+    /**
+     * Mô phỏng gửi email + SMS báo khách đã nạp ví thành công — không gọi nhà cung cấp thật
+     * (đồ án), chỉ ghi log có nội dung đầy đủ, giống hệt cách RefundService/WalletWithdrawalService
+     * báo hoàn tiền/rút tiền. Áp dụng cho cả nạp tự động lẫn admin xác nhận thủ công.
+     */
+    private function sendTopupNotifications(WalletTopup $topup): void
+    {
+        $topup->loadMissing('user');
+        $user = $topup->user;
+        $amountText = number_format((float) $topup->amount, 0, ',', '.') . ' đ';
+        $methodText = $this->methodLabel($topup->payment_method);
+
+        Log::info('[MÔ PHỎNG EMAIL] Gửi email báo nạp ví thành công', [
+            'to' => $user->email ?? 'unknown',
+            'subject' => 'ByteZone đã cộng tiền vào ví của bạn',
+            'body' => "Chào {$user->name}, chúng tôi đã cộng {$amountText} vào ví qua {$methodText}. Cảm ơn bạn đã sử dụng ByteZone.",
+        ]);
+
+        Log::info('[MÔ PHỎNG SMS] Gửi SMS báo nạp ví thành công', [
+            'to' => $user->phone ?? 'unknown',
+            'body' => "ByteZone: Da cong {$amountText} vao vi qua {$methodText}.",
+        ]);
+
+        $user->notify(new \App\Notifications\WalletCreditedNotification(
+            (float) $topup->amount,
+            'Nạp tiền qua ' . $methodText . '.'
+        ));
     }
 
     /**
