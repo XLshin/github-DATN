@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Coupon;
+use App\Models\User;
+use App\Notifications\NewVoucherNotification;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
@@ -46,7 +48,16 @@ class CouponController extends Controller
 
         $validated['code'] = Str::upper($validated['code']);
 
-        Coupon::create($validated);
+        $coupon = Coupon::create($validated);
+
+        // Voucher công khai (không gán riêng cho ai) thì báo ngay cho toàn bộ khách hàng đang hoạt
+        // động để họ biết mà lưu dùng; voucher "assigned" chỉ báo khi admin gán cụ thể (xem CouponUserController).
+        if ($coupon->distribution === Coupon::DISTRIBUTION_PUBLIC && $coupon->status) {
+            User::where('role', User::ROLE_CUSTOMER)
+                ->where('is_locked', false)
+                ->get()
+                ->each(fn (User $user) => $user->notify(new NewVoucherNotification($coupon)));
+        }
 
         return redirect()->route('admin.coupons.index')->with('success', 'Tạo voucher thành công.');
     }

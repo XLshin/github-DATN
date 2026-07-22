@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Coupon;
 use App\Models\User;
+use App\Notifications\NewVoucherNotification;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Validation\Rule;
@@ -38,8 +39,19 @@ class CouponUserController extends Controller
             ],
         ]);
 
+        $previousUserIds = $coupon->users()->pluck('users.id')->all();
+
         // Sync users: chỉ những user được chọn sẽ có quyền dùng voucher này
         $coupon->users()->sync($request->input('user_ids', []));
+
+        // Chỉ báo cho những user mới được cấp thêm, tránh spam lại thông báo cho người đã có từ trước.
+        $newlyAssignedIds = array_diff($request->input('user_ids', []), $previousUserIds);
+
+        if (! empty($newlyAssignedIds)) {
+            User::whereIn('id', $newlyAssignedIds)->get()->each(
+                fn (User $user) => $user->notify(new NewVoucherNotification($coupon))
+            );
+        }
 
         return redirect()->route('admin.coupons.index')->with('success', 'Cập nhật người dùng được cấp voucher thành công!');
     }

@@ -294,7 +294,9 @@
                     <div class="mb-3">
                         <label class="form-label small">Số tiền muốn rút</label>
                         <input type="number" name="amount" class="form-control" min="{{ \App\Models\WalletWithdrawal::MIN_AMOUNT }}" step="1000"
-                               max="{{ (int) (auth()->user()->wallet_balance ?? 0) }}" required>
+                               max="{{ (int) (auth()->user()->wallet_balance ?? 0) }}" required
+                               oninvalid="this.setCustomValidity(this.validity.rangeOverflow ? 'Số tiền rút không được vượt quá số dư hiện có trong ví (' + Number(this.max).toLocaleString('vi-VN') + ' đ).' : (this.validity.rangeUnderflow ? 'Số tiền rút tối thiểu là ' + Number(this.min).toLocaleString('vi-VN') + ' đ.' : ''))"
+                               oninput="this.setCustomValidity('')">
                         <div class="form-text">
                             Tối thiểu {{ number_format(\App\Models\WalletWithdrawal::MIN_AMOUNT, 0, ',', '.') }} đ.
                             Thời gian xử lý tối đa {{ \App\Models\WalletWithdrawal::MIN_PROCESSING_DAYS }} ngày làm việc kể từ khi yêu cầu được gửi.
