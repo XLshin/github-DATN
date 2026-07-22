@@ -1,6 +1,13 @@
 @php
     $categories = \App\Models\Category::orderBy('name')->get();
     $brands = \App\Models\Brand::orderBy('name')->get();
+    // Thương hiệu đang có sản phẩm trong từng danh mục, để hiện dropdown lọc nhanh theo danh mục.
+    $categoryBrands = $categories->mapWithKeys(fn ($category) => [
+        $category->id => \App\Models\Brand::query()
+            ->whereHas('products', fn ($q) => $q->where('category_id', $category->id))
+            ->orderBy('name')
+            ->get(),
+    ]);
     $colors = \App\Models\ProductVariant::query()
         ->whereNotNull('color')
         ->where('color', '<>', '')
@@ -126,6 +133,23 @@
 
                     @auth
                         @if($isCustomer)
+                            <div class="notif-dropdown" id="notifDropdown">
+                                <button type="button" class="cart-btn notif-btn" id="notifBellBtn">
+                                    <i class="lni lni-alarm"></i>
+                                    <span class="cart-badge d-none" id="notif-badge">0</span>
+                                </button>
+                                <div class="notif-menu" id="notifMenu">
+                                    <div class="notif-menu-header">
+                                        <span>Thông báo</span>
+                                        <button type="button" id="notifMarkAllRead">Đánh dấu đã đọc</button>
+                                    </div>
+                                    <div class="notif-menu-list" id="notifList">
+                                        <div class="notif-empty">Chưa có thông báo nào.</div>
+                                    </div>
+                                    <a href="{{ route('notifications.index') }}" class="notif-menu-footer">Xem tất cả thông báo</a>
+                                </div>
+                            </div>
+
                             <a href="{{ route('cart.index') }}" class="cart-btn">
                                 <i class="lni lni-cart" id="cart-fly-target"></i>
                                 <span class="cart-text">Giỏ hàng</span>
@@ -165,9 +189,26 @@
                             $categoryUrl = route('products.index', ['category_id' => $category->id]);
                             $isCategoryActive = request()->routeIs('products.index')
                                 && (string) request('category_id') === (string) $category->id;
+                            $brandsInCategory = $categoryBrands[$category->id] ?? collect();
                         @endphp
-                        <li class="nav-item">
-                            <a href="{{ $categoryUrl }}" class="{{ $isCategoryActive ? 'active' : '' }}">{{ $category->name }}</a>
+                        <li class="nav-item {{ $brandsInCategory->isNotEmpty() ? 'has-dropdown' : '' }}">
+                            <a href="{{ $categoryUrl }}" class="{{ $isCategoryActive ? 'active' : '' }}">
+                                {{ $category->name }}
+                                @if($brandsInCategory->isNotEmpty())
+                                    <i class="lni lni-chevron-down"></i>
+                                @endif
+                            </a>
+                            @if($brandsInCategory->isNotEmpty())
+                                <ul class="dropdown-menu-nav">
+                                    @foreach($brandsInCategory as $brand)
+                                        <li>
+                                            <a href="{{ route('products.index', ['category_id' => $category->id, 'brand_id' => $brand->id]) }}">
+                                                {{ $brand->name }}
+                                            </a>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @endif
                         </li>
                     @endforeach
 
@@ -232,6 +273,26 @@
 .account-menu .divider { border-top: 1px solid #eee; margin: 4px 0; }
 .cart-btn { position: relative; }
 .cart-badge { position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; border-radius: 999px; background: #e53935; color: #fff; font-size: 12px; line-height: 20px; text-align: center; padding: 0 5px; }
+.notif-dropdown { position: relative; }
+.notif-btn { padding: 10px 12px; }
+.notif-btn.ringing i { animation: notif-ring .5s ease-in-out 2; }
+@keyframes notif-ring { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(-15deg); } 40% { transform: rotate(12deg); } 60% { transform: rotate(-8deg); } 80% { transform: rotate(5deg); } }
+.notif-menu { display: none; position: absolute; right: 0; top: calc(100% + 8px); background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.14); width: 340px; max-width: 90vw; z-index: 1051; overflow: hidden; }
+.notif-dropdown.open .notif-menu { display: block; }
+.notif-menu-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid #eef2f7; font-weight: 700; color: #1f2937; }
+.notif-menu-header button { border: none; background: none; color: #1565c0; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.notif-menu-list { max-height: 360px; overflow-y: auto; }
+.notif-menu-item { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; text-decoration: none; color: #333; border-bottom: 1px solid #f3f5f8; transition: background .15s; }
+.notif-menu-item:hover { background: #f5f7ff; color: #333; }
+.notif-menu-item.unread { background: #f0f7ff; }
+.notif-menu-item .notif-menu-icon { width: 34px; height: 34px; border-radius: 50%; background: #eef5ff; color: #1565c0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: .95rem; }
+.notif-menu-item.unread .notif-menu-icon { background: #1565c0; color: #fff; }
+.notif-menu-item .notif-menu-title { font-weight: 600; font-size: 13.5px; }
+.notif-menu-item .notif-menu-message { font-size: 12.5px; color: #6c757d; margin-top: 2px; }
+.notif-menu-item .notif-menu-time { font-size: 11px; color: #9aa4b2; margin-top: 3px; }
+.notif-menu-footer { display: block; text-align: center; padding: 10px; font-size: 13px; font-weight: 600; color: #1565c0; text-decoration: none; border-top: 1px solid #eef2f7; }
+.notif-menu-footer:hover { background: #f5f7ff; color: #1565c0; }
+.notif-empty { padding: 24px 14px; text-align: center; color: #9aa4b2; font-size: 13px; }
 .header-main { background: #1565c0; }
 .main-nav { display: flex; align-items: center; justify-content: center; min-height: 46px; }
 .main-nav-list { display: flex; align-items: center; list-style: none; margin: 0; padding: 0; gap: 2px; }
@@ -301,6 +362,7 @@
             if (!filterPanel.contains(event.target) && !filterBtn.contains(event.target)) {
                 filterPanel.style.display = 'none';
             }
+        });
 
         form.addEventListener('submit', function () {
             document.getElementById('hsColor').value = document.getElementById('fsColor').value;
@@ -322,5 +384,90 @@
             form.submit();
         });
     }
+
+    @auth
+    @if($isCustomer)
+    {{-- Chuông thông báo: poll định kỳ để lấy số chưa đọc + danh sách gần nhất, không cần tải
+        lại trang. Rung chuông khi có thông báo mới xuất hiện kể từ lần poll trước. --}}
+    (function () {
+        const dropdown = document.getElementById('notifDropdown');
+        const bellBtn = document.getElementById('notifBellBtn');
+        const menu = document.getElementById('notifMenu');
+        const badge = document.getElementById('notif-badge');
+        const list = document.getElementById('notifList');
+        const markAllBtn = document.getElementById('notifMarkAllRead');
+        if (!dropdown || !bellBtn) return;
+
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+        let lastSeenIds = null;
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str ?? '';
+            return div.innerHTML;
+        }
+
+        function render(notifications) {
+            if (!notifications.length) {
+                list.innerHTML = '<div class="notif-empty">Chưa có thông báo nào.</div>';
+                return;
+            }
+
+            list.innerHTML = notifications.map(function (n) {
+                return '<a href="' + '{{ route('notifications.read', ['notification' => '__ID__'], false) }}'.replace('__ID__', n.id) + '" class="notif-menu-item' + (n.read ? '' : ' unread') + '">'
+                    + '<span class="notif-menu-icon"><i class="bi ' + escapeHtml(n.icon) + '"></i></span>'
+                    + '<span>'
+                    + '<span class="notif-menu-title d-block">' + escapeHtml(n.title) + '</span>'
+                    + '<span class="notif-menu-message d-block">' + escapeHtml(n.message) + '</span>'
+                    + '<span class="notif-menu-time d-block">' + escapeHtml(n.time) + '</span>'
+                    + '</span>'
+                    + '</a>';
+            }).join('');
+        }
+
+        function poll() {
+            fetch('{{ route('notifications.recent', [], false) }}', { headers: { 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(data => {
+                    const count = data.unread_count || 0;
+                    badge.textContent = count;
+                    badge.classList.toggle('d-none', count === 0);
+
+                    const currentIds = data.notifications.map(n => n.id).join(',');
+                    if (lastSeenIds !== null && currentIds !== lastSeenIds && data.notifications[0] && !data.notifications[0].read) {
+                        bellBtn.classList.remove('ringing');
+                        void bellBtn.offsetWidth;
+                        bellBtn.classList.add('ringing');
+                    }
+                    lastSeenIds = currentIds;
+
+                    render(data.notifications);
+                })
+                .catch(() => {});
+        }
+
+        bellBtn.addEventListener('click', function (event) {
+            event.stopPropagation();
+            dropdown.classList.toggle('open');
+        });
+
+        document.addEventListener('click', function (event) {
+            if (!dropdown.contains(event.target)) {
+                dropdown.classList.remove('open');
+            }
+        });
+
+        markAllBtn?.addEventListener('click', function () {
+            fetch('{{ route('notifications.readAll', [], false) }}', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+            }).then(poll);
+        });
+
+        poll();
+        setInterval(poll, 25000);
+    })();
+    @endif
+    @endauth
 })();
 </script>

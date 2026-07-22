@@ -107,7 +107,8 @@ class OrderController extends Controller
             'shipment.carrier',
             'payment',
             'receiver',
-            'proofs'
+            'proofs',
+            'refundRequest'
         ])->findOrFail($id);
 
         // Kiểm tra quyền sở hữu đơn hàng bảo mật
@@ -129,17 +130,31 @@ class OrderController extends Controller
     public function statusCheck(string|int $id)
     {
         $order = Order::select(['id', 'user_id', 'status', 'fulfillment_status', 'updated_at'])
-            ->with(['payment:id,order_id,payment_status'])
+            ->with(['payment:id,order_id,payment_status', 'refundRequest'])
             ->findOrFail($id);
 
         if ((int) $order->user_id !== (int) auth()->id()) {
             abort(403);
         }
 
+        // Mô phỏng ngân hàng báo đã hoàn tiền xong: khi đã quá simulate_confirm_at, lần poll kế
+        // tiếp sẽ tự xác nhận — hành vi phía người dùng giống hệt ngân hàng xử lý thật (đồ án).
+        $refund = $order->refundRequest;
+        if (
+            $refund
+            && $refund->status === 'pending'
+            && $refund->simulate_confirm_at
+            && $refund->simulate_confirm_at->isPast()
+        ) {
+            $this->refundService->confirmSimulatedBankRefund($refund);
+            $refund->refresh();
+        }
+
         return response()->json([
             'status' => $order->status,
             'fulfillment_status' => $order->fulfillment_status,
             'payment_status' => $order->payment?->payment_status,
+            'refund_status' => $refund?->status,
             'updated_at' => $order->updated_at?->toIso8601String(),
         ]);
     }

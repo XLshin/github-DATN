@@ -266,7 +266,19 @@
 
 @section('content')
     @if ($items->isEmpty())
-        <div class="alert alert-warning">Giỏ hàng trống. <a href="{{ route('home') }}">Tiếp tục mua sắm</a></div>
+        <div class="text-center py-5">
+            <svg width="160" height="124" viewBox="0 0 180 140" class="mb-3" aria-hidden="true">
+                <ellipse cx="90" cy="126" rx="60" ry="8" fill="#eef2f7"/>
+                <rect x="40" y="46" width="100" height="62" rx="10" fill="#eef5ff"/>
+                <path d="M60 46 L66 24 H114 L120 46" fill="none" stroke="#0d6efd" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="68" cy="118" r="9" fill="#0d6efd"/>
+                <circle cx="112" cy="118" r="9" fill="#0d6efd"/>
+                <path d="M52 58 L64 90 H116 L128 58" fill="none" stroke="#9fc2ff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="80" y1="66" x2="80" y2="80" stroke="#9fc2ff" stroke-width="4" stroke-linecap="round"/>
+                <line x1="100" y1="66" x2="100" y2="80" stroke="#9fc2ff" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+            <div class="alert alert-warning d-inline-block">Giỏ hàng trống. <a href="{{ route('home') }}">Tiếp tục mua sắm</a></div>
+        </div>
     @else
         <div id="checkout-preview-error" class="alert alert-danger d-none">
             <div></div>
@@ -309,19 +321,19 @@
                         <div id="proxy-buyer-fields" class="{{ old('buyer_type') === 'proxy' ? '' : 'd-none' }} border rounded p-3 bg-light">
                             <div class="text-muted small mb-2">
                                 <i class="bi bi-info-circle"></i>
-                                Tự động lấy theo thông tin tài khoản của bạn, có thể chỉnh sửa.
+                                Lấy theo địa chỉ mặc định của tài khoản bạn. Muốn đổi, hãy thêm địa chỉ mới và đặt làm mặc định.
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Tên người đặt mua <span class="text-danger">*</span></label>
-                                    <input type="text" id="buyer_name" name="buyer_name" class="form-control" value="{{ old('buyer_name', $buyerDefaultName) }}" required>
+                                    <input type="text" id="buyer_name" name="buyer_name" class="form-control" value="{{ old('buyer_name', $buyerDefaultName) }}" readonly required>
                                     @error('buyer_name')
                                         <div class="text-danger small mt-1">{{ $message }}</div>
                                     @enderror
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">SĐT người đặt mua <span class="text-danger">*</span></label>
-                                    <input type="text" id="buyer_phone" name="buyer_phone" class="form-control" value="{{ old('buyer_phone', $buyerDefaultPhone) }}" required>
+                                    <input type="text" id="buyer_phone" name="buyer_phone" class="form-control" value="{{ old('buyer_phone', $buyerDefaultPhone) }}" readonly required>
                                     @error('buyer_phone')
                                         <div class="text-danger small mt-1">{{ $message }}</div>
                                     @enderror
@@ -426,37 +438,19 @@
                         </div>
                     </div>
 
-                    {{-- Thông tin người nhận --}}
-                    <div class="checkout-section" id="receiver-section">
-                        <div class="checkout-section__title">
-                            <span class="checkout-section__badge"><i class="bi bi-box-seam"></i></span>
-                            Thông tin người nhận
-                        </div>
-
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Họ tên người nhận <span class="text-danger">*</span></label>
-                                <input type="text" id="customer_name" name="customer_name" class="form-control" value="{{ old('customer_name', auth()->user()->name ?? '') }}" required>
-                                @error('customer_name')
-                                    <div class="text-danger small mt-1">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
-                                <input type="text" id="customer_phone" name="customer_phone" class="form-control" value="{{ old('customer_phone', auth()->user()->phone ?? '') }}" required>
-                                @error('customer_phone')
-                                    <div class="text-danger small mt-1">{{ $message }}</div>
-                                @enderror
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Địa chỉ giao hàng <span class="text-danger">*</span></label>
-                                <textarea id="shipping_address" name="shipping_address" class="form-control" rows="3" required>{{ old('shipping_address', auth()->user()->address ?? '') }}</textarea>
-                                @error('shipping_address')
-                                    <div class="text-danger small mt-1">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-                    </div>
+                    {{-- Thông tin người nhận: lấy từ địa chỉ đã chọn ở trên, không cần nhập lại --}}
+                    <input type="hidden" id="customer_name" name="customer_name" value="{{ old('customer_name', auth()->user()->name ?? '') }}">
+                    <input type="hidden" id="customer_phone" name="customer_phone" value="{{ old('customer_phone', auth()->user()->phone ?? '') }}">
+                    <input type="hidden" id="shipping_address" name="shipping_address" value="{{ old('shipping_address', auth()->user()->address ?? '') }}">
+                    @error('customer_name')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
+                    @error('customer_phone')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
+                    @error('shipping_address')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
 
                     {{-- Voucher & điểm --}}
                     <div class="checkout-section">
@@ -689,24 +683,18 @@
                 // Tự động lấy theo tài khoản đang đăng nhập (nếu người dùng chưa từng chỉnh sửa), vẫn có thể sửa lại.
                 if (buyerNameInput && !buyerNameInput.value.trim()) buyerNameInput.value = accountName;
                 if (buyerPhoneInput && !buyerPhoneInput.value.trim()) buyerPhoneInput.value = accountPhone;
+            }
 
-                savedAddressSection.classList.add('d-none');
-                document.querySelectorAll('input[name="saved_address_id"]').forEach(r => r.checked = false);
-                receiverNameInput.value = '';
-                receiverPhoneInput.value = '';
-                receiverAddressInput.value = '';
+            // Người nhận luôn lấy từ địa chỉ đã chọn ở trên (kể cả khi mua hộ).
+            const defaultRadio = document.querySelector('input[name="saved_address_id"]:checked')
+                || document.querySelector('input[name="saved_address_id"]');
+            if (defaultRadio) {
+                defaultRadio.checked = true;
+                applySelectedAddress();
             } else {
-                savedAddressSection.classList.remove('d-none');
-                const defaultRadio = document.querySelector('input[name="saved_address_id"]:checked')
-                    || document.querySelector('input[name="saved_address_id"]');
-                if (defaultRadio) {
-                    defaultRadio.checked = true;
-                    applySelectedAddress();
-                } else {
-                    receiverNameInput.value = accountName;
-                    receiverPhoneInput.value = accountPhone;
-                    receiverAddressInput.value = accountAddress;
-                }
+                receiverNameInput.value = accountName;
+                receiverPhoneInput.value = accountPhone;
+                receiverAddressInput.value = accountAddress;
             }
         }
 
