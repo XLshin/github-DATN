@@ -59,11 +59,16 @@ class ImeiController extends Controller
     {
         $request->validate([
             'product_variant_id' => 'required|exists:product_variants,id',
-            'imeis' => 'required|string',
+            'imeis' => 'nullable|required_without:imei_file|string',
+            'imei_file' => 'nullable|required_without:imeis|file|mimes:xlsx,csv,txt|max:2048',
         ], [
             'product_variant_id.required' => 'Bạn phải chọn biến thể sản phẩm.',
             'product_variant_id.exists' => 'Biến thể sản phẩm không tồn tại.',
-            'imeis.required' => 'Bạn phải nhập IMEI/Serial.',
+            'imeis.required_without' => 'Bạn phải nhập IMEI/Serial hoặc upload file.',
+            'imei_file.required_without' => 'Bạn phải nhập IMEI/Serial hoặc upload file.',
+            'imei_file.file' => 'File IMEI không hợp lệ.',
+            'imei_file.mimes' => 'File IMEI chỉ hỗ trợ định dạng xlsx, csv hoặc txt.',
+            'imei_file.max' => 'File IMEI không được vượt quá 2MB.',
         ]);
 
         $variant = ProductVariant::with('product')
@@ -77,8 +82,19 @@ class ImeiController extends Controller
                 ->withInput();
         }
 
-        $imeis = preg_split('/\r\n|\r|\n/', trim((string) $request->imeis));
-        $imeis = array_filter(array_map('trim', $imeis));
+        try {
+            $imeis = $this->collectImeisFromRequest($request);
+        } catch (\RuntimeException $exception) {
+            return back()
+                ->withErrors(['imei_file' => $exception->getMessage()])
+                ->withInput();
+        }
+
+        if (empty($imeis)) {
+            return back()
+                ->withErrors(['imeis' => 'Danh sách IMEI/Serial không được để trống.'])
+                ->withInput();
+        }
 
         if (count($imeis) !== count(array_unique($imeis))) {
             return back()
@@ -88,14 +104,14 @@ class ImeiController extends Controller
                 ->withInput();
         }
 
-        DB::transaction(function () use ($imeis, $variant) {
+        DB::transaction(function () use ($imeis, $variant, $request) {
             foreach ($imeis as $imei) {
                 validator(
                     ['imei' => $imei],
                     ['imei' => 'required|digits:15|unique:imeis,imei'],
                     [
                         'imei.required' => 'IMEI không được để trống.',
-                        'imei.digits' => 'IMEI phải gồm đúng 15 chữ số.',
+                        'imei.digits' => "IMEI {$imei} phải gồm đúng 15 chữ số.",
                         'imei.unique' => "IMEI {$imei} đã tồn tại.",
                     ]
                 )->validate();
@@ -111,11 +127,13 @@ class ImeiController extends Controller
                 'product_variant_id' => $variant->id,
                 'type' => 'import',
                 'quantity' => count($imeis),
-                'note' => 'Nhập kho bằng IMEI/Serial',
+                'note' => $request->hasFile('imei_file')
+                    ? 'Nhập kho IMEI/Serial từ file ' . $request->file('imei_file')->getClientOriginalName()
+                    : 'Nhập kho bằng IMEI/Serial',
             ]);
         });
 
-        // Cập nhật stock_quantity theo số IMEI available thực tế
+        // Cập nhật stock_quantity theo số IMEI available thực tế.
         $variant->update([
             'stock_quantity' => $variant->imeis()->where('status', 'available')->count(),
         ]);
@@ -248,6 +266,159 @@ class ImeiController extends Controller
         return back()->with('error', 'Không xóa cứng IMEI. Hãy dùng điều chỉnh IMEI và chuyển trạng thái thành nhập nhầm/loại khỏi kho.');
     }
 
+    public function createBulkTransfer()
+    {
+        $imeiVariants = $this->imeiVariantQuery()->get();
+
+        return view('admin.imeis.bulk-transfer', compact('imeiVariants'));
+    }
+
+    public function storeBulkTransfer(Request $request)
+    {
+        $validated = $request->validate([
+            'target_product_variant_id' => 'required|exists:product_variants,id',
+            'imeis' => 'nullable|required_without:imei_file|string',
+            'imei_file' => 'nullable|required_without:imeis|file|mimes:xlsx,csv,txt|max:2048',
+            'note' => 'required|string|max:1000',
+        ], [
+            'target_product_variant_id.required' => 'Bạn phải chọn biến thể đích.',
+            'target_product_variant_id.exists' => 'Biến thể đích không tồn tại.',
+            'imeis.required_without' => 'Bạn phải nhập danh sách IMEI cần chuyển hoặc upload file.',
+            'imei_file.required_without' => 'Bạn phải nhập danh sách IMEI cần chuyển hoặc upload file.',
+            'imei_file.file' => 'File IMEI không hợp lệ.',
+            'imei_file.mimes' => 'File IMEI chỉ hỗ trợ định dạng xlsx, csv hoặc txt.',
+            'imei_file.max' => 'File IMEI không được vượt quá 2MB.',
+            'note.required' => 'Bạn phải nhập lý do chuyển IMEI.',
+            'note.max' => 'Lý do chuyển IMEI không được vượt quá 1000 ký tự.',
+        ]);
+
+        try {
+            $imeis = $this->collectImeisFromRequest($request);
+        } catch (\RuntimeException $exception) {
+            return back()
+                ->withErrors(['imei_file' => $exception->getMessage()])
+                ->withInput();
+        }
+
+        if (empty($imeis)) {
+            return back()
+                ->withErrors(['imeis' => 'Danh sách IMEI cần chuyển không được để trống.'])
+                ->withInput();
+        }
+
+        if (count($imeis) !== count(array_unique($imeis))) {
+            return back()
+                ->withErrors(['imeis' => 'Danh sách IMEI cần chuyển bị trùng.'])
+                ->withInput();
+        }
+
+        foreach ($imeis as $imei) {
+            validator(
+                ['imei' => $imei],
+                ['imei' => 'required|digits:15'],
+                [
+                    'imei.required' => 'IMEI không được để trống.',
+                    'imei.digits' => "IMEI {$imei} phải gồm đúng 15 chữ số.",
+                ]
+            )->validate();
+        }
+
+        $targetVariant = ProductVariant::with('product')
+            ->findOrFail($validated['target_product_variant_id']);
+
+        if ($targetVariant->product?->product_type !== 'imei/serial') {
+            return back()
+                ->withErrors(['target_product_variant_id' => 'Chỉ được chuyển sang biến thể quản lý bằng IMEI/Serial.'])
+                ->withInput();
+        }
+
+        DB::transaction(function () use ($imeis, $targetVariant, $validated) {
+            $imeiModels = Imei::with('warranty')
+                ->whereIn('imei', $imeis)
+                ->lockForUpdate()
+                ->get();
+
+            $foundImeis = $imeiModels->pluck('imei')->all();
+            $missingImeis = array_values(array_diff($imeis, $foundImeis));
+
+            if (!empty($missingImeis)) {
+                throw ValidationException::withMessages([
+                    'imeis' => 'Không tìm thấy IMEI: ' . implode(', ', array_slice($missingImeis, 0, 10))
+                        . (count($missingImeis) > 10 ? '...' : ''),
+                ]);
+            }
+
+            $lockedImeis = $imeiModels->filter(function (Imei $imei) {
+                return $imei->status !== 'available'
+                    || $imei->reserved_by_order_item_id
+                    || $imei->warranty;
+            });
+
+            if ($lockedImeis->isNotEmpty()) {
+                throw ValidationException::withMessages([
+                    'imeis' => 'Chỉ được chuyển IMEI còn hàng. Các mã không thể chuyển: '
+                        . $lockedImeis->pluck('imei')->take(10)->implode(', ')
+                        . ($lockedImeis->count() > 10 ? '...' : ''),
+                ]);
+            }
+
+            $sameTargetImeis = $imeiModels
+                ->where('product_variant_id', $targetVariant->id)
+                ->pluck('imei');
+
+            if ($sameTargetImeis->isNotEmpty()) {
+                throw ValidationException::withMessages([
+                    'imeis' => 'Một số IMEI đã nằm trong biến thể đích: '
+                        . $sameTargetImeis->take(10)->implode(', ')
+                        . ($sameTargetImeis->count() > 10 ? '...' : ''),
+                ]);
+            }
+
+            $sourceCounts = $imeiModels
+                ->groupBy('product_variant_id')
+                ->map(fn ($items) => $items->count());
+
+            Imei::whereIn('id', $imeiModels->pluck('id'))
+                ->update([
+                    'product_variant_id' => $targetVariant->id,
+                    'updated_at' => now(),
+                ]);
+
+            foreach ($sourceCounts as $sourceVariantId => $quantity) {
+                InventoryTransaction::create([
+                    'product_variant_id' => $sourceVariantId,
+                    'type' => 'adjustment',
+                    'quantity' => -$quantity,
+                    'note' => "Chuyển {$quantity} IMEI sang biến thể #{$targetVariant->id}. Lý do: {$validated['note']}",
+                ]);
+            }
+
+            InventoryTransaction::create([
+                'product_variant_id' => $targetVariant->id,
+                'type' => 'adjustment',
+                'quantity' => $imeiModels->count(),
+                'note' => "Nhận {$imeiModels->count()} IMEI chuyển hàng loạt. Lý do: {$validated['note']}",
+            ]);
+
+            $affectedVariantIds = $sourceCounts->keys()
+                ->push($targetVariant->id)
+                ->unique()
+                ->values();
+
+            ProductVariant::whereIn('id', $affectedVariantIds)
+                ->get()
+                ->each(function (ProductVariant $variant) {
+                    $variant->update([
+                        'stock_quantity' => $variant->imeis()->where('status', 'available')->count(),
+                    ]);
+                });
+        });
+
+        return redirect()
+            ->route('admin.stocks')
+            ->with('success', 'Đã chuyển ' . count($imeis) . ' IMEI sang biến thể mới.');
+    }
+
     public function stock(Request $request)
     {
         $keyword = trim((string) $request->keyword);
@@ -353,6 +524,151 @@ class ImeiController extends Controller
         $brands = Brand::orderBy('name')->get();
 
         return view('admin.inventory.accessories', compact('stocks', 'brands'));
+    }
+
+    private function collectImeisFromRequest(Request $request): array
+    {
+        $imeis = $this->parseTextImeis((string) $request->input('imeis', ''));
+
+        if ($request->hasFile('imei_file')) {
+            $file = $request->file('imei_file');
+            $extension = strtolower($file->getClientOriginalExtension());
+
+            $fileImeis = match ($extension) {
+                'xlsx' => $this->parseXlsxImeis($file->getRealPath()),
+                'csv', 'txt' => $this->parseDelimitedImeis($file->getRealPath()),
+                default => [],
+            };
+
+            $imeis = array_merge($imeis, $fileImeis);
+        }
+
+        return array_values(array_filter(array_map([$this, 'normalizeImei'], $imeis)));
+    }
+
+    private function parseTextImeis(string $text): array
+    {
+        if (trim($text) === '') {
+            return [];
+        }
+
+        return preg_split('/\r\n|\r|\n/', trim($text)) ?: [];
+    }
+
+    private function parseDelimitedImeis(string $path): array
+    {
+        $rows = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+
+        if (!$rows) {
+            return [];
+        }
+
+        return array_map(function (string $row) {
+            $columns = str_getcsv($row);
+
+            return $columns[0] ?? '';
+        }, $rows);
+    }
+
+    private function parseXlsxImeis(string $path): array
+    {
+        if (!class_exists(\ZipArchive::class)) {
+            throw new \RuntimeException('Máy chủ chưa bật ZipArchive nên chưa đọc được file xlsx. Bạn có thể dùng csv/txt hoặc bật extension zip.');
+        }
+
+        if (!function_exists('simplexml_load_string')) {
+            throw new \RuntimeException('Máy chủ chưa bật SimpleXML nên chưa đọc được file xlsx.');
+        }
+
+        $zip = new \ZipArchive();
+
+        if ($zip->open($path) !== true) {
+            throw new \RuntimeException('Không thể mở file Excel. Vui lòng kiểm tra lại file.');
+        }
+
+        $sharedStrings = $this->readXlsxSharedStrings($zip);
+        $sheetXml = $zip->getFromName('xl/worksheets/sheet1.xml');
+        $zip->close();
+
+        if ($sheetXml === false) {
+            throw new \RuntimeException('File Excel chưa có sheet đầu tiên để đọc IMEI.');
+        }
+
+        $sheet = simplexml_load_string($sheetXml);
+
+        if (!$sheet) {
+            throw new \RuntimeException('Không thể đọc dữ liệu trong sheet Excel.');
+        }
+
+        $imeis = [];
+
+        foreach ($sheet->sheetData->row ?? [] as $row) {
+            $firstCell = $row->c[0] ?? null;
+
+            if (!$firstCell) {
+                continue;
+            }
+
+            $value = (string) ($firstCell->v ?? '');
+            $type = (string) ($firstCell['t'] ?? '');
+
+            if ($type === 's') {
+                $value = $sharedStrings[(int) $value] ?? '';
+            } elseif ($type === 'inlineStr') {
+                $value = (string) ($firstCell->is->t ?? '');
+            }
+
+            $imeis[] = $value;
+        }
+
+        return $imeis;
+    }
+
+    private function readXlsxSharedStrings(\ZipArchive $zip): array
+    {
+        $xml = $zip->getFromName('xl/sharedStrings.xml');
+
+        if ($xml === false) {
+            return [];
+        }
+
+        $sharedStringXml = simplexml_load_string($xml);
+
+        if (!$sharedStringXml) {
+            return [];
+        }
+
+        $strings = [];
+
+        foreach ($sharedStringXml->si as $item) {
+            if (isset($item->t)) {
+                $strings[] = (string) $item->t;
+                continue;
+            }
+
+            $text = '';
+
+            foreach ($item->r as $run) {
+                $text .= (string) ($run->t ?? '');
+            }
+
+            $strings[] = $text;
+        }
+
+        return $strings;
+    }
+
+    private function normalizeImei(string $imei): string
+    {
+        $imei = trim($imei);
+        $imei = preg_replace('/^\xEF\xBB\xBF/', '', $imei) ?? $imei;
+        $imei = trim($imei, " \t\n\r\0\x0B'\"");
+
+        if (strtolower($imei) === 'imei' || strtolower($imei) === 'serial') {
+            return '';
+        }
+
+        return $imei;
     }
 
     private function imeiVariantQuery()

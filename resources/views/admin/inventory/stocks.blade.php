@@ -7,6 +7,11 @@
 @section('page_subtitle', 'Chỉ hiển thị kho sản phẩm quản lý bằng IMEI/Serial.')
 
 @section('heading_actions')
+    @if(auth()->user()?->isAdmin())
+    <a href="{{ route('admin.imeis.bulk-transfer.create') }}" class="btn btn-warning btn-sm">
+        <i class="bi bi-arrow-left-right"></i> Chuyển IMEI hàng loạt
+    </a>
+    @endif
     <a href="{{ route('admin.imeis.create') }}" class="btn btn-primary btn-sm">
         <i class="bi bi-plus-lg"></i> Nhập IMEI/Serial
     </a>
@@ -14,7 +19,7 @@
         <i class="bi bi-box-seam"></i> Kho phụ kiện
     </a>
     <a href="{{ route('admin.inventory.index') }}" class="btn btn-light btn-sm">
-        <i class="bi bi-clock-history"></i> Lịch sử kho
+        <i class="bi bi-clock-history"></i> Lịch sử giao dịch
     </a>
 @endsection
 
@@ -40,42 +45,37 @@
 
 <section class="panel mb-4">
     <div class="panel-header">
-        <form method="GET" class="row g-2 flex-grow-1">
-            <div class="col-lg-7">
-                <div class="row g-2">
-                    <div class="col-md-6">
-                        <input
-                            type="text"
-                            name="keyword"
-                            value="{{ request('keyword') }}"
-                            class="form-control"
-                            placeholder="IMEI, tên, màu hoặc dung lượng">
-                    </div>
-
-                    <div class="col-md-4">
-                        <select name="brand_id" class="form-select">
-                            <option value="">-- Tất cả thương hiệu --</option>
-                            @foreach($brands as $brand)
-                                <option
-                                    value="{{ $brand->id }}"
-                                    {{ request('brand_id') == $brand->id ? 'selected' : '' }}>
-                                    {{ $brand->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="col-md-2">
-                        <button class="btn btn-primary w-100">
-                            Tìm kiếm
-                        </button>
-                    </div>
-                </div>
+        <form method="GET" class="row g-2 align-items-end flex-grow-1">
+            <div class="col-lg-5 col-md-6">
+                <label class="form-label small text-muted mb-1">Từ khóa</label>
+                <input
+                    type="text"
+                    name="keyword"
+                    value="{{ request('keyword') }}"
+                    class="form-control form-control-sm"
+                    placeholder="IMEI, tên sản phẩm, màu hoặc phiên bản">
             </div>
 
-            <div class="col-lg-3 d-flex gap-2">
+            <div class="col-lg-3 col-md-4">
+                <label class="form-label small text-muted mb-1">Thương hiệu</label>
+                <select name="brand_id" class="form-select form-select-sm">
+                    <option value="">-- Tất cả thương hiệu --</option>
+                    @foreach($brands as $brand)
+                        <option
+                            value="{{ $brand->id }}"
+                            {{ request('brand_id') == $brand->id ? 'selected' : '' }}>
+                            {{ $brand->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="col-lg-4 col-md-12 d-flex gap-2 justify-content-lg-end">
+                <button type="submit" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-search"></i> Tìm kiếm
+                </button>
                 <a href="{{ route('admin.stocks') }}" class="btn btn-light btn-sm">
-                    Làm mới
+                    <i class="bi bi-arrow-clockwise"></i> Làm mới
                 </a>
             </div>
         </form>
@@ -101,7 +101,7 @@
                         <tr>
                             <th>IMEI/Serial</th>
                             <th>Sản phẩm</th>
-                            <th>Dung lượng</th>
+                            <th>Phiên bản</th>
                             <th>Màu</th>
                             <th>Trạng thái</th>
                             <th class="text-end">Thao tác</th>
@@ -152,7 +152,7 @@
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <div class="panel p-3">
-            <div class="text-muted small">Tổng biến thể có imei/serial</div>
+            <div class="text-muted small">Tổng biến thể có IMEI/Serial</div>
             <div class="fs-4 fw-semibold">{{ $stocks->count() }}</div>
         </div>
     </div>
@@ -192,7 +192,7 @@
                 <tr>
                     <th>Sản phẩm</th>
                     <th>Màu sắc</th>
-                    <th>Dung lượng</th>
+                    <th>Phiên bản</th>
                     <th>Hãng</th>
                     <th>Tồn kho</th>
                     <th>Đang giữ</th>

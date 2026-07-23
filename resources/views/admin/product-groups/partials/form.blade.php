@@ -1,6 +1,5 @@
 @php
     $editingGroup = $productGroup ?? null;
-    $hasProducts = $editingGroup && ($editingGroup->products_count ?? $editingGroup->products()->count()) > 0;
     $hasLockedInventory = $editingGroup && $editingGroup->products()
         ->whereHas('variants', fn ($query) => $query
             ->where('stock_quantity', '>', 0)

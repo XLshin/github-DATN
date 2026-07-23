@@ -1,15 +1,15 @@
 @extends('layouts.admin')
 
-@section('title', 'Nhập kho IMEI / Serial')
-@section('page_icon', 'bi-upc-scan')
-@section('page_eyebrow', 'Kho hàng')
-@section('page_title', 'Nhập kho IMEI / Serial')
-@section('page_subtitle', 'Nhập kho cho các sản phẩm quản lý bằng IMEI hoặc Serial.')
+@section('title', 'Chuyển IMEI hàng loạt')
+@section('page_icon', 'bi-arrow-left-right')
+@section('page_eyebrow', 'Kho IMEI/Serial')
+@section('page_title', 'Chuyển IMEI hàng loạt')
+@section('page_subtitle', 'Dùng khi nhập nhầm IMEI vào sai biến thể. Chỉ admin được thực hiện thao tác này.')
 
 @section('heading_actions')
 <a href="{{ route('admin.stocks') }}" class="btn btn-light btn-sm">
     <i class="bi bi-arrow-left"></i>
-    Quay lại
+    Quay lại kho
 </a>
 @endsection
 
@@ -21,9 +21,9 @@
 <section class="panel">
     <div class="panel-header">
         <div>
-            <h5 class="mb-1">Thông tin nhập kho</h5>
+            <h5 class="mb-1">Thông tin chuyển kho</h5>
             <div class="text-muted small">
-                Chọn biến thể sản phẩm, sau đó nhập tay IMEI hoặc upload file Excel.
+                Dán danh sách IMEI đang nhập sai, sau đó chọn biến thể đúng để chuyển sang.
             </div>
         </div>
     </div>
@@ -39,20 +39,31 @@
             </div>
         @endif
 
-        <form action="{{ route('admin.imeis.store') }}" method="POST" enctype="multipart/form-data" style="max-width:760px;">
+        <div class="alert alert-warning d-flex gap-2 align-items-start">
+            <i class="bi bi-exclamation-triangle mt-1"></i>
+            <div>
+                <div class="fw-semibold">Chỉ chuyển được IMEI còn hàng</div>
+                <div class="small">
+                    IMEI đã giữ chỗ, đã bán, đang bảo hành hoặc đã loại khỏi kho sẽ bị chặn để tránh lệch nghiệp vụ.
+                    Hệ thống sẽ ghi lịch sử kho cho cả biến thể cũ và biến thể mới.
+                </div>
+            </div>
+        </div>
+
+        <form action="{{ route('admin.imeis.bulk-transfer.store') }}" method="POST" enctype="multipart/form-data" style="max-width:760px;">
             @csrf
 
             <div class="mb-3">
                 <label class="form-label">
-                    Chọn biến thể sản phẩm
+                    Biến thể đích
                     <span class="text-danger">*</span>
                 </label>
 
                 <select
-                    id="variantSelect"
-                    name="product_variant_id"
-                    class="form-select @error('product_variant_id') is-invalid @enderror">
-                    <option value="">-- Chọn biến thể sản phẩm --</option>
+                    id="targetVariantSelect"
+                    name="target_product_variant_id"
+                    class="form-select @error('target_product_variant_id') is-invalid @enderror">
+                    <option value="">-- Chọn biến thể đúng --</option>
 
                     @foreach($imeiVariants as $variant)
                         <option
@@ -60,54 +71,39 @@
                             data-product="{{ $variant->product->name }}"
                             data-color="{{ $variant->color ?? '' }}"
                             data-storage="{{ $variant->product->storage ?? '' }}"
-                            {{ old('product_variant_id') == $variant->id ? 'selected' : '' }}>
+                            @selected(old('target_product_variant_id') == $variant->id)>
                             {{ trim($variant->product->name . ' - ' . ($variant->color ?? '---') . ($variant->product->storage ? ' - ' . $variant->product->storage : '')) }}
                         </option>
                     @endforeach
                 </select>
 
-                @error('product_variant_id')
-                    <div class="invalid-feedback d-block">
-                        {{ $message }}
-                    </div>
+                @error('target_product_variant_id')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
-            </div>
-
-            <div class="alert alert-info d-flex gap-2 align-items-start">
-                <i class="bi bi-info-circle mt-1"></i>
-                <div>
-                    <div class="fw-semibold">Có thể nhập tay hoặc upload file</div>
-                    <div class="small">
-                        File Excel nên để IMEI ở cột đầu tiên, mỗi dòng một mã. Hệ thống hỗ trợ
-                        <strong>.xlsx</strong>, <strong>.csv</strong> và <strong>.txt</strong>.
-                    </div>
-                </div>
             </div>
 
             <div class="mb-3">
                 <label class="form-label">
-                    Danh sách IMEI / Serial
+                    Danh sách IMEI cần chuyển
                 </label>
 
                 <textarea
                     name="imeis"
-                    rows="6"
+                    rows="7"
                     class="form-control @error('imeis') is-invalid @enderror"
-                    placeholder="Mỗi dòng một IMEI hoặc Serial&#10;123456789012345&#10;123456789012346&#10;123456789012347">{{ old('imeis') }}</textarea>
+                    placeholder="Mỗi dòng một IMEI&#10;123456789012345&#10;123456789012346">{{ old('imeis') }}</textarea>
                 <div class="form-text">
-                    Có thể bỏ trống ô này nếu bạn upload file bên dưới.
+                    Dán các IMEI đã nhập nhầm, mỗi dòng một mã.
                 </div>
 
                 @error('imeis')
-                    <div class="invalid-feedback d-block">
-                        {{ $message }}
-                    </div>
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
             </div>
 
             <div class="mb-3">
                 <label class="form-label">
-                    File IMEI / Serial
+                    File IMEI cần chuyển
                 </label>
                 <input
                     type="file"
@@ -115,20 +111,38 @@
                     class="form-control @error('imei_file') is-invalid @enderror"
                     accept=".xlsx,.csv,.txt">
                 <div class="form-text">
-                    Nếu dùng Excel, hãy để IMEI ở cột A. Dòng tiêu đề "IMEI" hoặc "Serial" sẽ được tự bỏ qua.
+                    Có thể upload lại file Excel/csv/txt đã nhập nhầm. Nếu dùng Excel, hệ thống đọc IMEI ở cột A.
                 </div>
 
                 @error('imei_file')
-                    <div class="invalid-feedback d-block">
-                        {{ $message }}
-                    </div>
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">
+                    Lý do chuyển
+                    <span class="text-danger">*</span>
+                </label>
+
+                <textarea
+                    name="note"
+                    rows="3"
+                    class="form-control @error('note') is-invalid @enderror"
+                    placeholder="Ví dụ: Nhập nhầm file Excel của biến thể khác">{{ old('note') }}</textarea>
+
+                @error('note')
+                    <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
             </div>
 
             <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-primary btn-sm">
-                    <i class="bi bi-check-lg"></i>
-                    Nhập kho
+                <button
+                    type="submit"
+                    class="btn btn-primary btn-sm"
+                    onclick="return confirm('Xác nhận chuyển các IMEI này sang biến thể đã chọn?')">
+                    <i class="bi bi-arrow-left-right"></i>
+                    Xác nhận chuyển
                 </button>
 
                 <a href="{{ route('admin.stocks') }}" class="btn btn-light btn-sm">
@@ -144,7 +158,7 @@
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const select = document.getElementById('variantSelect');
+    const select = document.getElementById('targetVariantSelect');
     if (!select || !window.TomSelect) return;
 
     const variantOptions = [];
@@ -169,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function () {
     new TomSelect(select, {
         allowEmptyOption: true,
         plugins: ['clear_button'],
-        placeholder: 'Tìm biến thể sản phẩm...',
+        placeholder: 'Tìm biến thể đúng...',
         options: variantOptions,
         items: selectedItems,
         valueField: 'value',

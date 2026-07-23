@@ -15,6 +15,7 @@ class InventoryController extends Controller
     {
         $query = InventoryTransaction::with([
             'productVariant.product.brand',
+            'user',
         ]);
 
         if ($request->filled('keyword')) {
@@ -30,6 +31,10 @@ class InventoryController extends Controller
                 })
                     ->orWhereHas('productVariant', function ($variantQuery) use ($keyword) {
                         $variantQuery->where('color', 'like', "%{$keyword}%");
+                    })
+                    ->orWhereHas('user', function ($userQuery) use ($keyword) {
+                        $userQuery->where('name', 'like', "%{$keyword}%")
+                            ->orWhere('email', 'like', "%{$keyword}%");
                     })
                     ->orWhere('note', 'like', "%{$keyword}%");
 
