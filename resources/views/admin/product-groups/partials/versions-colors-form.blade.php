@@ -52,6 +52,7 @@
         ]);
     }
 
+    $variantMatrixRows = collect(old('variant_matrix', []))->values();
     $showColorPreviewColumn = $editingGroup !== null;
 @endphp
 
@@ -74,7 +75,7 @@
                 <div class="small">
                     Mỗi dòng là một phiên bản bán riêng. Ví dụ <strong>256GB</strong> sẽ gợi ý tên
                     <strong>iPhone 17 Pro Max 256GB</strong>, nhưng bạn vẫn có thể sửa lại trước khi lưu.
-                    Phiên bản đã có IMEI sẽ bị khóa tên, dung lượng và không thể xóa.
+                    Phiên bản đã có IMEI hoặc tồn kho sẽ bị khóa tên, dung lượng và không thể xóa.
                 </div>
             </div>
         </div>
@@ -191,8 +192,8 @@
                 <div class="fw-semibold">Lưu ý khi nhập màu sắc</div>
                 <div class="small">
                     Danh sách màu này dùng chung cho toàn bộ phiên bản. Khi lưu, hệ thống tự tạo đủ tổ hợp
-                    <strong>phiên bản x màu</strong>; giá cộng thêm của màu sẽ mặc định là <strong>0</strong>.
-                    Màu đã có IMEI sẽ bị khóa tên và không thể xóa.
+                    <strong>phiên bản x màu</strong>; giá cộng thêm mặc định là <strong>0</strong>.
+                    Ảnh màu sẽ được áp dụng cho các biến thể cùng màu. Màu đã có IMEI hoặc tồn kho sẽ bị khóa tên và không thể xóa.
                 </div>
             </div>
         </div>
@@ -276,6 +277,83 @@
     @enderror
 </section>
 
+@unless($editingGroup)
+<section class="panel mb-3">
+    <div class="panel-header">
+        <div>
+            <h5 class="mb-1">Biến thể bán ra</h5>
+            <div class="text-muted small">Bấm tạo biến thể để sinh các tổ hợp phiên bản x màu. Có thể xóa tổ hợp không bán.</div>
+        </div>
+        <button type="button" class="btn btn-outline-primary btn-sm" id="renderVariants">
+            <i class="bi bi-grid-3x3-gap"></i> Tạo biến thể
+        </button>
+    </div>
+
+    <div class="p-3">
+        <div class="alert alert-info d-flex gap-2 align-items-start">
+            <i class="bi bi-info-circle mt-1"></i>
+            <div>
+                <div class="fw-semibold">Lưu ý khi tạo biến thể</div>
+                <div class="small">
+                    Mỗi dòng là một tổ hợp phiên bản và màu cụ thể. Chỉ chỉnh giá cộng thêm và trạng thái bán.
+                    Tồn kho sẽ nhập sau ở phần kho: IMEI/Serial nhập IMEI, sản phẩm theo số lượng nhập kho phụ kiện.
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Phiên bản</th>
+                        <th>Màu</th>
+                        <th style="width: 160px;">Giá cộng thêm</th>
+                        <th style="width: 120px;">Trạng thái</th>
+                        <th style="width: 56px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="variantMatrixBody">
+                    @foreach($variantMatrixRows as $index => $variantRow)
+                    <tr class="variant-matrix-row"
+                        data-version-index="{{ $variantRow['version_index'] ?? '' }}"
+                        data-color-index="{{ $variantRow['color_index'] ?? '' }}">
+                        <td>
+                            <input type="hidden" name="variant_matrix[{{ $index }}][version_index]" value="{{ $variantRow['version_index'] ?? '' }}">
+                            <input type="hidden" name="variant_matrix[{{ $index }}][version_label]" value="{{ $variantRow['version_label'] ?? '' }}">
+                            <span class="variant-version-label">{{ $variantRow['version_label'] ?? '' }}</span>
+                        </td>
+                        <td>
+                            <input type="hidden" name="variant_matrix[{{ $index }}][color_index]" value="{{ $variantRow['color_index'] ?? '' }}">
+                            <input type="hidden" name="variant_matrix[{{ $index }}][color_name]" value="{{ $variantRow['color_name'] ?? '' }}">
+                            <span class="variant-color-label">{{ $variantRow['color_name'] ?? '' }}</span>
+                        </td>
+                        <td>
+                            <input type="number" min="0" name="variant_matrix[{{ $index }}][additional_price]" value="{{ $variantRow['additional_price'] ?? 0 }}" class="form-control form-control-sm">
+                        </td>
+                        <td>
+                            <input type="hidden" name="variant_matrix[{{ $index }}][status]" value="0">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" name="variant_matrix[{{ $index }}][status]" value="1" @checked(($variantRow['status'] ?? 1) == 1)>
+                            </div>
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-light btn-sm remove-variant-row" title="Xóa biến thể">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        <div id="variantMatrixEmpty" class="text-muted small py-3 {{ $variantMatrixRows->isNotEmpty() ? 'd-none' : '' }}">
+            Chưa có biến thể nào. Hãy nhập phiên bản, màu sắc rồi bấm "Tạo biến thể".
+        </div>
+    </div>
+</section>
+@endunless
+
 @once
 @push('scripts')
 <script>
@@ -285,10 +363,23 @@ document.addEventListener('DOMContentLoaded', function () {
     const colorsContainer = document.getElementById('colorsContainer');
     const addVersionButton = document.getElementById('addVersion');
     const addColorButton = document.getElementById('addColor');
+    const renderVariantsButton = document.getElementById('renderVariants');
+    const variantMatrixBody = document.getElementById('variantMatrixBody');
+    const variantMatrixEmpty = document.getElementById('variantMatrixEmpty');
     const showColorPreviewColumn = colorsContainer?.dataset.showPreview === '1';
 
     let versionIndex = versionsContainer ? versionsContainer.querySelectorAll('.version-row').length : 0;
     let colorIndex = colorsContainer ? colorsContainer.querySelectorAll('.color-row').length : 0;
+    let variantMatrixIndex = variantMatrixBody ? variantMatrixBody.querySelectorAll('.variant-matrix-row').length : 0;
+
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
 
     function suggestedVersionName(storage) {
         return [productNameInput?.value.trim(), storage.trim()].filter(Boolean).join(' ');
@@ -310,8 +401,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function refreshVersionNumbers() {
-        if (!versionsContainer) return;
-        versionsContainer.querySelectorAll('.version-row').forEach((row, index) => {
+        versionsContainer?.querySelectorAll('.version-row').forEach((row, index) => {
             const number = row.querySelector('.version-number');
             if (number) number.textContent = index + 1;
         });
@@ -401,11 +491,116 @@ document.addEventListener('DOMContentLoaded', function () {
         row.querySelector('input[name$="[name]"]')?.focus();
     }
 
-    if (productNameInput && versionsContainer) {
-        productNameInput.addEventListener('input', function () {
-            versionsContainer.querySelectorAll('.version-row').forEach(syncVersionName);
-        });
+    function refreshVariantMatrixEmpty() {
+        if (!variantMatrixEmpty || !variantMatrixBody) return;
+        variantMatrixEmpty.classList.toggle('d-none', variantMatrixBody.querySelectorAll('.variant-matrix-row').length > 0);
     }
+
+    function versionLabel(row) {
+        const storage = row.querySelector('.version-storage')?.value.trim() || '';
+        const name = row.querySelector('.version-name')?.value.trim() || '';
+
+        return storage || name || `Phiên bản ${Number(row.dataset.index || 0) + 1}`;
+    }
+
+    function colorLabel(row) {
+        return row.querySelector('input[name$="[name]"]')?.value.trim() || `Màu ${Number(row.dataset.index || 0) + 1}`;
+    }
+
+    function collectVariantMatrixState() {
+        const state = new Map();
+        if (!variantMatrixBody) return state;
+
+        variantMatrixBody.querySelectorAll('.variant-matrix-row').forEach(function (row) {
+            const key = `${row.dataset.versionIndex}:${row.dataset.colorIndex}`;
+            state.set(key, {
+                additionalPrice: row.querySelector('input[name$="[additional_price]"]')?.value || 0,
+                status: row.querySelector('input[name$="[status]"][type="checkbox"]')?.checked ?? true,
+            });
+        });
+
+        return state;
+    }
+
+    function appendVariantMatrixRow(version, color, state = {}) {
+        if (!variantMatrixBody) return;
+
+        const index = variantMatrixIndex++;
+        const versionText = escapeHtml(version.label);
+        const colorText = escapeHtml(color.label);
+        const additionalPrice = escapeHtml(state.additionalPrice ?? 0);
+        const checked = state.status === false ? '' : 'checked';
+        const row = document.createElement('tr');
+        row.className = 'variant-matrix-row';
+        row.dataset.versionIndex = version.index;
+        row.dataset.colorIndex = color.index;
+        row.innerHTML = `
+            <td>
+                <input type="hidden" name="variant_matrix[${index}][version_index]" value="${escapeHtml(version.index)}">
+                <input type="hidden" name="variant_matrix[${index}][version_label]" value="${versionText}">
+                <span class="variant-version-label">${versionText}</span>
+            </td>
+            <td>
+                <input type="hidden" name="variant_matrix[${index}][color_index]" value="${escapeHtml(color.index)}">
+                <input type="hidden" name="variant_matrix[${index}][color_name]" value="${colorText}">
+                <span class="variant-color-label">${colorText}</span>
+            </td>
+            <td>
+                <input type="number" min="0" name="variant_matrix[${index}][additional_price]" value="${additionalPrice}" class="form-control form-control-sm">
+            </td>
+            <td>
+                <input type="hidden" name="variant_matrix[${index}][status]" value="0">
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" name="variant_matrix[${index}][status]" value="1" ${checked}>
+                </div>
+            </td>
+            <td>
+                <button type="button" class="btn btn-light btn-sm remove-variant-row" title="Xóa biến thể">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </td>`;
+
+        variantMatrixBody.appendChild(row);
+    }
+
+    function renderVariantMatrix() {
+        if (!variantMatrixBody) return;
+
+        const versions = Array.from(versionsContainer?.querySelectorAll('.version-row') || [])
+            .filter((row) => row.querySelector('.version-storage')?.value.trim() || row.querySelector('.version-name')?.value.trim())
+            .map((row) => ({
+                index: row.dataset.index,
+                label: versionLabel(row),
+            }));
+
+        const colors = Array.from(colorsContainer?.querySelectorAll('.color-row') || [])
+            .filter((row) => row.querySelector('input[name$="[name]"]')?.value.trim())
+            .map((row) => ({
+                index: row.dataset.index,
+                label: colorLabel(row),
+            }));
+
+        if (!versions.length || !colors.length) {
+            alert('Vui lòng nhập ít nhất một phiên bản và một màu trước khi tạo biến thể.');
+            return;
+        }
+
+        const previousState = collectVariantMatrixState();
+        variantMatrixBody.innerHTML = '';
+        variantMatrixIndex = 0;
+
+        versions.forEach(function (version) {
+            colors.forEach(function (color) {
+                appendVariantMatrixRow(version, color, previousState.get(`${version.index}:${color.index}`) || {});
+            });
+        });
+
+        refreshVariantMatrixEmpty();
+    }
+
+    productNameInput?.addEventListener('input', function () {
+        versionsContainer?.querySelectorAll('.version-row').forEach(syncVersionName);
+    });
 
     versionsContainer?.addEventListener('input', function (event) {
         const row = event.target.closest('.version-row');
@@ -456,11 +651,21 @@ document.addEventListener('DOMContentLoaded', function () {
         button.closest('.color-row')?.remove();
     });
 
+    variantMatrixBody?.addEventListener('click', function (event) {
+        const button = event.target.closest('.remove-variant-row');
+        if (!button) return;
+
+        button.closest('.variant-matrix-row')?.remove();
+        refreshVariantMatrixEmpty();
+    });
+
     addVersionButton?.addEventListener('click', addVersionRow);
     addColorButton?.addEventListener('click', addColorRow);
+    renderVariantsButton?.addEventListener('click', renderVariantMatrix);
 
     versionsContainer?.querySelectorAll('.version-row').forEach(syncVersionName);
     refreshVersionNumbers();
+    refreshVariantMatrixEmpty();
 });
 </script>
 @endpush

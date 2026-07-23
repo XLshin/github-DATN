@@ -112,10 +112,12 @@
 @endphp
 
 @section('heading_actions')
+@if(auth()->user()?->isAdmin())
 <a href="{{ route('admin.imeis.edit', $imei->id) }}" class="btn btn-primary btn-sm">
     <i class="bi bi-sliders"></i>
     Điều chỉnh
 </a>
+@endif
 <a href="{{ route('admin.stocks') }}" class="btn btn-light btn-sm">
     <i class="bi bi-arrow-left"></i>
     Quay lại
@@ -178,11 +180,7 @@
             <div class="p-3">
                 <table class="table align-middle mb-0">
                     <tr>
-                        <th width="210">Sản phẩm</th>
-                        <td>{{ $product?->productGroup?->name ?? '-' }}</td>
-                    </tr>
-                    <tr>
-                        <th>Phiên bản</th>
+                        <th>Tên Phiên bản</th>
                         <td>{{ $product?->name ?? '-' }}</td>
                     </tr>
                     <tr>

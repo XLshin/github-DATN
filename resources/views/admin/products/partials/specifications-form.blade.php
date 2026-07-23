@@ -41,11 +41,11 @@
         @if(isset($specificationSourceGroups) && $specificationSourceGroups->isNotEmpty())
         <div class="row g-2 align-items-end mb-3">
             <div class="col-md-9">
-                <label class="form-label small">Sao chép thông số từ dòng sản phẩm khác</label>
+                <label class="form-label small">Sao chép thông số từ sản phẩm khác</label>
                 <select id="specificationCopySource"
                     class="form-select form-select-sm"
                     data-url-template="{{ route('admin.product-groups.specifications', ['productGroup' => '__PRODUCT_GROUP__']) }}">
-                    <option value="">-- Chọn dòng sản phẩm nguồn --</option>
+                    <option value="">-- Chọn sản phẩm nguồn --</option>
                     @foreach($specificationSourceGroups as $sourceGroup)
                         <option value="{{ $sourceGroup->id }}">{{ $sourceGroup->name }}</option>
                     @endforeach
@@ -198,11 +198,9 @@ document.addEventListener('DOMContentLoaded', function () {
         container.querySelectorAll('.specification-row').forEach(row => row.remove());
     }
 
-    if (addButton) {
-        addButton.addEventListener('click', function () {
-            addSpecificationRow(lastGroupName());
-        });
-    }
+    addButton?.addEventListener('click', function () {
+        addSpecificationRow(lastGroupName());
+    });
 
     if (copyButton && copySourceSelect) {
         copyButton.addEventListener('click', function () {
@@ -212,11 +210,11 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!productId || !urlTemplate) return;
 
             const hasRows = container && container.querySelector('.specification-row');
-            if (hasRows) {
-                if (!confirm('Xóa các thông số hiện tại rồi sao chép từ dòng sản phẩm đã chọn?')) {
-                    return;
-                }
+            if (hasRows && !confirm('Xóa các thông số hiện tại rồi sao chép từ sản phẩm đã chọn?')) {
+                return;
+            }
 
+            if (hasRows) {
                 clearSpecificationRows();
             }
 

@@ -47,7 +47,7 @@
                 <i class="bi bi-info-circle mt-1"></i>
                 <div>
                     <div class="fw-semibold">Trạng thái hiển thị sản phẩm</div>
-                    <div class="small">Tắt trạng thái này sẽ ẩn sản phẩm cha khỏi các nơi hiển thị chính. Admin vẫn có thể xem và sửa lại sau.</div>
+                    <div class="small">Tắt trạng thái này sẽ ẩn sản phẩm khỏi các nơi hiển thị chính. Admin vẫn có thể xem và sửa lại sau.</div>
                 </div>
             </div>
 

@@ -157,6 +157,13 @@ class ProductGroupController extends Controller
             'colors' => 'required|array|min:1',
             'colors.*.name' => 'required|string|max:100|distinct',
             'colors.*.image' => 'nullable|image|max:2048',
+            'variant_matrix' => 'nullable|array',
+            'variant_matrix.*.version_index' => 'required_with:variant_matrix|integer|min:0',
+            'variant_matrix.*.version_label' => 'nullable|string|max:255',
+            'variant_matrix.*.color_index' => 'required_with:variant_matrix|integer|min:0',
+            'variant_matrix.*.color_name' => 'required_with:variant_matrix|string|max:100',
+            'variant_matrix.*.additional_price' => 'nullable|numeric|min:0',
+            'variant_matrix.*.status' => 'nullable|boolean',
         ], [
             'name.required' => 'Vui lòng nhập tên sản phẩm.',
             'name.max' => 'Tên sản phẩm không được vượt quá 255 ký tự.',
@@ -175,20 +182,14 @@ class ProductGroupController extends Controller
             'product_images.*.image' => 'Ảnh bổ sung sản phẩm phải là tệp hình ảnh.',
             'product_images.*.max' => 'Ảnh bổ sung sản phẩm không được vượt quá 2MB.',
             'specifications.array' => 'Danh sách thông số kỹ thuật không hợp lệ.',
-            'specifications.*.group_name.string' => 'Nhóm thông số không hợp lệ.',
-            'specifications.*.group_name.max' => 'Nhóm thông số không được vượt quá 255 ký tự.',
-            'specifications.*.name.string' => 'Tên thông số không hợp lệ.',
-            'specifications.*.name.max' => 'Tên thông số không được vượt quá 255 ký tự.',
-            'specifications.*.value.string' => 'Giá trị thông số không hợp lệ.',
             'versions.required' => 'Vui lòng thêm ít nhất một phiên bản sản phẩm.',
             'versions.array' => 'Danh sách phiên bản không hợp lệ.',
             'versions.min' => 'Vui lòng thêm ít nhất một phiên bản sản phẩm.',
+            'versions.*.id.exists' => 'Phiên bản đã chọn không hợp lệ.',
             'versions.*.storage.required' => 'Vui lòng nhập dung lượng hoặc tên phiên bản.',
             'versions.*.storage.max' => 'Dung lượng hoặc tên phiên bản không được vượt quá 255 ký tự.',
             'versions.*.name.required' => 'Vui lòng nhập tên phiên bản.',
             'versions.*.name.max' => 'Tên phiên bản không được vượt quá 255 ký tự.',
-            'versions.*.name.distinct' => 'Tên phiên bản không được trùng nhau.',
-            'versions.*.name.unique' => 'Tên phiên bản này đã tồn tại.',
             'versions.*.price.required' => 'Vui lòng nhập giá base cho phiên bản.',
             'versions.*.price.numeric' => 'Giá base phải là số.',
             'versions.*.price.min' => 'Giá base không được nhỏ hơn 0.',
@@ -196,26 +197,28 @@ class ProductGroupController extends Controller
             'colors.required' => 'Vui lòng thêm ít nhất một màu sắc.',
             'colors.array' => 'Danh sách màu sắc không hợp lệ.',
             'colors.min' => 'Vui lòng thêm ít nhất một màu sắc.',
+            'colors.*.original_name.max' => 'Tên màu cũ không được vượt quá 100 ký tự.',
             'colors.*.name.required' => 'Vui lòng nhập tên màu.',
             'colors.*.name.max' => 'Tên màu không được vượt quá 100 ký tự.',
-            'colors.*.name.distinct' => 'Tên màu không được trùng nhau.',
             'colors.*.image.image' => 'Ảnh màu phải là tệp hình ảnh.',
             'colors.*.image.max' => 'Ảnh màu không được vượt quá 2MB.',
+            'colors.*.delete_image.boolean' => 'Tùy chọn xóa ảnh màu không hợp lệ.',
         ]);
-
         $specifications = $validated['specifications'] ?? [];
         $versions = $validated['versions'] ?? [];
         $colors = $validated['colors'] ?? [];
+        $variantMatrix = $validated['variant_matrix'] ?? [];
         unset($validated['specifications']);
         unset($validated['versions']);
         unset($validated['colors']);
+        unset($validated['variant_matrix']);
         unset($validated['product_thumbnail']);
         unset($validated['product_images']);
 
         $validated['slug'] = Str::slug($validated['name']);
         $validated['status'] = $request->boolean('status', false);
 
-        DB::transaction(function () use ($request, $validated, $specifications, $versions, $colors) {
+        DB::transaction(function () use ($request, $validated, $specifications, $versions, $colors, $variantMatrix) {
             $productGroup = ProductGroup::create($validated);
             $productGroup->refresh();
 
@@ -248,7 +251,9 @@ class ProductGroupController extends Controller
                 }
             }
 
-            foreach ($versions as $version) {
+            $createdProducts = [];
+
+            foreach ($versions as $versionIndex => $version) {
                 $product = Product::create([
                     'product_group_id' => $productGroup->id,
                     'category_id' => $productGroup->category_id,
@@ -264,22 +269,50 @@ class ProductGroupController extends Controller
                     'status' => $validated['status'],
                 ]);
 
-                foreach ($colors as $colorIndex => $color) {
-                    $variantImage = null;
-                    if ($request->hasFile("colors.$colorIndex.image")) {
-                        $variantImage = $request->file("colors.$colorIndex.image")
-                            ->store('products/variants', 'public');
-                    }
+                $createdProducts[$versionIndex] = $product;
+            }
 
-                    ProductVariant::create([
-                        'product_id' => $product->id,
-                        'color' => $color['name'],
-                        'image_path' => $variantImage,
-                        'stock_quantity' => 0,
-                        'additional_price' => 0,
-                        'status' => true,
-                    ]);
+            $variantRows = collect($variantMatrix)
+                ->filter(fn ($row) => isset($row['version_index'], $row['color_index']));
+
+            if ($variantRows->isEmpty()) {
+                foreach ($createdProducts as $versionIndex => $product) {
+                    foreach ($colors as $colorIndex => $color) {
+                        $variantRows->push([
+                            'version_index' => $versionIndex,
+                            'color_index' => $colorIndex,
+                            'color_name' => $color['name'] ?? null,
+                            'additional_price' => 0,
+                            'status' => true,
+                        ]);
+                    }
                 }
+            }
+
+            foreach ($variantRows as $matrixIndex => $variantRow) {
+                $versionIndex = (int) ($variantRow['version_index'] ?? -1);
+                $colorIndex = (int) ($variantRow['color_index'] ?? -1);
+                $product = $createdProducts[$versionIndex] ?? null;
+                $colorName = trim((string) ($colors[$colorIndex]['name'] ?? $variantRow['color_name'] ?? ''));
+
+                if (!$product || $colorName === '') {
+                    continue;
+                }
+
+                $variantImage = null;
+                if ($request->hasFile("colors.$colorIndex.image")) {
+                    $variantImage = $request->file("colors.$colorIndex.image")
+                        ->store('products/variants', 'public');
+                }
+
+                ProductVariant::create([
+                    'product_id' => $product->id,
+                    'color' => $colorName,
+                    'image_path' => $variantImage,
+                    'stock_quantity' => 0,
+                    'additional_price' => $variantRow['additional_price'] ?? 0,
+                    'status' => filter_var($variantRow['status'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                ]);
             }
         });
 
@@ -400,7 +433,6 @@ class ProductGroupController extends Controller
             'colors.*.image.max' => 'Ảnh màu không được vượt quá 2MB.',
             'colors.*.delete_image.boolean' => 'Tùy chọn xóa ảnh màu không hợp lệ.',
         ]);
-
         $specifications = $validated['specifications'] ?? [];
         $versions = $validated['versions'] ?? [];
         $colors = $validated['colors'] ?? [];
@@ -482,7 +514,7 @@ class ProductGroupController extends Controller
                 $productToDelete->delete();
             }
 
-            foreach ($versions as $version) {
+            foreach ($versions as $versionIndex => $version) {
                 $payload = [
                     'product_group_id' => $productGroup->id,
                     'category_id' => $productGroup->category_id,
