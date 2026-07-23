@@ -13,6 +13,9 @@ class WalletWithdrawal extends Model
     /** Số tiền rút tối thiểu mỗi lần. */
     public const MIN_AMOUNT = 50000;
 
+    /** Rút dưới ngưỡng này được tự động xử lý (mô phỏng), không cần admin duyệt thủ công. */
+    public const AUTO_WITHDRAWAL_MAX_AMOUNT = 2000000;
+
     protected $fillable = [
         'user_id',
         'bank_account_id',
@@ -23,6 +26,7 @@ class WalletWithdrawal extends Model
         'status',
         'requested_at',
         'eligible_at',
+        'simulate_confirm_at',
         'completed_at',
         'transaction_code',
         'confirmed_by',
@@ -36,6 +40,7 @@ class WalletWithdrawal extends Model
         'amount' => 'decimal:2',
         'requested_at' => 'datetime',
         'eligible_at' => 'datetime',
+        'simulate_confirm_at' => 'datetime',
         'completed_at' => 'datetime',
     ];
 

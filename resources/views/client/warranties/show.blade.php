@@ -315,4 +315,19 @@
 
     <a href="{{ route('warranties.lookup') }}" class="btn btn-light">← Quay lại tra cứu</a>
 </div>
+
+<div class="card mt-3">
+    <div class="card-body">
+        <h5 class="card-title">Kết quả bảo hành</h5>
+        <div class="mb-2"><span class="text-muted">Nguyên nhân:</span> <strong>{{ $warranty->fault_source_label }}</strong></div>
+        <div class="mb-2"><span class="text-muted">Hình thức xử lý:</span> <strong>{{ $warranty->resolution_type_label }}</strong></div>
+        @if($warranty->resolution_type === 'replace')
+            <div class="alert alert-success mb-0">
+                <div class="fw-bold">Sản phẩm đã được đổi máy mới theo chính sách 30 ngày</div>
+                <div class="mt-2">IMEI máy mới: <strong>{{ $warranty->replacementImei?->imei ?? 'Đang cập nhật' }}</strong></div>
+                @if($warranty->replaced_at)<div>Ngày đổi: {{ $warranty->replaced_at->format('d/m/Y') }}</div>@endif
+            </div>
+        @endif
+    </div>
+</div>
 @endsection

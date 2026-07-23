@@ -24,11 +24,19 @@ class WalletWithdrawalController extends Controller
 
         $withdrawals = $query->paginate(20)->withQueryString();
 
+        // Yêu cầu tự động (dưới ngưỡng) đến hạn simulate_confirm_at nhưng chưa có ai kích hoạt —
+        // tiện thể xác nhận luôn khi admin xem danh sách này.
+        $withdrawals->getCollection()->each(function (WalletWithdrawal $withdrawal) {
+            $this->withdrawalService->confirmSimulated($withdrawal);
+        });
+
         return view('admin.wallet-withdrawals.index', compact('withdrawals'));
     }
 
     public function show(WalletWithdrawal $withdrawal)
     {
+        $this->withdrawalService->confirmSimulated($withdrawal);
+
         $withdrawal->load(['user', 'bankAccount', 'confirmedBy', 'rejectedBy']);
 
         return view('admin.wallet-withdrawals.show', compact('withdrawal'));
