@@ -20,7 +20,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('brands', function (Blueprint $table) {
-            $table->dropForeignIfExists(['category_id']);
+            $table->dropForeign(['category_id']);
             $table->dropColumn('category_id');
         });
     }

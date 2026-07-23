@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('wallet_topups', function (Blueprint $table) {
-            $table->timesttooamp('simulate_confirm_at')->nullable()->after('expires_at');
+            $table->timestamp('simulate_confirm_at')->nullable()->after('expires_at');
         });
     }
 
