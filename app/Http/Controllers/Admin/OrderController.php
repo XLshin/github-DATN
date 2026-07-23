@@ -7,6 +7,7 @@ use App\Models\Imei;
 use App\Models\InventoryTransaction;
 use App\Models\Order;
 use App\Models\OrderProof;
+use App\Notifications\OrderStatusUpdatedNotification;
 use App\Notifications\PaymentFailedNotification;
 use App\Services\BankTransactionLogService;
 use App\Services\CheckoutService;
@@ -143,6 +144,8 @@ class OrderController extends Controller
             'confirmed_at' => now(),
         ]);
 
+        $order->user?->notify(new OrderStatusUpdatedNotification($order, 'waiting_pack'));
+
         return back()->with('success', 'Đã xác nhận đơn hàng. Đơn đã chuyển sang chờ đóng gói.');
     }
 
@@ -243,6 +246,7 @@ class OrderController extends Controller
 
                 if ($order->user) {
                     $order->user->notify(new PaymentFailedNotification($order));
+                    $order->user->notify(new OrderStatusUpdatedNotification($order, 'cancelled'));
                 }
             }
         });
@@ -329,6 +333,8 @@ class OrderController extends Controller
                 'fulfillment_status' => 'waiting_handover',
                 'packed_at' => now(),
             ]);
+
+            $order->user?->notify(new OrderStatusUpdatedNotification($order, 'waiting_handover'));
         });
 
         return back()->with('success', 'Đã xác nhận đóng gói, gán IMEI và chuyển đơn sang chờ bàn giao.');
@@ -354,6 +360,8 @@ class OrderController extends Controller
                     'shipped_at' => now(),
                 ]);
             }
+
+            $order->user?->notify(new OrderStatusUpdatedNotification($order, 'shipping'));
         });
 
         return back()->with('success', 'Đơn hàng đã chuyển sang trạng thái đang giao.');
@@ -461,6 +469,8 @@ class OrderController extends Controller
                     'delivered_at' => now(),
                 ]);
             }
+
+            $order->user?->notify(new OrderStatusUpdatedNotification($order, 'completed'));
         });
 
         return back()->with('success', 'Đã xác nhận giao hàng thành công. Đơn hàng đã hoàn thành.');
@@ -501,6 +511,8 @@ class OrderController extends Controller
                     'status' => 'failed',
                 ]);
             }
+
+            $order->user?->notify(new OrderStatusUpdatedNotification($order, 'failed'));
         });
 
         return back()->with('success', 'Đã cập nhật đơn hàng giao thất bại.');
@@ -509,26 +521,81 @@ class OrderController extends Controller
     public function retryDelivery(Order $order)
     {
         if ($order->fulfillment_status !== 'failed') {
-            return back()->with('error', 'Chỉ đơn hàng giao thất bại mới được giao lại.');
+            return back()->with(
+                'error',
+                'Chỉ đơn hàng đang ở trạng thái giao thất bại mới được giao lại.'
+            );
         }
 
-        DB::transaction(function () use ($order) {
-            $order->update([
-                'status' => 'shipping',
-                'fulfillment_status' => 'shipping',
-                'handed_over_at' => now(),
-            ]);
+        if ($order->hasReachedDeliveryRetryLimit()) {
+            return back()->with(
+                'error',
+                'Đơn này đã đạt giới hạn 3 lần giao lại và không thể tiếp tục giao lại.'
+            );
+        }
 
-            if ($order->shipment) {
-                $order->shipment->update([
-                    'shipping_status' => 'shipping',
+        try {
+            $retryCount = DB::transaction(function () use ($order) {
+                $lockedOrder = Order::query()
+                    ->lockForUpdate()
+                    ->findOrFail($order->getKey());
+
+                if ($lockedOrder->fulfillment_status !== 'failed') {
+                    throw new \RuntimeException(
+                        'Trạng thái đơn hàng đã thay đổi. Vui lòng tải lại trang.'
+                    );
+                }
+
+                if (
+                    (int) $lockedOrder->delivery_retry_count
+                    >= Order::MAX_DELIVERY_RETRIES
+                ) {
+                    throw new \RuntimeException(
+                        'Đơn này đã đạt giới hạn 3 lần giao lại.'
+                    );
+                }
+
+                $newRetryCount =
+                    (int) $lockedOrder->delivery_retry_count + 1;
+
+                $lockedOrder->update([
                     'status' => 'shipping',
-                    'shipped_at' => now(),
+                    'fulfillment_status' => 'shipping',
+                    'delivery_retry_count' => $newRetryCount,
+                    'handed_over_at' => now(),
                 ]);
-            }
-        });
 
-        return back()->with('success', 'Đơn hàng đã được chuyển sang giao lại.');
+                $lockedOrder->user?->notify(new OrderStatusUpdatedNotification($lockedOrder, 'shipping'));
+
+                if ($lockedOrder->shipment) {
+                    $lockedOrder->shipment->update([
+                        'shipping_status' => 'shipping',
+                        'status' => 'shipping',
+                        'shipped_at' => now(),
+                    ]);
+                }
+
+                return $newRetryCount;
+            });
+        } catch (\RuntimeException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        if ($retryCount >= Order::MAX_DELIVERY_RETRIES) {
+            return back()->with(
+                'warning',
+                'Đây là lần giao lại thứ 3 và cũng là lần giao lại cuối cùng. '
+                .'Đơn sẽ không thể giao lại thêm nếu lần giao này tiếp tục thất bại.'
+            );
+        }
+
+        $remaining = Order::MAX_DELIVERY_RETRIES - $retryCount;
+
+        return back()->with(
+            'success',
+            "Đơn hàng đã được chuyển sang giao lại lần {$retryCount}. "
+            ."Còn {$remaining} lần giao lại."
+        );
     }
 
     public function cancel(Request $request, Order $order)
@@ -665,6 +732,8 @@ class OrderController extends Controller
             // Admin hủy đơn thay khách: mặc định hoàn ngay vào ví để không phải chờ khách cung cấp thông tin ngân hàng.
             $this->refundService->request($order, $order->user, 'wallet');
         }
+
+        $order->user?->notify(new OrderStatusUpdatedNotification($order, 'cancelled'));
 
     });
 

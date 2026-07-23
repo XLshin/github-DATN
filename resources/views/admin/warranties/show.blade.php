@@ -226,6 +226,21 @@
     </div>
 </div>
 
+<section class="panel mb-3">
+    <div class="panel-header"><h5 class="mb-1">Kết luận chính sách bảo hành</h5></div>
+    <div class="p-3">
+        <div class="row g-3">
+            <div class="col-md-6"><div class="text-muted small">Nguyên nhân lỗi</div><div class="fw-semibold">{{ $warranty->fault_source_label }}</div></div>
+            <div class="col-md-6"><div class="text-muted small">Hình thức xử lý</div><div class="fw-semibold">{{ $warranty->resolution_type_label }}</div></div>
+            @if($warranty->resolution_type === 'replace')
+                <div class="col-md-6"><div class="text-muted small">IMEI máy cũ</div><div class="fw-semibold">{{ $warranty->imei?->imei ?? 'N/A' }}</div></div>
+                <div class="col-md-6"><div class="text-muted small">IMEI máy mới</div><div class="fw-semibold text-success">{{ $warranty->replacementImei?->imei ?? 'N/A' }}</div></div>
+                <div class="col-md-6"><div class="text-muted small">Ngày đổi máy</div><div class="fw-semibold">{{ $warranty->replaced_at?->format('d/m/Y H:i') ?? 'N/A' }}</div></div>
+            @endif
+        </div>
+    </div>
+</section>
+
 <section class="panel">
     <div class="panel-header">
         <div>

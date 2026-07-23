@@ -95,6 +95,18 @@
         </div>
     @endif
 
+    @if(session('warning'))
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+            {{ session('warning') }}
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Đóng"></button>
+        </div>
+    @endif
+
     @if($errors->any())
         <div class="alert alert-danger">
             <ul class="mb-0">
@@ -419,15 +431,34 @@
                 @endif
 
                 @if($order->fulfillment_status === 'failed')
-                    <form action="{{ route('admin.orders.retryDelivery', $order) }}"
-                          method="POST"
-                          onsubmit="return confirm('Bạn có chắc muốn giao lại đơn hàng này không?');">
-                        @csrf
+                    @if($order->canRetryDelivery())
+                        <form
+                            action="{{ route('admin.orders.retryDelivery', $order) }}"
+                            method="POST"
+                            onsubmit="return confirm(
+                                'Bạn có chắc muốn giao lại đơn hàng này không? ' +
+                                'Đây là lần giao lại thứ {{ $order->delivery_retry_count + 1 }}/{{ \App\Models\Order::MAX_DELIVERY_RETRIES }}.'
+                            );"
+                        >
+                            @csrf
 
-                        <button type="submit" class="btn btn-primary">
-                            Giao lại
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-arrow-repeat me-1"></i>
+                                Giao lại
+                                (lần {{ $order->delivery_retry_count + 1 }}/{{ \App\Models\Order::MAX_DELIVERY_RETRIES }})
+                            </button>
+                        </form>
+                    @else
+                        <button
+                            type="button"
+                            class="btn btn-secondary"
+                            disabled
+                            aria-disabled="true"
+                        >
+                            <i class="bi bi-ban me-1"></i>
+                            Đã đạt giới hạn giao lại
                         </button>
-                    </form>
+                    @endif
                 @endif
 
                 @if(!in_array($order->fulfillment_status, ['completed', 'cancelled'], true))
@@ -442,6 +473,22 @@
 
                 @endif
             </div>
+            @if(
+                $order->fulfillment_status === 'failed'
+                && $order->hasReachedDeliveryRetryLimit()
+            )
+                <div class="alert alert-danger mt-3 mb-0">
+                    <div class="fw-semibold">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        Đơn hàng đã đạt giới hạn giao lại
+                    </div>
+
+                    <div class="mt-1">
+                        Đơn này đã đạt 3 lần giao lại và không thể tiếp tục giao lại.
+                        Nếu lần giao cuối không thành công, đơn cần được hủy.
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 

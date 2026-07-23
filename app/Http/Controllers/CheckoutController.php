@@ -180,6 +180,35 @@ class CheckoutController extends Controller
         return view('client.checkout.payment', compact('order'));
     }
 
+    
+    public function paymentStatus(Request $request, Order $order, \App\Services\PaymentWebhookService $webhookService)
+    {
+        /** @var User $user */
+        $user = $request->user();
+        if (! $user || (int) $order->user_id !== (int) $user->getKey()) {
+            abort(403);
+        }
+
+        $payment = $order->payment;
+
+        if (
+            $payment
+            && $payment->payment_status === 'pending'
+            && in_array($payment->payment_method, CheckoutService::AUTO_CONFIRM_METHODS, true)
+            && $payment->simulate_confirm_at
+            && $payment->simulate_confirm_at->isPast()
+            && ! $payment->isExpired()
+        ) {
+            $webhookService->confirmSimulatedBankTransfer($payment);
+            $payment->refresh();
+        }
+
+        return response()->json([
+            'status' => $payment?->payment_status,
+            'paid'   => $payment?->payment_status === 'paid',
+        ]);
+    }
+
     /**
      * Thử lại giao dịch đã hết hạn: cấp lại tồn kho/IMEI và mở phiên thanh toán mới.
      */
@@ -209,11 +238,12 @@ class CheckoutController extends Controller
     }
 
     /**
-     * Khách xác nhận đã thanh toán (momo / vnpay / card / bank_transfer). Áp dụng cho MỌI phương
-     * thức: bắt buộc ảnh bằng chứng, KHÔNG tự động cộng/paid ngay — luôn chờ admin đối soát và
-     * xác nhận đúng số tiền trước khi đơn được coi là đã thanh toán (đồng bộ với luồng nạp ví).
+     * Khách xác nhận thanh toán thủ công — dùng làm lối dự phòng khi việc tự động xác nhận
+     * (simulate_confirm_at, xem paymentStatus()) chưa kịp chạy. Thẻ (card) có dữ liệu xác thực
+     * được (số thẻ hợp lệ theo Luhn, còn hạn, không bị mô phỏng từ chối) nên xử lý thanh toán
+     * ngay lập tức; momo/vnpay/bank_transfer chỉ có ảnh chụp màn hình nên vẫn cần admin đối soát.
      */
-    public function confirmPayment(Request $request, Order $order)
+    public function confirmPayment(Request $request, Order $order, \App\Services\PaymentWebhookService $webhookService)
     {
         /** @var User $user */
         $user = $request->user();
@@ -234,35 +264,14 @@ class CheckoutController extends Controller
 
         $method = $payment->payment_method;
 
-        $rules = [
-            'proof_image' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:4096'],
-        ];
-        $messages = [
-            'proof_image.required' => 'Vui lòng tải lên ảnh chụp màn hình xác nhận giao dịch.',
-            'proof_image.image' => 'File tải lên phải là hình ảnh.',
-        ];
-
-        $payerName = $order->customer_name;
-        $payerNote = match ($method) {
-            'bank_transfer' => 'Khách báo đã chuyển khoản lúc ' . now()->format('H:i d/m/Y') . ' — chờ đối soát.',
-            'momo' => 'Khách báo đã thanh toán qua Ví MoMo — chờ đối soát.',
-            'vnpay' => 'Khách báo đã thanh toán qua VNPAY — chờ đối soát.',
-            'card' => 'Khách báo đã thanh toán bằng thẻ — chờ đối soát.',
-            default => 'Khách báo đã thanh toán — chờ đối soát.',
-        };
-
         if ($method === 'card') {
-            $rules = array_merge($rules, [
+            $validated = $request->validate([
                 'card_number' => ['required', 'string'],
                 'card_expiry' => ['required', 'string', 'regex:/^\d{2}\/\d{2}$/'],
                 'card_cvv'    => ['required', 'string', 'min:3', 'max:4'],
                 'card_name'   => ['required', 'string', 'max:255'],
             ]);
-        }
 
-        $validated = $request->validate($rules, $messages);
-
-        if ($method === 'card') {
             $digits = preg_replace('/\D/', '', $validated['card_number']);
 
             if (! $this->isValidCardNumber($digits)) {
@@ -289,15 +298,38 @@ class CheckoutController extends Controller
                 ]);
             }
 
-            $payerName = Str::upper($validated['card_name']);
-            $payerNote = 'Thẻ **** **** **** ' . substr($digits, -4) . ' — chờ đối soát.';
+            $payment->update([
+                'payer_name' => Str::upper($validated['card_name']),
+                'payer_note' => 'Thẻ **** **** **** ' . substr($digits, -4) . ' — xác thực Luhn hợp lệ.',
+            ]);
+
+            // Thông tin thẻ đã tự xác thực được (Luhn + hạn dùng + không rơi vào case mô phỏng từ
+            // chối) nên coi như đã thanh toán ngay, không cần chờ đối soát ảnh như momo/vnpay.
+            $webhookService->confirmSimulatedBankTransfer($payment->fresh());
+
+            return redirect()->route('checkout.success', $order)
+                ->with('success', 'Thanh toán thẻ thành công!');
         }
+
+        $validated = $request->validate([
+            'proof_image' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:4096'],
+        ], [
+            'proof_image.required' => 'Vui lòng tải lên ảnh chụp màn hình xác nhận giao dịch.',
+            'proof_image.image' => 'File tải lên phải là hình ảnh.',
+        ]);
+
+        $payerNote = match ($method) {
+            'bank_transfer' => 'Khách báo đã chuyển khoản lúc ' . now()->format('H:i d/m/Y') . ' — chờ đối soát.',
+            'momo' => 'Khách báo đã thanh toán qua Ví MoMo — chờ đối soát.',
+            'vnpay' => 'Khách báo đã thanh toán qua VNPAY — chờ đối soát.',
+            default => 'Khách báo đã thanh toán — chờ đối soát.',
+        };
 
         $path = $request->file('proof_image')->store('order-payment-proofs', 'public');
 
         $payment->update([
             'payment_status' => 'pending',
-            'payer_name'     => $payerName,
+            'payer_name'     => $order->customer_name,
             'payer_note'     => $payerNote,
             'proof_image'    => $path,
         ]);

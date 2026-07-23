@@ -22,11 +22,13 @@ class Payment extends Model
         'admin_note',
         'paid_at',
         'expires_at',
+        'simulate_confirm_at',
     ];
 
     protected $casts = [
-        'paid_at'    => 'datetime',
-        'expires_at' => 'datetime',
+        'paid_at'             => 'datetime',
+        'expires_at'          => 'datetime',
+        'simulate_confirm_at' => 'datetime',
     ];
 
     public function isExpired(): bool

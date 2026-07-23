@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\BankAccountController as AdminBankAccountControll
 use App\Http\Controllers\Admin\WalletWithdrawalController as AdminWalletWithdrawalController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\AssistantController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\CouponUserController;
@@ -82,6 +83,7 @@ if (app()->environment('local')) {
 
 // Webhook endpoints
 Route::post('/webhook/payment', [WebhookController::class, 'paymentCallback']);
+Route::post('/webhook/sepay', [WebhookController::class, 'bankTransferCallback'])->name('webhook.sepay');
 Route::post('/webhook/carrier/{code}', [CarrierWebhookController::class, 'handle']);
 
 /*
@@ -151,6 +153,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/checkout/preview', [CheckoutController::class, 'preview'])->name('checkout.preview');
     Route::get('/checkout/success/{order}', [CheckoutController::class, 'success'])->name('checkout.success');
     Route::get('/checkout/payment/{order}', [CheckoutController::class, 'showPayment'])->name('checkout.payment');
+    Route::get('/checkout/payment/{order}/status', [CheckoutController::class, 'paymentStatus'])->name('checkout.payment.status');
     Route::post('/checkout/payment/{order}/confirm', [CheckoutController::class, 'confirmPayment'])->name('checkout.payment.confirm');
     Route::post('/checkout/payment/{order}/retry', [CheckoutController::class, 'retryPayment'])->name('checkout.payment.retry');
 
@@ -162,6 +165,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/wallet', [WalletController::class, 'index'])->name('wallet.index');
     Route::post('/wallet/topup', [WalletController::class, 'topup'])->name('wallet.topup');
     Route::get('/wallet/topup/{topup}', [WalletController::class, 'showTopupPayment'])->name('wallet.topup.payment');
+    Route::get('/wallet/topup/{topup}/status', [WalletController::class, 'topupStatus'])->name('wallet.topup.status');
     Route::post('/wallet/topup/{topup}/confirm', [WalletController::class, 'confirmTopupPayment'])->name('wallet.topup.confirm');
     Route::post('/wallet/topup/{topup}/retry', [WalletController::class, 'retryTopupPayment'])->name('wallet.topup.retry');
     Route::post('/wallet/withdraw', [WalletController::class, 'withdraw'])->name('wallet.withdraw');
@@ -175,6 +179,11 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/assistant/chat', [AssistantController::class, 'chat'])->name('assistant.chat');
     Route::post('/assistant/reset', [AssistantController::class, 'reset'])->name('assistant.reset');
+
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/recent', [NotificationController::class, 'recent'])->name('notifications.recent');
+    Route::match(['GET', 'POST'], '/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
 });
 
 /*
