@@ -11,7 +11,7 @@ class WalletWithdrawal extends Model
     public const MIN_PROCESSING_DAYS = 1;
 
     /** Số tiền rút tối thiểu mỗi lần. */
-    public const MIN_AMOUNT = 50000;
+    public const MIN_AMOUNT = 1;
 
     /** Rút dưới ngưỡng này được tự động xử lý (mô phỏng), không cần admin duyệt thủ công. */
     public const AUTO_WITHDRAWAL_MAX_AMOUNT = 2000000;
