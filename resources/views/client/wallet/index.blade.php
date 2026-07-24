@@ -293,7 +293,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label small">Số tiền muốn rút</label>
-                        <input type="number" name="amount" class="form-control" min="{{ \App\Models\WalletWithdrawal::MIN_AMOUNT }}" step="1000"
+                        <input type="number" name="amount" class="form-control" min="{{ \App\Models\WalletWithdrawal::MIN_AMOUNT }}" step="1"
                                max="{{ (int) (auth()->user()->wallet_balance ?? 0) }}" required
                                oninvalid="this.setCustomValidity(this.validity.rangeOverflow ? 'Số tiền rút không được vượt quá số dư hiện có trong ví (' + Number(this.max).toLocaleString('vi-VN') + ' đ).' : (this.validity.rangeUnderflow ? 'Số tiền rút tối thiểu là ' + Number(this.min).toLocaleString('vi-VN') + ' đ.' : ''))"
                                oninput="this.setCustomValidity('')">

@@ -11,6 +11,7 @@ use App\Notifications\OrderStatusUpdatedNotification;
 use App\Notifications\PaymentFailedNotification;
 use App\Services\BankTransactionLogService;
 use App\Services\CheckoutService;
+use App\Services\OrderCustomerNotificationService;
 use App\Services\RefundService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -28,6 +29,7 @@ class OrderController extends Controller
         private readonly RefundService $refundService,
         private readonly BankTransactionLogService $logService,
         private readonly CheckoutService $checkoutService,
+        private readonly OrderCustomerNotificationService $orderNotificationService,
     ) {}
 
     public function index(Request $request)
@@ -188,6 +190,8 @@ class OrderController extends Controller
 
             $this->logService->logOrderPayment($payment->fresh(), 'paid', $request->user(), $validated['admin_note'] ?? null);
         });
+
+        $this->orderNotificationService->paymentSucceeded($payment->fresh());
 
         return back()->with('success', 'Đã xác nhận thanh toán và chuyển đơn sang xử lý.');
     }

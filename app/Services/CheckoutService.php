@@ -30,6 +30,7 @@ class CheckoutService
         private readonly CartService $cartService,
         private readonly PointService $pointService,
         private readonly WalletService $walletService,
+        private readonly OrderCustomerNotificationService $orderNotificationService,
     ) {}
 
     /**
@@ -45,7 +46,7 @@ class CheckoutService
             ]);
         }
 
-        return DB::transaction(function () use ($user, $data, $items, $itemIds) {
+        $order = DB::transaction(function () use ($user, $data, $items, $itemIds) {
             $subtotal = $this->cartService->calculateTotal($items);
             $coupon = null;
             $couponDiscount = 0;
@@ -257,6 +258,16 @@ class CheckoutService
 
             return $order;
         });
+
+        // Dispatch only after the order transaction has committed successfully.
+        $this->orderNotificationService->orderPlaced($order);
+
+        $payment = $order->payment;
+        if ($payment?->payment_status === 'paid') {
+            $this->orderNotificationService->paymentSucceeded($payment);
+        }
+
+        return $order;
     }
 
     /**

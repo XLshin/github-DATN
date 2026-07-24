@@ -18,7 +18,11 @@ class PaymentWebhookService
         private ImeiReservationService $imeiService,
         private ShippingService $shippingService,
         private CarrierSelectorService $carrierSelector,
+<<<<<<< Updated upstream
         private ReceiptImageService $receiptImageService,
+=======
+        private OrderCustomerNotificationService $orderNotificationService,
+>>>>>>> Stashed changes
     ) {}
 
     /**
@@ -189,6 +193,10 @@ class PaymentWebhookService
      */
     private function markPaid(Payment $payment, ?string $transactionCode): void
     {
+        if ($payment->payment_status === 'paid') {
+            return;
+        }
+
         $payment->payment_status = 'paid';
         $payment->paid_at = Carbon::now();
         $payment->transaction_code = $transactionCode
@@ -244,6 +252,8 @@ class PaymentWebhookService
 
             Log::error('Error creating shipment for order ' . $order->id . ': ' . $e->getMessage());
         }
+
+        $this->orderNotificationService->paymentSucceeded($payment);
     }
 
     /**
