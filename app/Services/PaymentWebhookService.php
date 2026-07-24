@@ -18,11 +18,8 @@ class PaymentWebhookService
         private ImeiReservationService $imeiService,
         private ShippingService $shippingService,
         private CarrierSelectorService $carrierSelector,
-<<<<<<< Updated upstream
         private ReceiptImageService $receiptImageService,
-=======
         private OrderCustomerNotificationService $orderNotificationService,
->>>>>>> Stashed changes
     ) {}
 
     /**
