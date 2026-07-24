@@ -70,6 +70,14 @@
                         <div class="text-muted small">Tên người chuyển (khách khai báo)</div>
                         <div class="fw-semibold">{{ $topup->payer_name ?? '—' }}</div>
                     </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small">Tài khoản nhận</div>
+                        <div class="fw-semibold">{{ config('services.sepay.account_name') }} — {{ config('services.sepay.account_number') }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small">Thời điểm cộng tiền</div>
+                        <div class="fw-semibold">{{ $topup->paid_at?->format('d/m/Y H:i') ?? '—' }}</div>
+                    </div>
                     <div class="col-12">
                         <div class="text-muted small">Ghi chú từ khách</div>
                         <div>{{ $topup->payer_note ?? '—' }}</div>
@@ -79,7 +87,7 @@
         </div>
 
         <div class="card border-0 shadow-sm mb-4">
-            <div class="card-header bg-white fw-bold">Ảnh bằng chứng chuyển khoản</div>
+            <div class="card-header bg-white fw-bold">Hóa đơn / ảnh bằng chứng giao dịch</div>
             <div class="card-body text-center">
                 @if($topup->proof_image)
                     <a href="{{ \Illuminate\Support\Facades\Storage::url($topup->proof_image) }}" target="_blank">

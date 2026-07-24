@@ -3,17 +3,23 @@
 namespace App\Services;
 
 use Illuminate\Http\Request;
+use App\Models\BankAccount;
 use App\Models\Payment;
-use App\Models\Carrier;
 use App\Services\CarrierSelectorService;
 use App\Services\ImeiReservationService;
 use App\Services\ShippingService;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class PaymentWebhookService
 {
-    public function __construct(private ImeiReservationService $imeiService, private ShippingService $shippingService, private CarrierSelectorService $carrierSelector) {}
+    public function __construct(
+        private ImeiReservationService $imeiService,
+        private ShippingService $shippingService,
+        private CarrierSelectorService $carrierSelector,
+        private ReceiptImageService $receiptImageService,
+    ) {}
 
     /**
      * Verify signature for known gateways. Returns true if valid or no secret configured.
@@ -185,7 +191,37 @@ class PaymentWebhookService
     {
         $payment->payment_status = 'paid';
         $payment->paid_at = Carbon::now();
-        $payment->transaction_code = $transactionCode ?? $payment->transaction_code;
+        $payment->transaction_code = $transactionCode
+            ?? $payment->transaction_code
+            ?? strtoupper($payment->payment_method) . strtoupper(Str::random(10));
+
+        // Webhook/mô phỏng ngân hàng không tự có tên chủ tài khoản chuyển khoản; dùng tên khách
+        // đứng đơn để hiển thị trên hóa đơn, giống cách sao kê ngân hàng thật hiện tên người gửi.
+        if (! $payment->payer_name) {
+            $payerName = $payment->order->user->name ?? $payment->order->customer_name ?? null;
+            if ($payerName) {
+                $payment->payer_name = Str::upper(BankAccount::normalizeName($payerName));
+            }
+        }
+
+        // Quét QR tự động xác nhận thì không có ảnh chụp màn hình khách gửi; tự vẽ một ảnh hóa
+        // đơn làm chứng từ lưu lại, giống vai trò của proof_image trong luồng đối soát thủ công.
+        if (! $payment->proof_image) {
+            $payment->proof_image = $this->receiptImageService->generate(
+                'GIAO DICH THANH CONG',
+                number_format((float) $payment->amount, 0, ',', '.') . ' VND',
+                $this->brandColor($payment->payment_method),
+                [
+                    ['Don vi thu huong', config('services.sepay.account_name')],
+                    ['Tai khoan thu huong', (string) config('services.sepay.account_number')],
+                    ['Nguoi chuyen', (string) $payment->payer_name],
+                    ['Ma giao dich', (string) $payment->transaction_code],
+                    ['Noi dung', (string) $payment->order->order_code],
+                    ['Thoi gian', $payment->paid_at->format('H:i:s d/m/Y')],
+                ]
+            );
+        }
+
         $payment->save();
 
         $this->imeiService->finalize($payment->order);
@@ -208,5 +244,18 @@ class PaymentWebhookService
 
             Log::error('Error creating shipment for order ' . $order->id . ': ' . $e->getMessage());
         }
+    }
+
+    /**
+     * @return array{r:int,g:int,b:int}
+     */
+    private function brandColor(string $method): array
+    {
+        return match ($method) {
+            'momo' => ['r' => 174, 'g' => 32, 'b' => 112],
+            'vnpay' => ['r' => 0, 'g' => 91, 'b' => 170],
+            'card' => ['r' => 22, 'g' => 33, 'b' => 62],
+            default => ['r' => 0, 'g' => 122, 'b' => 77],
+        };
     }
 }

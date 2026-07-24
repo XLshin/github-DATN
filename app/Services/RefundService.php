@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Notifications\RefundCompletedNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class RefundService
@@ -15,6 +16,7 @@ class RefundService
     public function __construct(
         private readonly WalletService $walletService,
         private readonly BankTransactionLogService $logService,
+        private readonly ReceiptImageService $receiptImageService,
     ) {}
 
     /**
@@ -157,10 +159,29 @@ class RefundService
             return;
         }
 
+        $completedAt = now();
+        $transactionCode = 'RF' . strtoupper(Str::random(10));
+
         $refund->update([
             'status' => 'completed',
-            'completed_at' => now(),
+            'completed_at' => $completedAt,
             'admin_note' => 'Tự động hoàn tiền (mô phỏng ngân hàng xử lý xong).',
+            // Tự động xử lý thì không có ảnh chuyển khoản thật; tự vẽ một ảnh hóa đơn làm chứng từ
+            // lưu lại, giống vai trò của proof_image khi admin xác nhận thủ công.
+            'proof_image' => $refund->proof_image ?: $this->receiptImageService->generate(
+                'HOAN TIEN THANH CONG',
+                number_format((float) $refund->amount, 0, ',', '.') . ' VND',
+                ['r' => 0, 'g' => 122, 'b' => 77],
+                [
+                    ['Don vi hoan tien', config('services.sepay.account_name')],
+                    ['Nguoi nhan', (string) $refund->bank_account_name],
+                    ['Ngan hang nhan', (string) $refund->bank_name],
+                    ['So TK nhan', $this->maskAccountNumber((string) $refund->bank_account_number)],
+                    ['Ma giao dich', $transactionCode],
+                    ['Noi dung', 'Hoan tien don ' . $refund->order->order_code],
+                    ['Thoi gian', $completedAt->format('H:i:s d/m/Y')],
+                ]
+            ),
         ]);
 
         $this->logService->logRefund($refund->fresh(), 'completed', null, 'Tự động xác nhận — không cần admin (dưới ngưỡng ' . number_format(RefundRequest::AUTO_REFUND_MAX_AMOUNT, 0, ',', '.') . ' đ).');
@@ -202,5 +223,16 @@ class RefundService
         }
 
         $refund->update(['status' => 'processing']);
+    }
+
+    private function maskAccountNumber(string $accountNumber): string
+    {
+        $length = strlen($accountNumber);
+
+        if ($length <= 4) {
+            return $accountNumber;
+        }
+
+        return str_repeat('*', $length - 4) . substr($accountNumber, -4);
     }
 }

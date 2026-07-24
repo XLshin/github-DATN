@@ -53,6 +53,8 @@
 </div>
 @endif
 
+@include('partials.client.receipt-modal', ['method' => $method, 'code' => $code])
+
 {{-- ══════════════════════════════════════════════════════════════════════ --}}
 {{-- GIAO DỊCH HẾT HẠN (card / momo / vnpay)                                --}}
 {{-- ══════════════════════════════════════════════════════════════════════ --}}
@@ -377,8 +379,9 @@
                     <code>4111 1111 1111 1111</code>. Thẻ kết thúc bằng <code>0000</code> sẽ mô phỏng bị ngân hàng từ chối. Thẻ hợp lệ được xử lý thanh toán ngay lập tức, không cần ảnh minh chứng.
                 </div>
 
-                <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}">
+                <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}" id="card-payment-form">
                     @csrf
+                    <div class="alert alert-danger small d-none" id="card-form-error"></div>
                     @if($errors->any())
                         <div class="alert alert-danger small">{{ $errors->first() }}</div>
                     @endif
@@ -431,6 +434,29 @@
 @push('scripts')
 <script>
 (function(){
+    {{-- Hiện hóa đơn điện tử với tên người chuyển + tài khoản kinh doanh nhận tiền, giống MoMo/VNPay thật --}}
+    window.showReceipt = function (receipt, continueUrl) {
+        if (!receipt) {
+            window.location.href = continueUrl;
+            return;
+        }
+        const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+        setText('receipt-payer-name', receipt.payer_name || '—');
+        setText('receipt-business-account', receipt.business_account?.account_number || '—');
+        setText('receipt-amount', Number(receipt.amount || 0).toLocaleString('vi-VN') + ' VND');
+        setText('receipt-transaction-code', receipt.transaction_code || '—');
+        setText('receipt-paid-at', receipt.paid_at || '—');
+
+        const continueBtn = document.getElementById('receipt-continue-btn');
+        continueBtn.href = continueUrl;
+
+        const modalEl = document.getElementById('receiptModal');
+        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modal.show();
+
+        modalEl.addEventListener('hidden.bs.modal', () => window.location.href = continueUrl, { once: true });
+    };
+
     {{-- Timer đếm ngược khớp với expires_at thật của phiên giao dịch trên server --}}
     function startTimer(elId, seconds) {
         const el = document.getElementById(elId);
@@ -469,13 +495,52 @@
                     if (data.paid) {
                         clearInterval(iv);
                         if (badge) badge.innerHTML = '<i class="bi bi-check-circle-fill"></i> Đã xác nhận thanh toán!';
-                        window.location.href = successUrl;
+                        showReceipt(data.receipt, successUrl);
                     }
                 })
                 .catch(() => {});
         }, 4000);
     })();
     @endif
+
+    {{-- Thẻ xử lý ngay, không cần poll: submit bằng AJAX để hiện hóa đơn ngay khi backend xác
+        nhận thành công, thay vì chuyển trang thẳng luôn (không thấy được hóa đơn). --}}
+    const cardForm = document.getElementById('card-payment-form');
+    cardForm?.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const btn = cardForm.querySelector('button[type="submit"], button:not([type])');
+        const errorBox = document.getElementById('card-form-error');
+        errorBox.classList.add('d-none');
+
+        if (btn) {
+            btn.disabled = true;
+            btn.dataset.originalHtml = btn.dataset.originalHtml || btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Đang xử lý giao dịch...';
+        }
+
+        fetch(cardForm.action, {
+            method: 'POST',
+            headers: { 'Accept': 'application/json' },
+            body: new FormData(cardForm),
+        })
+            .then(async (r) => {
+                const data = await r.json();
+                if (!r.ok) throw data;
+                return data;
+            })
+            .then((data) => {
+                showReceipt(data.receipt, data.redirect);
+            })
+            .catch((data) => {
+                const message = data?.errors ? Object.values(data.errors)[0][0] : 'Có lỗi xảy ra, vui lòng thử lại.';
+                errorBox.textContent = message;
+                errorBox.classList.remove('d-none');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = btn.dataset.originalHtml;
+                }
+            });
+    });
 
     {{-- VNPay tabs --}}
     document.querySelectorAll('#vnpay-tabs [data-tab]').forEach(btn => {
@@ -514,8 +579,9 @@
         previewExp.textContent = expiryInput.value || 'MM/YY';
     });
 
-    {{-- Mô phỏng trạng thái "đang xử lý giao dịch" giống cổng thanh toán thật --}}
-    document.querySelectorAll('form[action*="payment"]').forEach(form => {
+    {{-- Mô phỏng trạng thái "đang xử lý giao dịch" giống cổng thanh toán thật (trừ form thẻ,
+        đã có xử lý AJAX riêng ở trên) --}}
+    document.querySelectorAll('form[action*="payment"]:not(#card-payment-form)').forEach(form => {
         form.addEventListener('submit', () => {
             const btn = form.querySelector('button[type="submit"], button:not([type])');
             if (!btn || btn.disabled) return;
