@@ -206,6 +206,17 @@ class CheckoutController extends Controller
         return response()->json([
             'status' => $payment?->payment_status,
             'paid'   => $payment?->payment_status === 'paid',
+            'receipt' => $payment?->payment_status === 'paid' ? [
+                'payer_name'       => $payment->payer_name,
+                'amount'           => (float) $payment->amount,
+                'transaction_code' => $payment->transaction_code,
+                'paid_at'          => $payment->paid_at?->format('H:i:s d/m/Y'),
+                'business_account' => [
+                    'bank_id'        => config('services.sepay.bank_id'),
+                    'account_number' => config('services.sepay.account_number'),
+                    'account_name'   => config('services.sepay.account_name'),
+                ],
+            ] : null,
         ]);
     }
 
@@ -306,6 +317,25 @@ class CheckoutController extends Controller
             // Thông tin thẻ đã tự xác thực được (Luhn + hạn dùng + không rơi vào case mô phỏng từ
             // chối) nên coi như đã thanh toán ngay, không cần chờ đối soát ảnh như momo/vnpay.
             $webhookService->confirmSimulatedBankTransfer($payment->fresh());
+            $payment->refresh();
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'paid' => true,
+                    'redirect' => route('checkout.success', $order),
+                    'receipt' => [
+                        'payer_name'       => $payment->payer_name,
+                        'amount'           => (float) $payment->amount,
+                        'transaction_code' => $payment->transaction_code,
+                        'paid_at'          => $payment->paid_at?->format('H:i:s d/m/Y'),
+                        'business_account' => [
+                            'bank_id'        => config('services.sepay.bank_id'),
+                            'account_number' => config('services.sepay.account_number'),
+                            'account_name'   => config('services.sepay.account_name'),
+                        ],
+                    ],
+                ]);
+            }
 
             return redirect()->route('checkout.success', $order)
                 ->with('success', 'Thanh toán thẻ thành công!');

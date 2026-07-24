@@ -49,6 +49,8 @@
 </div>
 @endif
 
+@include('partials.client.receipt-modal', ['method' => $method, 'code' => $code])
+
 @if($expired)
 <div class="row justify-content-center">
     <div class="col-lg-5 col-md-7">
@@ -323,8 +325,9 @@
                     <code>4111 1111 1111 1111</code>. Thẻ kết thúc bằng <code>0000</code> sẽ mô phỏng bị từ chối. Thẻ hợp lệ được xử lý ngay lập tức, không cần ảnh minh chứng.
                 </div>
 
-                <form method="POST" action="{{ route('wallet.topup.confirm', $topup) }}">
+                <form method="POST" action="{{ route('wallet.topup.confirm', $topup) }}" id="card-payment-form">
                     @csrf
+                    <div class="alert alert-danger small d-none" id="card-form-error"></div>
                     @if($errors->any())
                         <div class="alert alert-danger small">{{ $errors->first() }}</div>
                     @endif
@@ -371,6 +374,29 @@
 @push('scripts')
 <script>
 (function(){
+    {{-- Hiện hóa đơn điện tử với tên người chuyển + tài khoản kinh doanh nhận tiền, giống MoMo/VNPay thật --}}
+    window.showReceipt = function (receipt, continueUrl) {
+        if (!receipt) {
+            window.location.href = continueUrl;
+            return;
+        }
+        const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+        setText('receipt-payer-name', receipt.payer_name || '—');
+        setText('receipt-business-account', receipt.business_account?.account_number || '—');
+        setText('receipt-amount', Number(receipt.amount || 0).toLocaleString('vi-VN') + ' VND');
+        setText('receipt-transaction-code', receipt.transaction_code || '—');
+        setText('receipt-paid-at', receipt.paid_at || '—');
+
+        const continueBtn = document.getElementById('receipt-continue-btn');
+        continueBtn.href = continueUrl;
+
+        const modalEl = document.getElementById('receiptModal');
+        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modal.show();
+
+        modalEl.addEventListener('hidden.bs.modal', () => window.location.href = continueUrl, { once: true });
+    };
+
     function startTimer(elId, seconds) {
         const el = document.getElementById(elId);
         if (!el) return;
@@ -408,7 +434,7 @@
                     if (data.paid) {
                         clearInterval(iv);
                         if (badge) badge.innerHTML = '<i class="bi bi-check-circle-fill"></i> Đã cộng tiền vào ví!';
-                        window.location.href = successUrl;
+                        showReceipt(data.receipt, successUrl);
                     }
                 })
                 .catch(() => {});
@@ -440,7 +466,46 @@
         previewExp.textContent = expiryInput.value || 'MM/YY';
     });
 
-    document.querySelectorAll('form[action*="topup"]').forEach(form => {
+    {{-- Thẻ xử lý ngay, không cần poll: submit bằng AJAX để hiện hóa đơn ngay khi backend xác
+        nhận thành công, thay vì chuyển trang thẳng luôn (không thấy được hóa đơn). --}}
+    const cardForm = document.getElementById('card-payment-form');
+    cardForm?.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const btn = cardForm.querySelector('button[type="submit"], button:not([type])');
+        const errorBox = document.getElementById('card-form-error');
+        errorBox.classList.add('d-none');
+
+        if (btn) {
+            btn.disabled = true;
+            btn.dataset.originalHtml = btn.dataset.originalHtml || btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Đang xử lý giao dịch...';
+        }
+
+        fetch(cardForm.action, {
+            method: 'POST',
+            headers: { 'Accept': 'application/json' },
+            body: new FormData(cardForm),
+        })
+            .then(async (r) => {
+                const data = await r.json();
+                if (!r.ok) throw data;
+                return data;
+            })
+            .then((data) => {
+                showReceipt(data.receipt, data.redirect);
+            })
+            .catch((data) => {
+                const message = data?.errors ? Object.values(data.errors)[0][0] : 'Có lỗi xảy ra, vui lòng thử lại.';
+                errorBox.textContent = message;
+                errorBox.classList.remove('d-none');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = btn.dataset.originalHtml;
+                }
+            });
+    });
+
+    document.querySelectorAll('form[action*="topup"]:not(#card-payment-form)').forEach(form => {
         form.addEventListener('submit', () => {
             const btn = form.querySelector('button[type="submit"], button:not([type])');
             if (!btn || btn.disabled) return;

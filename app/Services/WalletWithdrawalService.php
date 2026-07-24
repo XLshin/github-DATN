@@ -16,6 +16,7 @@ class WalletWithdrawalService
     public function __construct(
         private readonly WalletService $walletService,
         private readonly BankTransactionLogService $logService,
+        private readonly ReceiptImageService $receiptImageService,
     ) {}
 
     /**
@@ -101,11 +102,29 @@ class WalletWithdrawalService
             return;
         }
 
+        $transactionCode = 'WD' . strtoupper(Str::random(10));
+        $completedAt = now();
+
         $withdrawal->update([
             'status' => 'completed',
-            'completed_at' => now(),
-            'transaction_code' => 'WD' . strtoupper(Str::random(10)),
+            'completed_at' => $completedAt,
+            'transaction_code' => $transactionCode,
             'admin_note' => 'Tự động xử lý (mô phỏng ngân hàng chuyển tiền xong).',
+            // Tự động xử lý thì không có ảnh chuyển khoản thật; tự vẽ một ảnh hóa đơn làm chứng từ
+            // lưu lại, giống vai trò của proof_image khi admin xác nhận thủ công.
+            'proof_image' => $withdrawal->proof_image ?: $this->receiptImageService->generate(
+                'RUT TIEN THANH CONG',
+                number_format((float) $withdrawal->amount, 0, ',', '.') . ' VND',
+                ['r' => 0, 'g' => 122, 'b' => 77],
+                [
+                    ['Don vi chuyen', config('services.sepay.account_name')],
+                    ['Nguoi nhan', $withdrawal->account_holder_name],
+                    ['Ngan hang nhan', $withdrawal->bank_name],
+                    ['So TK nhan', $this->maskAccountNumber($withdrawal->account_number)],
+                    ['Ma giao dich', $transactionCode],
+                    ['Thoi gian', $completedAt->format('H:i:s d/m/Y')],
+                ]
+            ),
         ]);
 
         $this->logService->logWithdrawal($withdrawal->fresh(), 'completed', null, 'Tự động xác nhận — không cần admin (dưới ngưỡng ' . number_format(WalletWithdrawal::AUTO_WITHDRAWAL_MAX_AMOUNT, 0, ',', '.') . ' đ).');

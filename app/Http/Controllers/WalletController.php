@@ -140,6 +140,17 @@ class WalletController extends Controller
         return response()->json([
             'status' => $topup->payment_status,
             'paid'   => $topup->payment_status === 'paid',
+            'receipt' => $topup->payment_status === 'paid' ? [
+                'payer_name'       => $topup->payer_name,
+                'amount'           => (float) $topup->amount,
+                'transaction_code' => $topup->transaction_code,
+                'paid_at'          => $topup->paid_at?->format('H:i:s d/m/Y'),
+                'business_account' => [
+                    'bank_id'        => config('services.sepay.bank_id'),
+                    'account_number' => config('services.sepay.account_number'),
+                    'account_name'   => config('services.sepay.account_name'),
+                ],
+            ] : null,
         ]);
     }
 
@@ -204,6 +215,25 @@ class WalletController extends Controller
             ]);
 
             $this->walletService->confirmSimulated($topup->fresh());
+            $topup->refresh();
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'paid' => true,
+                    'redirect' => route('wallet.index'),
+                    'receipt' => [
+                        'payer_name'       => $topup->payer_name,
+                        'amount'           => (float) $topup->amount,
+                        'transaction_code' => $topup->transaction_code,
+                        'paid_at'          => $topup->paid_at?->format('H:i:s d/m/Y'),
+                        'business_account' => [
+                            'bank_id'        => config('services.sepay.bank_id'),
+                            'account_number' => config('services.sepay.account_number'),
+                            'account_name'   => config('services.sepay.account_name'),
+                        ],
+                    ],
+                ]);
+            }
 
             return redirect()->route('wallet.index')
                 ->with('success', 'Nạp ví bằng thẻ thành công!');
