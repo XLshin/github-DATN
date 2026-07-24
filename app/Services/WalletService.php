@@ -22,6 +22,7 @@ class WalletService
 
     public function __construct(
         private readonly BankTransactionLogService $logService,
+        private readonly ReceiptImageService $receiptImageService,
     ) {}
 
     /**
@@ -151,12 +152,33 @@ class WalletService
     private function markPaid(WalletTopup $topup, ?int $adminId, ?string $note): void
     {
         DB::transaction(function () use ($topup, $adminId, $note) {
+            $transactionCode = $topup->transaction_code ?: strtoupper($topup->payment_method) . strtoupper(Str::random(10));
+            $paidAt = now();
+            // Mô phỏng ngân hàng báo có tiền không tự có tên chủ TK chuyển khoản; dùng tên khách
+            // để hiển thị trên hóa đơn, giống sao kê ngân hàng thật hiện tên người gửi.
+            $payerName = $topup->payer_name ?: Str::upper(\App\Models\BankAccount::normalizeName($topup->user->name));
+
             $topup->update([
                 'payment_status' => 'paid',
-                'transaction_code' => strtoupper($topup->payment_method) . strtoupper(Str::random(10)),
-                'paid_at' => now(),
+                'transaction_code' => $transactionCode,
+                'paid_at' => $paidAt,
                 'confirmed_by' => $adminId,
                 'admin_note' => $note,
+                'payer_name' => $payerName,
+                // Nạp qua QR tự động xác nhận thì không có ảnh chụp màn hình khách gửi; tự vẽ một
+                // ảnh hóa đơn làm chứng từ lưu lại, giống vai trò của proof_image khi đối soát thủ công.
+                'proof_image' => $topup->proof_image ?: $this->receiptImageService->generate(
+                    'NAP VI THANH CONG',
+                    number_format((float) $topup->amount, 0, ',', '.') . ' VND',
+                    $this->brandColor($topup->payment_method),
+                    [
+                        ['Vi/TK nhan tien', config('services.sepay.account_name')],
+                        ['So TK nhan', (string) config('services.sepay.account_number')],
+                        ['Nguoi chuyen', $payerName],
+                        ['Ma giao dich', $transactionCode],
+                        ['Thoi gian', $paidAt->format('H:i:s d/m/Y')],
+                    ]
+                ),
             ]);
 
             $this->credit(
@@ -244,6 +266,19 @@ class WalletService
             'vnpay' => 'VNPAY',
             'card' => 'thẻ',
             default => $method,
+        };
+    }
+
+    /**
+     * @return array{r:int,g:int,b:int}
+     */
+    private function brandColor(string $method): array
+    {
+        return match ($method) {
+            'momo' => ['r' => 174, 'g' => 32, 'b' => 112],
+            'vnpay' => ['r' => 0, 'g' => 91, 'b' => 170],
+            'card' => ['r' => 22, 'g' => 33, 'b' => 62],
+            default => ['r' => 0, 'g' => 122, 'b' => 77],
         };
     }
 }

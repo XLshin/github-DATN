@@ -290,6 +290,13 @@
                         </div>
                     </div>
 
+                    @if(in_array($order->payment->payment_method ?? null, ['bank_transfer', 'momo', 'vnpay'], true))
+                        <div class="mb-2">
+                            <div class="text-muted small">Tài khoản nhận</div>
+                            <div>{{ config('services.sepay.account_name') }} — {{ config('services.sepay.account_number') }}</div>
+                        </div>
+                    @endif
+
                     <div class="mb-2">
                         <div class="text-muted small">Thời điểm thanh toán</div>
                         <div>{{ $order->payment?->paid_at?->format('d/m/Y H:i') ?? '-' }}</div>
@@ -297,7 +304,7 @@
 
                     @if($order->payment?->proof_image)
                         <div class="mb-3">
-                            <div class="text-muted small">Ảnh bằng chứng khách gửi</div>
+                            <div class="text-muted small">Hóa đơn / ảnh bằng chứng giao dịch</div>
                             <a href="{{ \Illuminate\Support\Facades\Storage::url($order->payment->proof_image) }}" target="_blank">
                                 <img src="{{ \Illuminate\Support\Facades\Storage::url($order->payment->proof_image) }}"
                                      alt="Bằng chứng thanh toán" class="img-fluid rounded border mt-1" style="max-height:280px">
