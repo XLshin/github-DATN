@@ -557,13 +557,13 @@
                                 <span class="pm-dot"></span>
                             </label>
 
-                            {{-- VNPay --}}
-                            <input type="radio" class="pm-radio btn-check" name="payment_method" id="pm_vnpay" value="vnpay">
-                            <label class="pm-card" for="pm_vnpay">
-                                <span class="pm-icon pm-icon--brand" style="background:#005BAA;font-size:10px;line-height:1.1">VN<br>Pay</span>
+                            {{-- VietQR --}}
+                            <input type="radio" class="pm-radio btn-check" name="payment_method" id="pm_vietqr" value="vietqr">
+                            <label class="pm-card" for="pm_vietqr">
+                                <span class="pm-icon pm-icon--brand" style="background:#00A0E3;font-size:10px;line-height:1.1">Viet<br>QR</span>
                                 <span class="pm-text">
-                                    <span class="pm-title">VNPAY</span>
-                                    <span class="pm-subtitle">Thanh toán qua ví VNPAY hoặc QR ngân hàng</span>
+                                    <span class="pm-title">VietQR</span>
+                                    <span class="pm-subtitle">Quét mã QR bằng app ngân hàng bất kỳ để thanh toán</span>
                                 </span>
                                 <span class="pm-dot"></span>
                             </label>

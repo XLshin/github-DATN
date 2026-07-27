@@ -6,18 +6,19 @@
     $amount  = $order->total_amount;
     $code    = $order->order_code;
 
-    // Giao dịch qua cổng (card/momo/vnpay) có phiên giới hạn thời gian giống thực tế
+    // Giao dịch qua cổng (card/momo/vietqr) có phiên giới hạn thời gian giống thực tế
     $expired     = $payment?->payment_status === 'failed';
     $secondsLeft = $payment?->expires_at ? max(0, (int) now()->diffInSeconds($payment->expires_at, false)) : 0;
 
-    // QR URL cho chuyển khoản VietQR (Vietcombank – tài khoản giả lập)
-    $bankId  = 'VCB';
-    $acNo    = '1234567890';
+    // QR ảnh VietQR chuẩn, dùng đúng tài khoản ngân hàng đã cấu hình (config('services.sepay.*'))
+    // để khách chuyển khoản thật và webhook SePay tự động đối chiếu/xác nhận.
+    $bankId  = config('services.sepay.bank_id');
+    $acNo    = config('services.sepay.account_number');
     $info    = urlencode("Thanh toan {$code}");
-    $acName  = urlencode('BYTE ZONE STORE');
+    $acName  = urlencode((string) config('services.sepay.account_name'));
     $vietQr  = "https://img.vietqr.io/image/{$bankId}-{$acNo}-compact.jpg?amount={$amount}&addInfo={$info}&accountName={$acName}";
 
-    // QR generic (cho MoMo / VNPay)
+    // QR generic (cho MoMo)
     $qrData  = urlencode("{$code}|{$amount}|" . strtoupper($method));
     $qrImg   = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={$qrData}";
 @endphp
@@ -26,7 +27,7 @@
     match($method) {
         'bank_transfer' => 'Chuyển khoản ngân hàng',
         'momo'          => 'Thanh toán MoMo',
-        'vnpay'         => 'Thanh toán VNPAY',
+        'vietqr'        => 'Thanh toán VietQR',
         'card'          => 'Thanh toán bằng thẻ',
         default         => 'Thanh toán',
     }
@@ -56,7 +57,7 @@
 @include('partials.client.receipt-modal', ['method' => $method, 'code' => $code])
 
 {{-- ══════════════════════════════════════════════════════════════════════ --}}
-{{-- GIAO DỊCH HẾT HẠN (card / momo / vnpay)                                --}}
+{{-- GIAO DỊCH HẾT HẠN (card / momo / vietqr)                                --}}
 {{-- ══════════════════════════════════════════════════════════════════════ --}}
 @if($expired)
 <div class="row justify-content-center">
@@ -95,7 +96,7 @@
                 <span class="fs-5">🏦</span>
                 <div>
                     <div class="fw-bold">Chuyển khoản ngân hàng</div>
-                    <div class="small opacity-75">Vietcombank (VCB)</div>
+                    <div class="small opacity-75">{{ config('services.sepay.bank_id') }}</div>
                 </div>
                 <span class="ms-auto badge bg-white text-success" id="bank_transfer-status-badge">
                     <span class="spinner-border spinner-border-sm me-1" style="width:.7rem;height:.7rem"></span>Đang chờ thanh toán
@@ -113,9 +114,9 @@
                 {{-- Bank details --}}
                 <div class="text-start mx-auto" style="max-width:340px">
                     @foreach([
-                        ['Ngân hàng', 'Vietcombank (VCB)'],
-                        ['Số tài khoản', '1234 5678 90'],
-                        ['Chủ tài khoản', 'BYTE ZONE STORE'],
+                        ['Ngân hàng', config('services.sepay.bank_id')],
+                        ['Số tài khoản', config('services.sepay.account_number')],
+                        ['Chủ tài khoản', config('services.sepay.account_name')],
                         ['Số tiền', number_format($amount,0,',','.').' đ'],
                         ['Nội dung CK', $code],
                     ] as [$label, $value])
@@ -237,68 +238,53 @@
 </div>
 
 {{-- ══════════════════════════════════════════════════════════════════════ --}}
-{{-- VNPAY                                                                 --}}
+{{-- VIETQR (quét mã QR ngân hàng chuẩn VietQR, xác nhận qua webhook SePay thật) --}}
 {{-- ══════════════════════════════════════════════════════════════════════ --}}
-@elseif($method === 'vnpay')
+@elseif($method === 'vietqr')
 <div class="row justify-content-center">
     <div class="col-lg-5 col-md-7">
         <div class="card shadow-sm border-0 overflow-hidden">
-            <div class="text-center py-4" style="background:#005BAA;color:#fff">
-                <div class="fw-bold fs-5 mb-1">VNPAY</div>
-                <div class="opacity-75 small">Thanh toán an toàn qua VNPAY</div>
+            <div class="text-center py-4" style="background:#00A0E3;color:#fff">
+                <div class="fw-bold fs-5 mb-1">VietQR</div>
+                <div class="opacity-75 small">Quét mã QR bằng app ngân hàng bất kỳ để thanh toán</div>
             </div>
 
-            <div class="card-body py-4">
-                {{-- Tabs --}}
-                <ul class="nav nav-pills nav-fill mb-4" id="vnpay-tabs">
-                    <li class="nav-item">
-                        <button class="nav-link active" data-tab="qr">
-                            <i class="bi bi-qr-code me-1"></i>Quét QR
-                        </button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" data-tab="atm">
-                            <i class="bi bi-bank me-1"></i>ATM/Internet Banking
-                        </button>
-                    </li>
-                </ul>
-
-                {{-- QR tab --}}
-                <div id="tab-qr" class="text-center">
-                    <div class="mb-3 d-flex justify-content-center gap-2 flex-wrap">
-                        <span class="badge rounded-pill px-3 py-2" style="background:#EEF5FF;color:#005BAA;font-size:.85rem">
-                            <i class="bi bi-clock me-1"></i>Hết hạn sau: <span id="vnpay-timer" class="fw-bold">10:00</span>
-                        </span>
-                        <span class="badge rounded-pill px-3 py-2 bg-light text-dark border" id="vnpay-status-badge">
-                            <span class="spinner-border spinner-border-sm me-1" style="width:.7rem;height:.7rem"></span>Đang chờ thanh toán
-                        </span>
-                    </div>
-                    <div class="position-relative d-inline-block mb-3">
-                        <img src="{{ $qrImg }}" alt="QR VNPAY" class="rounded border"
-                             style="width:200px;height:200px">
-                        <span class="position-absolute bottom-0 end-0 rounded fw-bold text-white px-1"
-                              style="background:#005BAA;font-size:9px;margin:4px">VNPAY</span>
-                    </div>
-                    <div class="fw-bold fs-4 mb-1" style="color:#005BAA">
-                        {{ number_format($amount,0,',','.') }} đ
-                    </div>
-                    <div class="text-muted small mb-3">Mã đơn: <code>{{ $code }}</code></div>
-                    <div class="alert alert-light border text-start small">
-                        Mở app ngân hàng → <strong>Quét QR</strong> hoặc chọn <strong>VNPAY QR</strong>. Hệ thống tự động ghi nhận trong vài giây sau khi bạn thanh toán.
-                    </div>
+            <div class="card-body text-center py-4">
+                <div class="mb-3 d-flex justify-content-center gap-2 flex-wrap">
+                    <span class="badge rounded-pill px-3 py-2" style="background:#E6F7FF;color:#00A0E3;font-size:.85rem">
+                        <i class="bi bi-clock me-1"></i>Hết hạn sau: <span id="vietqr-timer" class="fw-bold">10:00</span>
+                    </span>
+                    <span class="badge rounded-pill px-3 py-2 bg-light text-dark border" id="vietqr-status-badge">
+                        <span class="spinner-border spinner-border-sm me-1" style="width:.7rem;height:.7rem"></span>Đang chờ thanh toán
+                    </span>
                 </div>
 
-                {{-- ATM tab --}}
-                <div id="tab-atm" class="d-none text-start">
-                    <div class="list-group mb-3">
-                        @foreach(['Vietcombank','VietinBank','BIDV','Agribank','Techcombank','MB Bank'] as $bank)
-                        <button class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-2">
-                            <span class="badge bg-primary" style="width:28px;font-size:9px">{{ substr($bank,0,3) }}</span>
-                            {{ $bank }}
-                            <i class="bi bi-chevron-right ms-auto"></i>
-                        </button>
-                        @endforeach
+                <img src="{{ $vietQr }}" alt="QR VietQR" class="rounded border mb-3"
+                     style="max-width:220px" onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ urlencode($code . ' ' . $amount) }}'">
+
+                <div class="fw-bold fs-4 mb-1" style="color:#00A0E3">
+                    {{ number_format($amount,0,',','.') }} đ
+                </div>
+                <div class="text-muted small mb-3">Mã đơn: <code>{{ $code }}</code></div>
+
+                {{-- Bank details --}}
+                <div class="text-start mx-auto mb-3" style="max-width:340px">
+                    @foreach([
+                        ['Ngân hàng', config('services.sepay.bank_id')],
+                        ['Số tài khoản', config('services.sepay.account_number')],
+                        ['Chủ tài khoản', config('services.sepay.account_name')],
+                        ['Nội dung CK', $code],
+                    ] as [$label, $value])
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted small">{{ $label }}</span>
+                        <span class="fw-semibold small text-end">{{ $value }}</span>
                     </div>
+                    @endforeach
+                </div>
+
+                <div class="alert alert-light border text-start small mb-3">
+                    <i class="bi bi-phone me-1"></i>
+                    Mở app ngân hàng bất kỳ → <strong>Quét mã QR</strong> → Kiểm tra đúng số tiền và nội dung → Xác nhận. Hệ thống tự động ghi nhận trong vài giây sau khi bạn thanh toán.
                 </div>
 
                 <details class="text-start">
@@ -312,17 +298,17 @@
                         @endif
                         <div class="text-start mb-3">
                             <label class="form-label small fw-semibold">
-                                Ảnh chụp màn hình xác nhận thanh toán VNPAY <span class="text-danger">*</span>
+                                Ảnh chụp màn hình xác nhận thanh toán <span class="text-danger">*</span>
                             </label>
                             <input type="file" name="proof_image" class="form-control" accept="image/*" required>
                         </div>
-                        <button class="btn w-100 text-white fw-bold" style="background:#005BAA">
+                        <button class="btn w-100 text-white fw-bold" style="background:#00A0E3">
                             <i class="bi bi-check-circle me-2"></i>Gửi để đối soát thủ công
                         </button>
                     </form>
                 </details>
-                <a href="{{ route('cart.index') }}" class="btn btn-link text-muted small mt-3 d-block text-center">
-                    ← Quay lại
+                <a href="{{ route('checkout.success', $order) }}" class="btn btn-link text-muted small mt-3 d-block">
+                    Xem đơn hàng
                 </a>
             </div>
         </div>
@@ -434,7 +420,7 @@
 @push('scripts')
 <script>
 (function(){
-    {{-- Hiện hóa đơn điện tử với tên người chuyển + tài khoản kinh doanh nhận tiền, giống MoMo/VNPay thật --}}
+    {{-- Hiện hóa đơn điện tử với tên người chuyển + tài khoản kinh doanh nhận tiền, giống MoMo/VietQR thật --}}
     window.showReceipt = function (receipt, continueUrl) {
         if (!receipt) {
             window.location.href = continueUrl;
@@ -476,13 +462,13 @@
         }, 1000);
     }
     startTimer('momo-timer', {{ $secondsLeft }});
-    startTimer('vnpay-timer', {{ $secondsLeft }});
+    startTimer('vietqr-timer', {{ $secondsLeft }});
     startTimer('card-timer', {{ $secondsLeft }});
 
-    @if(in_array($method, ['bank_transfer', 'momo', 'vnpay'], true) && ! $expired)
-    {{-- Poll trạng thái thanh toán: backend tự mô phỏng cổng/ngân hàng báo có tiền sau một khoảng
-        trễ ngẫu nhiên, trang này tự phát hiện và chuyển sang trang thành công mà không cần khách
-        thao tác gì thêm (đồ án — không kết nối cổng thật). Áp dụng cho cả bank_transfer/momo/vnpay. --}}
+    @if(in_array($method, ['bank_transfer', 'momo', 'vietqr'], true) && ! $expired)
+    {{-- Poll trạng thái thanh toán: bank_transfer/vietqr được webhook SePay thật xác nhận khi có
+        tiền vào tài khoản; momo dùng luồng mô phỏng hoặc IPN thật tùy MOMO_ENABLED. Trang này tự
+        phát hiện thanh toán xong và chuyển sang trang thành công mà không cần khách thao tác gì thêm. --}}
     (function pollPaymentStatus(){
         const statusUrl = '{{ route('checkout.payment.status', $order) }}';
         const successUrl = '{{ route('checkout.success', $order) }}';
@@ -540,18 +526,6 @@
                     btn.innerHTML = btn.dataset.originalHtml;
                 }
             });
-    });
-
-    {{-- VNPay tabs --}}
-    document.querySelectorAll('#vnpay-tabs [data-tab]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('#vnpay-tabs [data-tab]').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            ['qr','atm'].forEach(t => {
-                const el = document.getElementById('tab-'+t);
-                if (el) el.classList.toggle('d-none', t !== btn.dataset.tab);
-            });
-        });
     });
 
     {{-- Card preview --}}

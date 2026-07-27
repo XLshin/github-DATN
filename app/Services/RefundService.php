@@ -60,10 +60,10 @@ class RefundService
             $amount = (float) $payment->amount;
             $now = now();
 
-            // Đơn tự hủy trước khi giao (điều kiện bắt buộc để vào được luồng này — xem
-            // OrderController::cancel) + số tiền dưới ngưỡng thì tự động hoàn, không cần admin.
-            // Trên ngưỡng vẫn giữ quy trình cũ: admin xác nhận thủ công kèm ảnh minh chứng.
-            $autoRefund = $method === 'bank' && $amount <= RefundRequest::AUTO_REFUND_MAX_AMOUNT;
+            // Hoàn qua ngân hàng LUÔN cần admin tự tay chuyển khoản thật + đính kèm ảnh minh chứng
+            // (completeBankRefund) — không còn tự động giả lập dưới ngưỡng, vì hệ thống không có
+            // API chuyển tiền ra ngân hàng thật, "tự động xác nhận" trước đây chỉ là giả lập demo.
+            $autoRefund = false;
 
             $refund = RefundRequest::create([
                 'order_id' => $order->id,
@@ -97,11 +97,9 @@ class RefundService
 
             $payment->update(['payment_status' => 'refunded']);
 
-            $note = match (true) {
-                $method === 'wallet' => 'Hoàn tự động vào ví.',
-                $autoRefund => 'Đơn hủy trước khi giao, số tiền dưới ngưỡng — tự động hoàn qua ngân hàng.',
-                default => 'Khách tạo yêu cầu hoàn qua ngân hàng, chờ admin đối soát.',
-            };
+            $note = $method === 'wallet'
+                ? 'Hoàn tự động vào ví.'
+                : 'Khách tạo yêu cầu hoàn qua ngân hàng, chờ admin chuyển khoản thật và xác nhận.';
             $this->logService->logRefund($refund, $refund->status, null, $note);
 
             // Ví hoàn ngay lập tức thì báo cho khách ngay; hoàn ngân hàng thủ công (chờ admin) thì

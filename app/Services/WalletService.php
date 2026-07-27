@@ -13,10 +13,14 @@ use Illuminate\Validation\ValidationException;
 class WalletService
 {
     /** Phương thức nạp qua cổng có phiên giao dịch giới hạn thời gian (giống thực tế QR/thẻ hết hạn). */
-    private const EXPIRING_METHODS = ['card', 'momo', 'vnpay'];
+    private const EXPIRING_METHODS = ['card', 'momo', 'vietqr'];
 
-    /** Phương thức online được tự động xác nhận (mô phỏng), không cần đối soát thủ công. */
-    public const AUTO_CONFIRM_METHODS = ['bank_transfer', 'card', 'momo', 'vnpay'];
+    /**
+     * Phương thức được tự động xác nhận bằng bộ đếm giờ mô phỏng nội bộ — CHỈ áp dụng cho phương
+     * thức chưa có xác nhận thật. KHÔNG gồm bank_transfer/vietqr vì đã được xác nhận thật qua
+     * webhook SePay (xem PaymentWebhookService::handleBankTransfer).
+     */
+    public const AUTO_CONFIRM_METHODS = ['card', 'momo'];
 
     private const TOPUP_EXPIRY_MINUTES = 15;
 
@@ -97,13 +101,22 @@ class WalletService
             'expires_at' => in_array($paymentMethod, self::EXPIRING_METHODS, true)
                 ? now()->addMinutes(self::TOPUP_EXPIRY_MINUTES)
                 : null,
-            // Mô phỏng cổng thanh toán/ngân hàng báo có tiền sau một khoảng trễ ngẫu nhiên, giống
-            // cảm giác chờ đối soát thật (đồ án — không gọi cổng thật). Áp dụng cho mọi phương thức
-            // online (bank_transfer/momo/vnpay/card), không chỉ chuyển khoản.
+            // Mô phỏng cổng thanh toán báo có tiền sau một khoảng trễ ngẫu nhiên — CHỈ dùng cho
+            // card/momo (chưa có xác nhận thật). bank_transfer/vietqr để trống vì được xác nhận
+            // thật qua webhook SePay (transaction_code bên dưới chính là nội dung CK khách ghi).
             'simulate_confirm_at' => in_array($paymentMethod, self::AUTO_CONFIRM_METHODS, true)
                 ? now()->addSeconds(random_int(8, 20))
                 : null,
         ]);
+
+        if (in_array($paymentMethod, ['bank_transfer', 'vietqr'], true)) {
+            // Mã đối soát cố định, khớp đúng nội dung "NAPVI000123" hiển thị cho khách trên trang
+            // thanh toán (xem wallet/payment.blade.php) — webhook SePay dò tìm chuỗi này trong nội
+            // dung chuyển khoản để tự động ghi nhận (PaymentWebhookService::handleBankTransfer).
+            $topup->update([
+                'transaction_code' => 'NAPVI' . str_pad((string) $topup->id, 6, '0', STR_PAD_LEFT),
+            ]);
+        }
 
         $this->logService->logTopup($topup, 'pending', null, 'Khách tạo yêu cầu nạp ví.');
 
@@ -149,10 +162,24 @@ class WalletService
         $this->markPaid($topup, null, 'Tự động xác nhận (mô phỏng ngân hàng báo có).');
     }
 
-    private function markPaid(WalletTopup $topup, ?int $adminId, ?string $note): void
+    /**
+     * Xác nhận nạp ví từ webhook SePay thật (PaymentWebhookService::handleBankTransfer) — khớp
+     * theo transaction_code (mã "NAPVI..." gán lúc tạo yêu cầu), $referenceCode là mã tham chiếu
+     * thật SePay trả về, ghi đè lên để hiển thị đúng mã giao dịch ngân hàng thật trên hóa đơn.
+     */
+    public function confirmSepayTopup(WalletTopup $topup, ?string $referenceCode): void
     {
-        DB::transaction(function () use ($topup, $adminId, $note) {
-            $transactionCode = $topup->transaction_code ?: strtoupper($topup->payment_method) . strtoupper(Str::random(10));
+        if ($topup->payment_status !== 'pending') {
+            return;
+        }
+
+        $this->markPaid($topup, null, 'Tự động xác nhận qua webhook SePay (chuyển khoản thật).', $referenceCode);
+    }
+
+    private function markPaid(WalletTopup $topup, ?int $adminId, ?string $note, ?string $referenceCode = null): void
+    {
+        DB::transaction(function () use ($topup, $adminId, $note, $referenceCode) {
+            $transactionCode = $referenceCode ?: ($topup->transaction_code ?: strtoupper($topup->payment_method) . strtoupper(Str::random(10)));
             $paidAt = now();
             // Mô phỏng ngân hàng báo có tiền không tự có tên chủ TK chuyển khoản; dùng tên khách
             // để hiển thị trên hóa đơn, giống sao kê ngân hàng thật hiện tên người gửi.
@@ -222,7 +249,8 @@ class WalletService
 
         $user->notify(new \App\Notifications\WalletCreditedNotification(
             (float) $topup->amount,
-            'Nạp tiền qua ' . $methodText . '.'
+            'Nạp tiền qua ' . $methodText . '.',
+            $topup->transaction_code
         ));
     }
 
@@ -263,7 +291,7 @@ class WalletService
         return match ($method) {
             'bank_transfer' => 'chuyển khoản ngân hàng',
             'momo' => 'Ví MoMo',
-            'vnpay' => 'VNPAY',
+            'vietqr' => 'VietQR',
             'card' => 'thẻ',
             default => $method,
         };
@@ -276,7 +304,7 @@ class WalletService
     {
         return match ($method) {
             'momo' => ['r' => 174, 'g' => 32, 'b' => 112],
-            'vnpay' => ['r' => 0, 'g' => 91, 'b' => 170],
+            'vietqr' => ['r' => 0, 'g' => 91, 'b' => 170],
             'card' => ['r' => 22, 'g' => 33, 'b' => 62],
             default => ['r' => 0, 'g' => 122, 'b' => 77],
         };

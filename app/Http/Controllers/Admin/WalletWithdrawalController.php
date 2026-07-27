@@ -24,22 +24,34 @@ class WalletWithdrawalController extends Controller
 
         $withdrawals = $query->paginate(20)->withQueryString();
 
-        // Yêu cầu tự động (dưới ngưỡng) đến hạn simulate_confirm_at nhưng chưa có ai kích hoạt —
-        // tiện thể xác nhận luôn khi admin xem danh sách này.
-        $withdrawals->getCollection()->each(function (WalletWithdrawal $withdrawal) {
-            $this->withdrawalService->confirmSimulated($withdrawal);
-        });
-
         return view('admin.wallet-withdrawals.index', compact('withdrawals'));
     }
 
     public function show(WalletWithdrawal $withdrawal)
     {
-        $this->withdrawalService->confirmSimulated($withdrawal);
-
         $withdrawal->load(['user', 'bankAccount', 'confirmedBy', 'rejectedBy']);
 
         return view('admin.wallet-withdrawals.show', compact('withdrawal'));
+    }
+
+    /**
+     * Trang chi tiết poll endpoint này để tự phát hiện khi SePay xác nhận đã chuyển khoản xong
+     * (sau khi admin quét QR), hiện hóa đơn ngay mà không cần tải lại trang.
+     */
+    public function status(WalletWithdrawal $withdrawal)
+    {
+        return response()->json([
+            'status' => $withdrawal->status,
+            'completed' => $withdrawal->status === 'completed',
+            'receipt' => $withdrawal->status === 'completed' ? [
+                'amount' => (float) $withdrawal->amount,
+                'bank_name' => $withdrawal->bank_name,
+                'account_number' => $withdrawal->account_number,
+                'account_holder_name' => $withdrawal->account_holder_name,
+                'transaction_code' => $withdrawal->transaction_code,
+                'completed_at' => $withdrawal->completed_at?->format('H:i:s d/m/Y'),
+            ] : null,
+        ]);
     }
 
     public function markProcessing(WalletWithdrawal $withdrawal)

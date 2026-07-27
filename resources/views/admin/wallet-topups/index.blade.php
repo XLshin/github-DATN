@@ -28,7 +28,7 @@
                 <option value="">-- Tất cả phương thức --</option>
                 <option value="bank_transfer" {{ request('method') === 'bank_transfer' ? 'selected' : '' }}>Chuyển khoản</option>
                 <option value="momo" {{ request('method') === 'momo' ? 'selected' : '' }}>MoMo</option>
-                <option value="vnpay" {{ request('method') === 'vnpay' ? 'selected' : '' }}>VNPAY</option>
+                <option value="vietqr" {{ request('method') === 'vietqr' ? 'selected' : '' }}>VietQR</option>
                 <option value="card" {{ request('method') === 'card' ? 'selected' : '' }}>Thẻ</option>
             </select>
         </form>
@@ -61,7 +61,7 @@
                             @switch($topup->payment_method)
                                 @case('bank_transfer') Chuyển khoản @break
                                 @case('momo') MoMo @break
-                                @case('vnpay') VNPAY @break
+                                @case('vietqr') VietQR @break
                                 @case('card') Thẻ @break
                                 @default {{ $topup->payment_method }}
                             @endswitch

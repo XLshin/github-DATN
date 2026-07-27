@@ -7,8 +7,10 @@ use App\Models\User;
 use App\Services\BankTransactionLogService;
 use App\Services\CartService;
 use App\Services\CheckoutService;
+use App\Services\MomoService;
 use App\Models\Coupon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -20,6 +22,7 @@ class CheckoutController extends Controller
         private readonly CartService $cartService,
         private readonly CheckoutService $checkoutService,
         private readonly BankTransactionLogService $logService,
+        private readonly MomoService $momoService,
     ) {}
 
     public function show(Request $request)
@@ -93,7 +96,7 @@ class CheckoutController extends Controller
             'buyer_type' => ['required', 'string', 'in:self,proxy'],
             'buyer_name' => ['required_if:buyer_type,proxy', 'nullable', 'string', 'max:255'],
             'buyer_phone' => ['required_if:buyer_type,proxy', 'nullable', 'string', 'max:20'],
-            'payment_method' => ['required', 'string', 'in:cod,card,bank_transfer,momo,vnpay,wallet'],
+            'payment_method' => ['required', 'string', 'in:cod,card,bank_transfer,momo,vietqr,wallet'],
             'coupon_id' => ['nullable', 'integer', 'exists:coupons,id'],
             'coupon_code' => ['nullable', 'string', 'max:50'],
             'points_to_use' => ['nullable', 'integer', 'min:0'],
@@ -148,15 +151,39 @@ class CheckoutController extends Controller
             'wallet'        => redirect()->route('checkout.success', $order)
                 ->with('success', 'Đặt hàng thành công! Đã thanh toán bằng số dư ví.'),
             'bank_transfer' => redirect()->route('checkout.payment', $order),
-            'momo'          => redirect()->route('checkout.payment', $order),
-            'vnpay'         => redirect()->route('checkout.payment', $order),
+            'momo'          => $this->startMomoPayment($order, $order->payment),
+            'vietqr'        => redirect()->route('checkout.payment', $order),
             'card'          => redirect()->route('checkout.payment', $order),
             default         => redirect()->route('checkout.success', $order),
         };
     }
 
     /**
-     * Trang thanh toán theo phương thức (bank_transfer / momo / vnpay / card).
+     * Gọi API MoMo Sandbox để khởi tạo giao dịch thật và chuyển khách sang trang MoMo.
+     * Chỉ gọi API thật khi services.momo.enabled = true (cần tài khoản sandbox M4B riêng để
+     * hoàn tất giao dịch trên đó — xem MomoService); mặc định tắt để dùng luồng mô phỏng nội bộ ổn định.
+     * Nếu gọi cổng thất bại (mạng, sandbox lỗi...), cũng rơi về trang mô phỏng nội bộ để demo không bị chặn.
+     */
+    private function startMomoPayment(Order $order, ?\App\Models\Payment $payment)
+    {
+        if (! config('services.momo.enabled')) {
+            return redirect()->route('checkout.payment', $order);
+        }
+
+        try {
+            $result = $this->momoService->createPayment($order, $payment);
+
+            return redirect()->away($result['pay_url']);
+        } catch (\Throwable $e) {
+            Log::error('MoMo createPayment lỗi: ' . $e->getMessage());
+
+            return redirect()->route('checkout.payment', $order)
+                ->with('info', 'Không thể kết nối cổng MoMo thật lúc này, chuyển sang chế độ mô phỏng nội bộ.');
+        }
+    }
+
+    /**
+     * Trang thanh toán theo phương thức (bank_transfer / momo / vietqr / card).
      */
     public function showPayment(Request $request, Order $order)
     {
@@ -244,6 +271,10 @@ class CheckoutController extends Controller
             return redirect()->route('checkout.success', $order)->with('error', $firstError);
         }
 
+        if ($payment->payment_method === 'momo') {
+            return $this->startMomoPayment($order, $payment->fresh());
+        }
+
         return redirect()->route('checkout.payment', $order)
             ->with('info', 'Đã mở lại phiên thanh toán mới, vui lòng hoàn tất trong thời gian quy định.');
     }
@@ -252,7 +283,7 @@ class CheckoutController extends Controller
      * Khách xác nhận thanh toán thủ công — dùng làm lối dự phòng khi việc tự động xác nhận
      * (simulate_confirm_at, xem paymentStatus()) chưa kịp chạy. Thẻ (card) có dữ liệu xác thực
      * được (số thẻ hợp lệ theo Luhn, còn hạn, không bị mô phỏng từ chối) nên xử lý thanh toán
-     * ngay lập tức; momo/vnpay/bank_transfer chỉ có ảnh chụp màn hình nên vẫn cần admin đối soát.
+     * ngay lập tức; momo/vietqr/bank_transfer chỉ có ảnh chụp màn hình nên vẫn cần admin đối soát.
      */
     public function confirmPayment(Request $request, Order $order, \App\Services\PaymentWebhookService $webhookService)
     {
@@ -315,7 +346,7 @@ class CheckoutController extends Controller
             ]);
 
             // Thông tin thẻ đã tự xác thực được (Luhn + hạn dùng + không rơi vào case mô phỏng từ
-            // chối) nên coi như đã thanh toán ngay, không cần chờ đối soát ảnh như momo/vnpay.
+            // chối) nên coi như đã thanh toán ngay, không cần chờ đối soát ảnh như momo/vietqr.
             $webhookService->confirmSimulatedBankTransfer($payment->fresh());
             $payment->refresh();
 
@@ -351,7 +382,7 @@ class CheckoutController extends Controller
         $payerNote = match ($method) {
             'bank_transfer' => 'Khách báo đã chuyển khoản lúc ' . now()->format('H:i d/m/Y') . ' — chờ đối soát.',
             'momo' => 'Khách báo đã thanh toán qua Ví MoMo — chờ đối soát.',
-            'vnpay' => 'Khách báo đã thanh toán qua VNPAY — chờ đối soát.',
+            'vietqr' => 'Khách báo đã thanh toán qua VietQR — chờ đối soát.',
             default => 'Khách báo đã thanh toán — chờ đối soát.',
         };
 
