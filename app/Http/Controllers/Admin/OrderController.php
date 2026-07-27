@@ -22,7 +22,7 @@ use Illuminate\Validation\ValidationException;
 class OrderController extends Controller
 {
     /** Phương thức trả trước — nếu thanh toán thất bại thì đơn chưa có tiền, phải tự động hủy. COD không áp dụng vì thu tiền khi giao hàng. */
-    private const PREPAID_METHODS = ['card', 'bank_transfer', 'momo', 'vnpay'];
+    private const PREPAID_METHODS = ['card', 'bank_transfer', 'momo', 'vietqr'];
 
     public function __construct(
         private readonly RefundService $refundService,
@@ -151,7 +151,7 @@ class OrderController extends Controller
 
     /**
      * Admin xác nhận đã nhận được tiền thanh toán đơn hàng (mọi phương thức: bank_transfer,
-     * momo, vnpay, card) — bắt buộc nhập đúng số tiền thực nhận để tránh duyệt nhầm, đơn chỉ
+     * momo, vietqr, card) — bắt buộc nhập đúng số tiền thực nhận để tránh duyệt nhầm, đơn chỉ
      * chuyển sang "processing" sau khi admin xác nhận, không tự động theo lời khai của khách.
      */
     public function confirmPayment(Request $request, Order $order)
@@ -197,7 +197,7 @@ class OrderController extends Controller
      */
     /**
      * Admin từ chối yêu cầu thanh toán (không nhận được tiền / sai số tiền / sai nội dung...).
-     * Với các phương thức trả trước (chuyển khoản/thẻ/MoMo/VNPAY), đơn coi như CHƯA thanh toán
+     * Với các phương thức trả trước (chuyển khoản/thẻ/MoMo/VietQR), đơn coi như CHƯA thanh toán
      * nên phải tự động hủy ngay — không cho phép tiếp tục đóng gói/giao hàng một đơn chưa có tiền.
      * Khách hàng được thông báo qua email để kiểm tra lại giao dịch ngân hàng của mình.
      */

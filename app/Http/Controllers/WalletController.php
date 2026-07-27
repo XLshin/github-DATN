@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 class WalletController extends Controller
 {
     /** Phương thức nạp qua cổng có phiên giao dịch giới hạn thời gian, giống thực tế (QR/thẻ hết hạn). */
-    private const EXPIRING_METHODS = ['card', 'momo', 'vnpay'];
+    private const EXPIRING_METHODS = ['card', 'momo', 'vietqr'];
 
     public function __construct(
         private readonly WalletService $walletService,
@@ -66,7 +66,7 @@ class WalletController extends Controller
 
         $validated = $request->validate([
             'amount' => ['required', 'numeric', 'min:10000', 'max:100000000'],
-            'payment_method' => ['required', 'string', 'in:bank_transfer,momo,vnpay,card'],
+            'payment_method' => ['required', 'string', 'in:bank_transfer,momo,vietqr,card'],
         ], [
             'amount.min' => 'Số tiền nạp tối thiểu là 10.000 đ.',
             'amount.max' => 'Số tiền nạp tối đa là 100.000.000 đ.',
@@ -104,7 +104,11 @@ class WalletController extends Controller
 
         $topup->update([
             'payment_status' => 'pending',
-            'transaction_code' => null,
+            // Giữ nguyên transaction_code cho bank_transfer/vietqr (mã "NAPVI..." khách đã ghi nội
+            // dung chuyển khoản) — chỉ xóa cho card/momo vì 2 phương thức đó không cần mã đối soát.
+            'transaction_code' => in_array($topup->payment_method, ['bank_transfer', 'vietqr'], true)
+                ? $topup->transaction_code
+                : null,
             'payer_name' => null,
             'payer_note' => null,
             'expires_at' => now()->addMinutes(15),
@@ -158,7 +162,7 @@ class WalletController extends Controller
      * Khách xác nhận thủ công — dùng làm lối dự phòng khi việc tự động xác nhận
      * (simulate_confirm_at, xem topupStatus()) chưa kịp chạy. Thẻ (card) có dữ liệu xác thực được
      * (số thẻ hợp lệ theo Luhn, còn hạn, không bị mô phỏng từ chối) nên cộng tiền ngay lập tức;
-     * momo/vnpay/bank_transfer chỉ có ảnh chụp màn hình nên vẫn cần admin đối soát.
+     * momo/vietqr/bank_transfer chỉ có ảnh chụp màn hình nên vẫn cần admin đối soát.
      */
     public function confirmTopupPayment(Request $request, WalletTopup $topup)
     {
@@ -249,7 +253,7 @@ class WalletController extends Controller
         $payerNote = match ($method) {
             'bank_transfer' => 'Khách báo đã chuyển khoản lúc ' . now()->format('H:i d/m/Y') . ' — chờ đối soát.',
             'momo' => 'Khách báo đã thanh toán qua Ví MoMo — chờ đối soát.',
-            'vnpay' => 'Khách báo đã thanh toán qua VNPAY — chờ đối soát.',
+            'vietqr' => 'Khách báo đã thanh toán qua VietQR — chờ đối soát.',
             default => 'Khách báo đã thanh toán — chờ đối soát.',
         };
 

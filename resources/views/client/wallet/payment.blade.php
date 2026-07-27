@@ -8,10 +8,10 @@
     $expired     = $topup->payment_status === 'failed';
     $secondsLeft = $topup->expires_at ? max(0, (int) now()->diffInSeconds($topup->expires_at, false)) : 0;
 
-    $bankId  = 'VCB';
-    $acNo    = '1234567890';
+    $bankId  = config('services.sepay.bank_id');
+    $acNo    = config('services.sepay.account_number');
     $info    = urlencode("Nap vi {$code}");
-    $acName  = urlencode('BYTE ZONE STORE');
+    $acName  = urlencode((string) config('services.sepay.account_name'));
     $vietQr  = "https://img.vietqr.io/image/{$bankId}-{$acNo}-compact.jpg?amount={$amount}&addInfo={$info}&accountName={$acName}";
 
     $qrData  = urlencode("{$code}|{$amount}|" . strtoupper($method));
@@ -22,7 +22,7 @@
     match($method) {
         'bank_transfer' => 'Chuyển khoản ngân hàng',
         'momo'          => 'Nạp ví qua MoMo',
-        'vnpay'         => 'Nạp ví qua VNPAY',
+        'vietqr'        => 'Nạp ví qua VietQR',
         'card'          => 'Nạp ví bằng thẻ',
         default         => 'Nạp tiền vào ví',
     }
@@ -93,7 +93,7 @@
                 <span class="fs-5">🏦</span>
                 <div>
                     <div class="fw-bold">Chuyển khoản ngân hàng</div>
-                    <div class="small opacity-75">Vietcombank (VCB)</div>
+                    <div class="small opacity-75">{{ config('services.sepay.bank_id') }}</div>
                 </div>
                 <span class="ms-auto badge bg-white text-success" id="bank_transfer-status-badge">
                     <span class="spinner-border spinner-border-sm me-1" style="width:.7rem;height:.7rem"></span>Đang chờ thanh toán
@@ -109,9 +109,9 @@
 
                 <div class="text-start mx-auto" style="max-width:340px">
                     @foreach([
-                        ['Ngân hàng', 'Vietcombank (VCB)'],
-                        ['Số tài khoản', '1234 5678 90'],
-                        ['Chủ tài khoản', 'BYTE ZONE STORE'],
+                        ['Ngân hàng', config('services.sepay.bank_id')],
+                        ['Số tài khoản', config('services.sepay.account_number')],
+                        ['Chủ tài khoản', config('services.sepay.account_name')],
                         ['Số tiền', number_format($amount,0,',','.').' đ'],
                         ['Nội dung CK', $code],
                     ] as [$label, $value])
@@ -128,26 +128,27 @@
                     <code>{{ $code }}</code> để chúng tôi xác nhận nhanh nhất.
                 </div>
 
-                <form method="POST" action="{{ route('wallet.topup.confirm', $topup) }}" enctype="multipart/form-data">
-                    @csrf
-
-                    @if($errors->any())
-                        <div class="alert alert-danger small text-start">{{ $errors->first() }}</div>
-                    @endif
-
-                    <div class="text-start mb-3">
-                        <label class="form-label small fw-semibold">
-                            Ảnh chụp màn hình sao kê/biên lai chuyển khoản <span class="text-danger">*</span>
-                        </label>
-                        <input type="file" name="proof_image" class="form-control" accept="image/*" required>
-                        <div class="form-text">Bắt buộc để chúng tôi đối soát và xác nhận giao dịch của bạn.</div>
-                    </div>
-
-                    <button class="btn btn-success btn-lg w-100 mt-2">
-                        <i class="bi bi-check2-circle me-2"></i>Tôi đã chuyển khoản
-                    </button>
-                </form>
-                <a href="{{ route('wallet.index') }}" class="btn btn-link text-muted small mt-2 d-block">
+                <details class="text-start">
+                    <summary class="small text-muted" style="cursor:pointer">
+                        Đã chuyển khoản nhưng chưa thấy xác nhận sau vài phút? Gửi ảnh biên lai để được kiểm tra thủ công
+                    </summary>
+                    <form method="POST" action="{{ route('wallet.topup.confirm', $topup) }}" enctype="multipart/form-data" class="mt-3">
+                        @csrf
+                        @if($errors->any())
+                            <div class="alert alert-danger small text-start">{{ $errors->first() }}</div>
+                        @endif
+                        <div class="text-start mb-3">
+                            <label class="form-label small fw-semibold">
+                                Ảnh chụp màn hình sao kê/biên lai chuyển khoản <span class="text-danger">*</span>
+                            </label>
+                            <input type="file" name="proof_image" class="form-control" accept="image/*" required>
+                        </div>
+                        <button class="btn btn-outline-success w-100">
+                            <i class="bi bi-check2-circle me-2"></i>Gửi để đối soát thủ công
+                        </button>
+                    </form>
+                </details>
+                <a href="{{ route('wallet.index') }}" class="btn btn-link text-muted small mt-3 d-block">
                     Về trang ví
                 </a>
             </div>
@@ -223,36 +224,47 @@
     </div>
 </div>
 
-@elseif($method === 'vnpay')
+@elseif($method === 'vietqr')
 <div class="row justify-content-center">
     <div class="col-lg-5 col-md-7">
         <div class="card shadow-sm border-0 overflow-hidden">
-            <div class="text-center py-4" style="background:#005BAA;color:#fff">
-                <div class="fw-bold fs-5 mb-1">VNPAY</div>
-                <div class="opacity-75 small">Nạp tiền an toàn qua VNPAY</div>
+            <div class="text-center py-4" style="background:#00A0E3;color:#fff">
+                <div class="fw-bold fs-5 mb-1">VietQR</div>
+                <div class="opacity-75 small">Quét mã QR bằng app ngân hàng bất kỳ để nạp tiền</div>
             </div>
 
             <div class="card-body py-4 text-center">
                 <div class="mb-3 d-flex justify-content-center gap-2 flex-wrap">
-                    <span class="badge rounded-pill px-3 py-2" style="background:#EEF5FF;color:#005BAA;font-size:.85rem">
-                        <i class="bi bi-clock me-1"></i>Hết hạn sau: <span id="vnpay-timer" class="fw-bold">10:00</span>
+                    <span class="badge rounded-pill px-3 py-2" style="background:#E6F7FF;color:#00A0E3;font-size:.85rem">
+                        <i class="bi bi-clock me-1"></i>Hết hạn sau: <span id="vietqr-timer" class="fw-bold">10:00</span>
                     </span>
-                    <span class="badge rounded-pill px-3 py-2 bg-light text-dark border" id="vnpay-status-badge">
+                    <span class="badge rounded-pill px-3 py-2 bg-light text-dark border" id="vietqr-status-badge">
                         <span class="spinner-border spinner-border-sm me-1" style="width:.7rem;height:.7rem"></span>Đang chờ thanh toán
                     </span>
                 </div>
-                <div class="position-relative d-inline-block mb-3">
-                    <img src="{{ $qrImg }}" alt="QR VNPAY" class="rounded border"
-                         style="width:200px;height:200px">
-                    <span class="position-absolute bottom-0 end-0 rounded fw-bold text-white px-1"
-                          style="background:#005BAA;font-size:9px;margin:4px">VNPAY</span>
-                </div>
-                <div class="fw-bold fs-4 mb-1" style="color:#005BAA">
+                <img src="{{ $vietQr }}" alt="QR VietQR" class="rounded border mb-3"
+                     style="max-width:220px" onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ urlencode($code . ' ' . $amount) }}'">
+                <div class="fw-bold fs-4 mb-1" style="color:#00A0E3">
                     {{ number_format($amount,0,',','.') }} đ
                 </div>
                 <div class="text-muted small mb-3">Mã giao dịch: <code>{{ $code }}</code></div>
+
+                <div class="text-start mx-auto mb-3" style="max-width:340px">
+                    @foreach([
+                        ['Ngân hàng', config('services.sepay.bank_id')],
+                        ['Số tài khoản', config('services.sepay.account_number')],
+                        ['Chủ tài khoản', config('services.sepay.account_name')],
+                        ['Nội dung CK', $code],
+                    ] as [$label, $value])
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-muted small">{{ $label }}</span>
+                        <span class="fw-semibold small text-end">{{ $value }}</span>
+                    </div>
+                    @endforeach
+                </div>
+
                 <div class="alert alert-light border text-start small mb-3">
-                    Mở app ngân hàng → <strong>Quét QR</strong> hoặc chọn <strong>VNPAY QR</strong>. Hệ thống tự động cộng tiền trong vài giây sau khi bạn thanh toán.
+                    Mở app ngân hàng bất kỳ → <strong>Quét mã QR</strong> → Kiểm tra đúng số tiền/nội dung → Xác nhận. Hệ thống tự động cộng tiền trong vài giây sau khi bạn thanh toán.
                 </div>
 
                 <details class="text-start">
@@ -266,11 +278,11 @@
                         @endif
                         <div class="text-start mb-3">
                             <label class="form-label small fw-semibold">
-                                Ảnh chụp màn hình xác nhận thanh toán VNPAY <span class="text-danger">*</span>
+                                Ảnh chụp màn hình xác nhận thanh toán <span class="text-danger">*</span>
                             </label>
                             <input type="file" name="proof_image" class="form-control" accept="image/*" required>
                         </div>
-                        <button class="btn w-100 text-white fw-bold" style="background:#005BAA">
+                        <button class="btn w-100 text-white fw-bold" style="background:#00A0E3">
                             <i class="bi bi-check-circle me-2"></i>Gửi để đối soát thủ công
                         </button>
                     </form>
@@ -374,7 +386,7 @@
 @push('scripts')
 <script>
 (function(){
-    {{-- Hiện hóa đơn điện tử với tên người chuyển + tài khoản kinh doanh nhận tiền, giống MoMo/VNPay thật --}}
+    {{-- Hiện hóa đơn điện tử với tên người chuyển + tài khoản kinh doanh nhận tiền, giống MoMo/VietQR thật --}}
     window.showReceipt = function (receipt, continueUrl) {
         if (!receipt) {
             window.location.href = continueUrl;
@@ -415,13 +427,13 @@
         }, 1000);
     }
     startTimer('momo-timer', {{ $secondsLeft }});
-    startTimer('vnpay-timer', {{ $secondsLeft }});
+    startTimer('vietqr-timer', {{ $secondsLeft }});
     startTimer('card-timer', {{ $secondsLeft }});
 
-    @if(in_array($method, ['bank_transfer', 'momo', 'vnpay'], true) && ! $expired)
+    @if(in_array($method, ['bank_transfer', 'momo', 'vietqr'], true) && ! $expired)
     {{-- Poll trạng thái: backend tự mô phỏng cổng/ngân hàng báo có tiền sau một khoảng trễ ngẫu
         nhiên, trang này tự phát hiện và chuyển về trang ví mà không cần khách thao tác gì thêm
-        (đồ án — không kết nối cổng thật). Áp dụng cho cả bank_transfer/momo/vnpay. --}}
+        (đồ án — không kết nối cổng thật). Áp dụng cho cả bank_transfer/momo/vietqr. --}}
     (function pollTopupStatus(){
         const statusUrl = '{{ route('wallet.topup.status', $topup) }}';
         const successUrl = '{{ route('wallet.index') }}';

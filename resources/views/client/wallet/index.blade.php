@@ -153,12 +153,12 @@
                             <span class="pm-dot"></span>
                         </label>
 
-                        <input type="radio" class="pm-radio btn-check" name="payment_method" id="tm_vnpay" value="vnpay">
-                        <label class="pm-card" for="tm_vnpay">
-                            <span class="pm-icon pm-icon--brand" style="background:#005BAA;font-size:10px;line-height:1.1">VN<br>Pay</span>
+                        <input type="radio" class="pm-radio btn-check" name="payment_method" id="tm_vietqr" value="vietqr">
+                        <label class="pm-card" for="tm_vietqr">
+                            <span class="pm-icon pm-icon--brand" style="background:#00A0E3;font-size:10px;line-height:1.1">Viet<br>QR</span>
                             <span class="pm-text">
-                                <span class="pm-title">VNPAY</span>
-                                <span class="pm-subtitle">Thanh toán qua ví VNPAY hoặc QR ngân hàng</span>
+                                <span class="pm-title">VietQR</span>
+                                <span class="pm-subtitle">Quét mã QR bằng app ngân hàng bất kỳ để thanh toán</span>
                             </span>
                             <span class="pm-dot"></span>
                         </label>
@@ -245,7 +245,18 @@
                     </div>
                     <div class="mb-2">
                         <label class="form-label small">Ngân hàng</label>
-                        <input type="text" name="bank_name" class="form-control form-control-sm" placeholder="VD: Vietcombank" required>
+                        <select name="bank_name" class="form-select form-select-sm" required>
+                            <option value="">-- Chọn ngân hàng --</option>
+                            @foreach([
+                                'Vietcombank', 'VietinBank', 'BIDV', 'Agribank', 'Techcombank',
+                                'MB Bank', 'ACB', 'VPBank', 'Sacombank', 'TPBank',
+                                'HDBank', 'SHB', 'VIB', 'Eximbank', 'MSB',
+                                'OCB', 'SeABank', 'SCB', 'Nam A Bank', 'BacA Bank',
+                                'PVcomBank', 'Vietbank', 'ABBANK', 'LPBank', 'Kienlongbank',
+                            ] as $bankOption)
+                                <option value="{{ $bankOption }}">{{ $bankOption }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <div class="mb-2">
                         <label class="form-label small">Số tài khoản</label>
@@ -293,12 +304,12 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label small">Số tiền muốn rút</label>
-                        <input type="number" name="amount" class="form-control" min="{{ \App\Models\WalletWithdrawal::MIN_AMOUNT }}" step="1000"
+                        <input type="number" name="amount" class="form-control" min="{{ \App\Models\WalletWithdrawal::MIN_AMOUNT }}" step="1"
                                max="{{ (int) (auth()->user()->wallet_balance ?? 0) }}" required
                                oninvalid="this.setCustomValidity(this.validity.rangeOverflow ? 'Số tiền rút không được vượt quá số dư hiện có trong ví (' + Number(this.max).toLocaleString('vi-VN') + ' đ).' : (this.validity.rangeUnderflow ? 'Số tiền rút tối thiểu là ' + Number(this.min).toLocaleString('vi-VN') + ' đ.' : ''))"
                                oninput="this.setCustomValidity('')">
                         <div class="form-text">
-                            Tối thiểu {{ number_format(\App\Models\WalletWithdrawal::MIN_AMOUNT, 0, ',', '.') }} đ.
+                            Không giới hạn số tiền rút tối thiểu.
                             Thời gian xử lý tối đa {{ \App\Models\WalletWithdrawal::MIN_PROCESSING_DAYS }} ngày làm việc kể từ khi yêu cầu được gửi.
                         </div>
                     </div>

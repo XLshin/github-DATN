@@ -1,5 +1,5 @@
 {{-- Hóa đơn điện tử — hiện ngay khi hệ thống phát hiện giao dịch đã được thanh toán, phỏng theo
-    đúng màn hình "Giao dịch thành công" của từng app đang mô phỏng (MoMo hồng, VNPAY xanh dương,
+    đúng màn hình "Giao dịch thành công" của từng app đang mô phỏng (MoMo hồng, VietQR xanh dương,
     ngân hàng/thẻ kiểu TPBank/VCB Digibank nền tối) để trông giống thật thay vì một khuôn dùng chung. --}}
 @php
     $businessName = config('services.sepay.account_name');
@@ -50,20 +50,20 @@
             </div>
         </div>
 
-        @elseif($method === 'vnpay')
-        {{-- Khung VNPAY: nền trắng, tròn xanh dương, logo VNPAY --}}
+        @elseif($method === 'vietqr')
+        {{-- Khung VietQR: nền trắng, tròn xanh dương, logo VietQR --}}
         <div class="modal-content border-0 overflow-hidden" style="border-radius:20px">
             <div class="text-center pt-4 pb-2">
                 <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-2"
-                     style="width:60px;height:60px;background:#EAF3FF">
-                    <i class="bi bi-check-lg" style="font-size:34px;color:#005BAA"></i>
+                     style="width:60px;height:60px;background:#E6F7FF">
+                    <i class="bi bi-check-lg" style="font-size:34px;color:#00A0E3"></i>
                 </div>
-                <div class="fw-bold" style="color:#005BAA">Giao dịch thành công!</div>
-                <div class="fs-3 fw-bold mt-1" id="receipt-amount" style="color:#005BAA">—</div>
-                <span class="badge mt-1" style="background:#005BAA;font-size:10px">VNPAY</span>
+                <div class="fw-bold" style="color:#00A0E3">Giao dịch thành công!</div>
+                <div class="fs-3 fw-bold mt-1" id="receipt-amount" style="color:#00A0E3">—</div>
+                <span class="badge mt-1" style="background:#00A0E3;font-size:10px">VietQR</span>
             </div>
             <div class="px-4 pb-4 pt-2">
-                <div class="rounded-3 p-3 border" style="background:#F7FAFF">
+                <div class="rounded-3 p-3 border" style="background:#F7FCFF">
                     <div class="d-flex justify-content-between py-1">
                         <span class="small text-muted">Đơn vị thụ hưởng</span>
                         <span class="small fw-semibold text-end">{{ $businessName }}</span>
@@ -86,7 +86,7 @@
                     </div>
                 </div>
                 <a href="#" id="receipt-continue-btn" class="btn w-100 mt-3 fw-semibold text-white"
-                   style="background:#005BAA;border-radius:8px">Tiếp tục</a>
+                   style="background:#00A0E3;border-radius:8px">Tiếp tục</a>
             </div>
         </div>
 

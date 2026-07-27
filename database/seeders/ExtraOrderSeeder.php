@@ -52,7 +52,7 @@ class ExtraOrderSeeder extends Seeder
             $coupon = DB::table('coupons')->where('code', 'SALE20')->first();
 
             $orders = [
-                // 1. Đơn processing - đang xử lý - đã thanh toán VNPay - có coupon
+                // 1. Đơn processing - đang xử lý - đã thanh toán VietQR - có coupon
                 [
                     'order_code'          => 'ORD_EXTRA_001',
                     'user_id'             => $customer1->id,
@@ -72,7 +72,7 @@ class ExtraOrderSeeder extends Seeder
                     'handed_over_at'      => null,
                     'delivered_at'        => null,
                     'cancelled_at'        => null,
-                    'payment_method'      => 'vnpay',
+                    'payment_method'      => 'vietqr',
                     'payment_status'      => 'paid',
                     'product_variant_id'  => $iphoneVariant?->id,
                     'product_id'          => $iphoneVariant?->pid,

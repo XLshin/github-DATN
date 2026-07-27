@@ -427,7 +427,7 @@ class OrderFlowTestSeeder extends Seeder
                 'packed_at' => $now->copy()->subDays(2),
                 'handed_over_at' => $now->copy()->subDays(2)->addHours(3),
                 'delivered_at' => $now->copy()->subDay(),
-                'payment_method' => 'vnpay',
+                'payment_method' => 'vietqr',
                 'payment_status' => 'paid',
                 'items' => [
                     [

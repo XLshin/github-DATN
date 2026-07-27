@@ -6,10 +6,11 @@ use App\Models\WalletWithdrawal;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class WithdrawalCompletedNotification extends Notification
+class WithdrawalRejectedNotification extends Notification
 {
     public function __construct(
         private readonly WalletWithdrawal $withdrawal,
+        private readonly string $reason,
     ) {}
 
     public function via(object $notifiable): array
@@ -23,11 +24,11 @@ class WithdrawalCompletedNotification extends Notification
 
         return [
             'type' => 'withdrawal',
-            'title' => 'Rút tiền thành công',
-            'message' => 'Đã chuyển ' . $amountText . ' về tài khoản ' . $this->withdrawal->bank_name
-                . ' của bạn.',
+            'title' => 'Yêu cầu rút tiền bị từ chối',
+            'message' => 'Yêu cầu rút ' . $amountText . ' về ' . $this->withdrawal->bank_name
+                . ' đã bị từ chối. Lý do: ' . $this->reason . '. Số dư đã được hoàn lại vào ví.',
             'url' => route('wallet.index'),
-            'icon' => 'bi-bank2',
+            'icon' => 'bi-x-circle',
         ];
     }
 
@@ -35,20 +36,17 @@ class WithdrawalCompletedNotification extends Notification
     {
         $w = $this->withdrawal;
         $amountText = number_format((float) $w->amount, 0, ',', '.') . ' đ';
-        $maskedAccount = $this->maskAccountNumber((string) $w->account_number);
 
         return (new MailMessage)
-            ->subject('ByteZone - Yêu cầu rút tiền đã hoàn tất')
+            ->subject('ByteZone - Yêu cầu rút tiền bị từ chối')
             ->greeting('Xin chào ' . ($notifiable->name ?? '') . ',')
-            ->line('Yêu cầu rút tiền của bạn đã được xử lý thành công. Chi tiết giao dịch:')
+            ->line('Rất tiếc, yêu cầu rút tiền của bạn đã bị từ chối. Chi tiết:')
             ->line('**Số tiền:** ' . $amountText)
-            ->line('**Ngân hàng nhận:** ' . $w->bank_name)
-            ->line('**Số tài khoản:** ' . $maskedAccount)
-            ->line('**Chủ tài khoản:** ' . $w->account_holder_name)
-            ->when($w->transaction_code, fn ($mail) => $mail->line('**Mã giao dịch:** ' . $w->transaction_code))
-            ->line('**Thời gian:** ' . ($w->completed_at?->format('H:i:s d/m/Y') ?? now()->format('H:i:s d/m/Y')))
-            ->action('Xem chi tiết ví', route('wallet.index'))
-            ->line('Cảm ơn bạn đã sử dụng ByteZone!');
+            ->line('**Ngân hàng nhận (yêu cầu):** ' . $w->bank_name . ' — ' . $this->maskAccountNumber((string) $w->account_number))
+            ->line('**Lý do từ chối:** ' . $this->reason)
+            ->line('Số dư ' . $amountText . ' đã được hoàn lại đầy đủ vào Ví ByteZone của bạn.')
+            ->action('Xem ví của bạn', route('wallet.index'))
+            ->line('Nếu cần hỗ trợ thêm, vui lòng liên hệ ByteZone.');
     }
 
     private function maskAccountNumber(string $accountNumber): string
