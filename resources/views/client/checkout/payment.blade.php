@@ -64,18 +64,31 @@
     <div class="col-lg-5 col-md-7">
         <div class="card shadow-sm border-0">
             <div class="card-body text-center py-5">
-                <div class="mb-3" style="font-size:48px">⏰</div>
-                <h5 class="fw-bold mb-2">Giao dịch đã hết hạn</h5>
-                <p class="text-muted mb-4">
-                    Phiên thanh toán cho đơn <code>{{ $code }}</code> đã quá thời gian quy định.
-                    Sản phẩm đã được hoàn lại vào kho, bạn có thể thử lại.
-                </p>
-                <form method="POST" action="{{ route('checkout.payment.retry', $order) }}">
-                    @csrf
-                    <button class="btn btn-primary btn-lg w-100 mb-2">
-                        <i class="bi bi-arrow-repeat me-2"></i>Thử lại thanh toán
-                    </button>
-                </form>
+                @if($payment->hasRetriesLeft())
+                    <div class="mb-3" style="font-size:48px">⏰</div>
+                    <h5 class="fw-bold mb-2">Giao dịch đã hết hạn</h5>
+                    <p class="text-muted mb-4">
+                        Phiên thanh toán cho đơn <code>{{ $code }}</code> đã quá thời gian quy định.
+                        Sản phẩm đã được hoàn lại vào kho, bạn có thể thử lại
+                        (lần {{ $payment->attempt_count + 1 }}/{{ \App\Models\Payment::MAX_ATTEMPTS }}).
+                    </p>
+                    <form method="POST" action="{{ route('checkout.payment.retry', $order) }}">
+                        @csrf
+                        <button class="btn btn-primary btn-lg w-100 mb-2">
+                            <i class="bi bi-arrow-repeat me-2"></i>Thử lại thanh toán
+                        </button>
+                    </form>
+                @else
+                    <div class="mb-3" style="font-size:48px">🚫</div>
+                    <h5 class="fw-bold mb-2">Đơn hàng đã bị hủy</h5>
+                    <p class="text-muted mb-4">
+                        Đơn <code>{{ $code }}</code> đã thất bại {{ \App\Models\Payment::MAX_ATTEMPTS }} lần thanh toán liên tiếp
+                        nên đã tự động bị hủy. Vui lòng đặt lại đơn hàng mới nếu vẫn muốn mua.
+                    </p>
+                    <a href="{{ route('cart.index') }}" class="btn btn-primary btn-lg w-100 mb-2">
+                        <i class="bi bi-cart me-2"></i>Về giỏ hàng
+                    </a>
+                @endif
                 <a href="{{ route('checkout.success', $order) }}" class="btn btn-link text-muted small">
                     Xem chi tiết đơn hàng
                 </a>

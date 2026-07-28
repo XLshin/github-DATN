@@ -7,11 +7,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Payment extends Model
 {
+    /** Số lần thử thanh toán tối đa (kể cả lần đầu) trước khi đơn tự động bị hủy. */
+    public const MAX_ATTEMPTS = 2;
+
     protected $fillable = [
         'order_id',
         'payment_method',
         'amount',
         'payment_status',
+        'attempt_count',
         'transaction_code',
         'payer_name',
         'payer_note',
@@ -36,6 +40,11 @@ class Payment extends Model
         return $this->payment_status === 'pending'
             && $this->expires_at !== null
             && $this->expires_at->isPast();
+    }
+
+    public function hasRetriesLeft(): bool
+    {
+        return $this->attempt_count < self::MAX_ATTEMPTS;
     }
 
     public function order()
