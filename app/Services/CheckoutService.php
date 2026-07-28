@@ -303,6 +303,8 @@ class CheckoutService
 
     /**
      * Đánh dấu giao dịch hết hạn (quá thời gian giữ chỗ) và hoàn lại tồn kho/IMEI đã tạm giữ.
+     * Nếu đây đã là lần thử cuối cùng (đủ Payment::MAX_ATTEMPTS lần thất bại), tự động hủy luôn
+     * đơn hàng thay vì chờ khách thử lại — không cấp thêm lượt thử nào nữa.
      */
     public function expirePayment(Payment $payment): void
     {
@@ -317,11 +319,23 @@ class CheckoutService
                 'payment_status' => 'failed',
                 'payer_note'     => 'Giao dịch hết hạn do quá thời gian thanh toán.',
             ]);
+
+            if (! $payment->hasRetriesLeft()) {
+                $order = $payment->order;
+                $order->update([
+                    'status'             => 'cancelled',
+                    'fulfillment_status' => 'cancelled',
+                    'cancelled_at'       => now(),
+                    'cancel_reason'      => 'Tự động hủy: đã thất bại ' . Payment::MAX_ATTEMPTS . ' lần thanh toán liên tiếp.',
+                    'cancelled_by'       => 'system',
+                ]);
+            }
         });
     }
 
     /**
-     * Thử thanh toán lại: cấp lại tồn kho và mở phiên giao dịch mới.
+     * Thử thanh toán lại: cấp lại tồn kho và mở phiên giao dịch mới. Chỉ cho phép khi chưa dùng
+     * hết số lần thử (Payment::MAX_ATTEMPTS) — hết lượt thì đơn đã tự động bị hủy ở expirePayment().
      */
     public function retryPayment(Payment $payment): void
     {
@@ -329,11 +343,18 @@ class CheckoutService
             return;
         }
 
+        if (! $payment->hasRetriesLeft()) {
+            throw ValidationException::withMessages([
+                'payment' => 'Đơn hàng đã hết số lần thử thanh toán (' . Payment::MAX_ATTEMPTS . ' lần) và đã bị hủy tự động.',
+            ]);
+        }
+
         DB::transaction(function () use ($payment) {
             $this->reallocateInventory($payment->order);
 
             $payment->update([
                 'payment_status'   => 'pending',
+                'attempt_count'    => $payment->attempt_count + 1,
                 'transaction_code' => in_array($payment->payment_method, ['bank_transfer', 'vietqr'], true) ? $payment->order->order_code : null,
                 'payer_name'       => null,
                 'payer_note'       => null,
