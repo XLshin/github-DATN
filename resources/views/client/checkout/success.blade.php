@@ -22,10 +22,8 @@
 
     $methodLabels = [
         'cod'           => 'Thanh toán khi nhận hàng (COD)',
-        'card'          => 'Thẻ tín dụng/ghi nợ',
         'bank_transfer' => 'Chuyển khoản ngân hàng',
-        'momo'          => 'Ví MoMo',
-        'vietqr'         => 'VietQR',
+        'vietqr'        => 'VietQR',
     ];
 @endphp
 
@@ -94,22 +92,6 @@
                     <a href="{{ route('checkout.payment', $order) }}" class="btn btn-outline-success btn-sm">
                         <i class="bi bi-arrow-repeat me-1"></i>Xem lại thông tin CK
                     </a>
-                @elseif($method === 'momo' && !$paid)
-                    <div class="alert alert-warning mb-2 py-2 small" id="momo-waiting-alert">
-                        <i class="bi bi-hourglass-split me-2"></i>
-                        Đang chờ MoMo xác nhận giao dịch, trang sẽ tự cập nhật trong giây lát...
-                    </div>
-                    <script>
-                        (function () {
-                            const url = '{{ route('checkout.payment.status', $order) }}';
-                            const iv = setInterval(() => {
-                                fetch(url, { headers: { 'Accept': 'application/json' } })
-                                    .then(r => r.json())
-                                    .then(data => { if (data.paid) { clearInterval(iv); window.location.reload(); } })
-                                    .catch(() => {});
-                            }, 3000);
-                        })();
-                    </script>
                 @endif
 
                 @if($paid)

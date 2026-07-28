@@ -24,7 +24,6 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
-use App\Http\Controllers\MomoController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PointController;
@@ -86,8 +85,6 @@ if (app()->environment('local')) {
 Route::post('/webhook/payment', [WebhookController::class, 'paymentCallback']);
 Route::post('/webhook/sepay', [WebhookController::class, 'bankTransferCallback'])->name('webhook.sepay');
 Route::post('/webhook/carrier/{code}', [CarrierWebhookController::class, 'handle']);
-Route::post('/webhook/momo/ipn', [MomoController::class, 'ipn'])->name('momo.ipn');
-Route::get('/momo/return', [MomoController::class, 'returnUrl'])->name('momo.return');
 
 /*
 |--------------------------------------------------------------------------

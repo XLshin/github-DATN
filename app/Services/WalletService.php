@@ -12,15 +12,15 @@ use Illuminate\Validation\ValidationException;
 
 class WalletService
 {
-    /** Phương thức nạp qua cổng có phiên giao dịch giới hạn thời gian (giống thực tế QR/thẻ hết hạn). */
-    private const EXPIRING_METHODS = ['card', 'momo', 'vietqr'];
+    /** Phương thức nạp qua cổng có phiên giao dịch giới hạn thời gian. */
+    private const EXPIRING_METHODS = ['vietqr'];
 
     /**
-     * Phương thức được tự động xác nhận bằng bộ đếm giờ mô phỏng nội bộ — CHỈ áp dụng cho phương
-     * thức chưa có xác nhận thật. KHÔNG gồm bank_transfer/vietqr vì đã được xác nhận thật qua
-     * webhook SePay (xem PaymentWebhookService::handleBankTransfer).
+     * Phương thức được tự động xác nhận bằng bộ đếm giờ mô phỏng nội bộ. Hiện KHÔNG có phương
+     * thức nào dùng cơ chế này — bank_transfer/vietqr đã được xác nhận thật qua webhook SePay
+     * (xem PaymentWebhookService::handleBankTransfer).
      */
-    public const AUTO_CONFIRM_METHODS = ['card', 'momo'];
+    public const AUTO_CONFIRM_METHODS = [];
 
     private const TOPUP_EXPIRY_MINUTES = 15;
 
@@ -101,9 +101,8 @@ class WalletService
             'expires_at' => in_array($paymentMethod, self::EXPIRING_METHODS, true)
                 ? now()->addMinutes(self::TOPUP_EXPIRY_MINUTES)
                 : null,
-            // Mô phỏng cổng thanh toán báo có tiền sau một khoảng trễ ngẫu nhiên — CHỈ dùng cho
-            // card/momo (chưa có xác nhận thật). bank_transfer/vietqr để trống vì được xác nhận
-            // thật qua webhook SePay (transaction_code bên dưới chính là nội dung CK khách ghi).
+            // AUTO_CONFIRM_METHODS hiện rỗng — bank_transfer/vietqr xác nhận thật qua webhook SePay
+            // (transaction_code bên dưới chính là nội dung CK khách ghi), không cần mô phỏng.
             'simulate_confirm_at' => in_array($paymentMethod, self::AUTO_CONFIRM_METHODS, true)
                 ? now()->addSeconds(random_int(8, 20))
                 : null,
@@ -290,9 +289,7 @@ class WalletService
     {
         return match ($method) {
             'bank_transfer' => 'chuyển khoản ngân hàng',
-            'momo' => 'Ví MoMo',
             'vietqr' => 'VietQR',
-            'card' => 'thẻ',
             default => $method,
         };
     }
@@ -303,9 +300,7 @@ class WalletService
     private function brandColor(string $method): array
     {
         return match ($method) {
-            'momo' => ['r' => 174, 'g' => 32, 'b' => 112],
             'vietqr' => ['r' => 0, 'g' => 91, 'b' => 170],
-            'card' => ['r' => 22, 'g' => 33, 'b' => 62],
             default => ['r' => 0, 'g' => 122, 'b' => 77],
         };
     }

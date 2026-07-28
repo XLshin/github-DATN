@@ -8,13 +8,12 @@ use App\Models\WalletWithdrawal;
 use App\Services\WalletService;
 use App\Services\WalletWithdrawalService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class WalletController extends Controller
 {
-    /** Phương thức nạp qua cổng có phiên giao dịch giới hạn thời gian, giống thực tế (QR/thẻ hết hạn). */
-    private const EXPIRING_METHODS = ['card', 'momo', 'vietqr'];
+    /** Phương thức nạp qua cổng có phiên giao dịch giới hạn thời gian. */
+    private const EXPIRING_METHODS = ['vietqr'];
 
     public function __construct(
         private readonly WalletService $walletService,
@@ -66,7 +65,7 @@ class WalletController extends Controller
 
         $validated = $request->validate([
             'amount' => ['required', 'numeric', 'min:10000', 'max:100000000'],
-            'payment_method' => ['required', 'string', 'in:bank_transfer,momo,vietqr,card'],
+            'payment_method' => ['required', 'string', 'in:bank_transfer,vietqr'],
         ], [
             'amount.min' => 'Số tiền nạp tối thiểu là 10.000 đ.',
             'amount.max' => 'Số tiền nạp tối đa là 100.000.000 đ.',
@@ -104,11 +103,8 @@ class WalletController extends Controller
 
         $topup->update([
             'payment_status' => 'pending',
-            // Giữ nguyên transaction_code cho bank_transfer/vietqr (mã "NAPVI..." khách đã ghi nội
-            // dung chuyển khoản) — chỉ xóa cho card/momo vì 2 phương thức đó không cần mã đối soát.
-            'transaction_code' => in_array($topup->payment_method, ['bank_transfer', 'vietqr'], true)
-                ? $topup->transaction_code
-                : null,
+            // Giữ nguyên transaction_code (mã "NAPVI..." khách đã ghi nội dung chuyển khoản).
+            'transaction_code' => $topup->transaction_code,
             'payer_name' => null,
             'payer_note' => null,
             'expires_at' => now()->addMinutes(15),
@@ -160,9 +156,8 @@ class WalletController extends Controller
 
     /**
      * Khách xác nhận thủ công — dùng làm lối dự phòng khi việc tự động xác nhận
-     * (simulate_confirm_at, xem topupStatus()) chưa kịp chạy. Thẻ (card) có dữ liệu xác thực được
-     * (số thẻ hợp lệ theo Luhn, còn hạn, không bị mô phỏng từ chối) nên cộng tiền ngay lập tức;
-     * momo/vietqr/bank_transfer chỉ có ảnh chụp màn hình nên vẫn cần admin đối soát.
+     * (webhook SePay) chưa kịp chạy. vietqr/bank_transfer chỉ có ảnh chụp màn hình nên vẫn cần
+     * admin đối soát.
      */
     public function confirmTopupPayment(Request $request, WalletTopup $topup)
     {
@@ -180,69 +175,6 @@ class WalletController extends Controller
 
         $method = $topup->payment_method;
 
-        if ($method === 'card') {
-            $validated = $request->validate([
-                'card_number' => ['required', 'string'],
-                'card_expiry' => ['required', 'string', 'regex:/^\d{2}\/\d{2}$/'],
-                'card_cvv'    => ['required', 'string', 'min:3', 'max:4'],
-                'card_name'   => ['required', 'string', 'max:255'],
-            ]);
-
-            $digits = preg_replace('/\D/', '', $validated['card_number']);
-
-            if (! $this->isValidCardNumber($digits)) {
-                throw ValidationException::withMessages([
-                    'card_number' => 'Số thẻ không hợp lệ. Vui lòng kiểm tra lại.',
-                ]);
-            }
-
-            $expMonth = (int) substr($validated['card_expiry'], 0, 2);
-            $expYear  = 2000 + (int) substr($validated['card_expiry'], 3, 2);
-            $now      = now();
-            $expired  = $expYear < $now->year || ($expYear === $now->year && $expMonth < $now->month);
-
-            if ($expMonth < 1 || $expMonth > 12 || $expired) {
-                throw ValidationException::withMessages([
-                    'card_expiry' => 'Thẻ đã hết hạn hoặc ngày hết hạn không hợp lệ.',
-                ]);
-            }
-
-            if (str_ends_with($digits, '0000')) {
-                throw ValidationException::withMessages([
-                    'card_number' => 'Giao dịch bị từ chối bởi ngân hàng phát hành thẻ (số dư không đủ).',
-                ]);
-            }
-
-            $topup->update([
-                'payer_name' => Str::upper($validated['card_name']),
-                'payer_note' => 'Thẻ **** **** **** ' . substr($digits, -4) . ' — xác thực Luhn hợp lệ.',
-            ]);
-
-            $this->walletService->confirmSimulated($topup->fresh());
-            $topup->refresh();
-
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'paid' => true,
-                    'redirect' => route('wallet.index'),
-                    'receipt' => [
-                        'payer_name'       => $topup->payer_name,
-                        'amount'           => (float) $topup->amount,
-                        'transaction_code' => $topup->transaction_code,
-                        'paid_at'          => $topup->paid_at?->format('H:i:s d/m/Y'),
-                        'business_account' => [
-                            'bank_id'        => config('services.sepay.bank_id'),
-                            'account_number' => config('services.sepay.account_number'),
-                            'account_name'   => config('services.sepay.account_name'),
-                        ],
-                    ],
-                ]);
-            }
-
-            return redirect()->route('wallet.index')
-                ->with('success', 'Nạp ví bằng thẻ thành công!');
-        }
-
         $validated = $request->validate([
             'proof_image' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:4096'],
         ], [
@@ -252,7 +184,6 @@ class WalletController extends Controller
 
         $payerNote = match ($method) {
             'bank_transfer' => 'Khách báo đã chuyển khoản lúc ' . now()->format('H:i d/m/Y') . ' — chờ đối soát.',
-            'momo' => 'Khách báo đã thanh toán qua Ví MoMo — chờ đối soát.',
             'vietqr' => 'Khách báo đã thanh toán qua VietQR — chờ đối soát.',
             default => 'Khách báo đã thanh toán — chờ đối soát.',
         };
@@ -279,29 +210,4 @@ class WalletController extends Controller
         }
     }
 
-    private function isValidCardNumber(string $digits): bool
-    {
-        if (! ctype_digit($digits) || strlen($digits) < 13 || strlen($digits) > 19) {
-            return false;
-        }
-
-        $sum = 0;
-        $alternate = false;
-
-        for ($i = strlen($digits) - 1; $i >= 0; $i--) {
-            $n = (int) $digits[$i];
-
-            if ($alternate) {
-                $n *= 2;
-                if ($n > 9) {
-                    $n -= 9;
-                }
-            }
-
-            $sum += $n;
-            $alternate = ! $alternate;
-        }
-
-        return $sum % 10 === 0;
-    }
 }

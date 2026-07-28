@@ -6,7 +6,7 @@
     $amount  = $order->total_amount;
     $code    = $order->order_code;
 
-    // Giao dịch qua cổng (card/momo/vietqr) có phiên giới hạn thời gian giống thực tế
+    // Giao dịch qua cổng (vietqr) có phiên giới hạn thời gian giống thực tế
     $expired     = $payment?->payment_status === 'failed';
     $secondsLeft = $payment?->expires_at ? max(0, (int) now()->diffInSeconds($payment->expires_at, false)) : 0;
 
@@ -17,18 +17,12 @@
     $info    = urlencode("Thanh toan {$code}");
     $acName  = urlencode((string) config('services.sepay.account_name'));
     $vietQr  = "https://img.vietqr.io/image/{$bankId}-{$acNo}-compact.jpg?amount={$amount}&addInfo={$info}&accountName={$acName}";
-
-    // QR generic (cho MoMo)
-    $qrData  = urlencode("{$code}|{$amount}|" . strtoupper($method));
-    $qrImg   = "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={$qrData}";
 @endphp
 
 @section('title',
     match($method) {
         'bank_transfer' => 'Chuyển khoản ngân hàng',
-        'momo'          => 'Thanh toán MoMo',
         'vietqr'        => 'Thanh toán VietQR',
-        'card'          => 'Thanh toán bằng thẻ',
         default         => 'Thanh toán',
     }
 )
@@ -57,7 +51,7 @@
 @include('partials.client.receipt-modal', ['method' => $method, 'code' => $code])
 
 {{-- ══════════════════════════════════════════════════════════════════════ --}}
-{{-- GIAO DỊCH HẾT HẠN (card / momo / vietqr)                                --}}
+{{-- GIAO DỊCH HẾT HẠN (vietqr)                                --}}
 {{-- ══════════════════════════════════════════════════════════════════════ --}}
 @if($expired)
 <div class="row justify-content-center">
@@ -175,82 +169,6 @@
 </div>
 
 {{-- ══════════════════════════════════════════════════════════════════════ --}}
-{{-- MOMO                                                                  --}}
-{{-- ══════════════════════════════════════════════════════════════════════ --}}
-@elseif($method === 'momo')
-<div class="row justify-content-center">
-    <div class="col-lg-5 col-md-7">
-        <div class="card shadow-sm border-0 overflow-hidden">
-            {{-- Header MoMo --}}
-            <div class="text-center py-4" style="background:#AE2070;color:#fff">
-                <div class="fw-bold fs-5 mb-1">
-                    <span class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold me-1"
-                          style="width:30px;height:30px;background:#fff;color:#AE2070;font-size:13px">M</span>
-                    Ví MoMo
-                </div>
-                <div class="opacity-75 small">Quét mã QR để thanh toán</div>
-            </div>
-
-            <div class="card-body text-center py-4">
-                {{-- Timer --}}
-                <div class="mb-3 d-flex justify-content-center gap-2 flex-wrap">
-                    <span class="badge rounded-pill px-3 py-2" style="background:#FFF0F5;color:#AE2070;font-size:.85rem">
-                        <i class="bi bi-clock me-1"></i>Hết hạn sau: <span id="momo-timer" class="fw-bold">10:00</span>
-                    </span>
-                    <span class="badge rounded-pill px-3 py-2 bg-light text-dark border" id="momo-status-badge">
-                        <span class="spinner-border spinner-border-sm me-1" style="width:.7rem;height:.7rem"></span>Đang chờ thanh toán
-                    </span>
-                </div>
-
-                {{-- QR --}}
-                <div class="position-relative d-inline-block mb-3">
-                    <img src="{{ $qrImg }}" alt="QR MoMo" class="rounded border"
-                         style="width:200px;height:200px">
-                    <span class="position-absolute bottom-0 end-0 rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
-                          style="width:34px;height:34px;background:#AE2070;font-size:12px;margin:4px">M</span>
-                </div>
-
-                {{-- Amount --}}
-                <div class="fw-bold fs-4 mb-1" style="color:#AE2070">
-                    {{ number_format($amount,0,',','.') }} đ
-                </div>
-                <div class="text-muted small mb-3">Mã đơn: <code>{{ $code }}</code></div>
-
-                <div class="alert alert-light border text-start small mb-3">
-                    <i class="bi bi-phone me-1"></i>
-                    Mở app <strong>MoMo</strong> → <strong>Quét mã QR</strong> → Xác nhận thanh toán. Hệ thống tự động ghi nhận trong vài giây sau khi bạn thanh toán.
-                </div>
-
-                <details class="text-start">
-                    <summary class="small text-muted" style="cursor:pointer">
-                        Đã thanh toán nhưng chưa thấy xác nhận sau vài phút? Gửi ảnh biên lai để được kiểm tra thủ công
-                    </summary>
-                    <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}" enctype="multipart/form-data" class="mt-3">
-                        @csrf
-                        @if($errors->any())
-                            <div class="alert alert-danger small text-start">{{ $errors->first() }}</div>
-                        @endif
-                        <div class="text-start mb-3">
-                            <label class="form-label small fw-semibold">
-                                Ảnh chụp màn hình xác nhận thanh toán MoMo <span class="text-danger">*</span>
-                            </label>
-                            <input type="file" name="proof_image" class="form-control" accept="image/*" required>
-                        </div>
-                        <button class="btn w-100 text-white fw-bold"
-                                style="background:#AE2070">
-                            <i class="bi bi-check-circle me-2"></i>Gửi để đối soát thủ công
-                        </button>
-                    </form>
-                </details>
-                <a href="{{ route('checkout.success', $order) }}" class="btn btn-link text-muted small mt-3 d-block">
-                    Xem đơn hàng
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- ══════════════════════════════════════════════════════════════════════ --}}
 {{-- VIETQR (quét mã QR ngân hàng chuẩn VietQR, xác nhận qua webhook SePay thật) --}}
 {{-- ══════════════════════════════════════════════════════════════════════ --}}
 @elseif($method === 'vietqr')
@@ -328,103 +246,6 @@
     </div>
 </div>
 
-{{-- ══════════════════════════════════════════════════════════════════════ --}}
-{{-- CARD (Credit / Debit)                                                 --}}
-{{-- ══════════════════════════════════════════════════════════════════════ --}}
-@elseif($method === 'card')
-<div class="row justify-content-center">
-    <div class="col-lg-5 col-md-7">
-        <div class="card shadow-sm border-0">
-            <div class="card-header py-3 fw-bold bg-dark text-white d-flex align-items-center gap-2">
-                <i class="bi bi-credit-card-2-front fs-5"></i>
-                Thanh toán bằng thẻ
-                <span class="ms-auto d-flex gap-1">
-                    <span class="badge bg-secondary" style="font-size:10px">VISA</span>
-                    <span class="badge bg-danger" style="font-size:10px">MC</span>
-                    <span class="badge bg-success" style="font-size:10px">JCB</span>
-                </span>
-            </div>
-            <div class="card-body py-4">
-                <div class="text-center mb-3">
-                    <span class="badge rounded-pill px-3 py-2 bg-light text-dark border">
-                        <i class="bi bi-clock me-1"></i>Phiên thanh toán còn: <span id="card-timer" class="fw-bold">--:--</span>
-                    </span>
-                </div>
-
-                {{-- Card preview --}}
-                <div class="rounded-3 p-4 mb-4 text-white position-relative overflow-hidden"
-                     style="background:linear-gradient(135deg,#1a1a2e,#16213e);min-height:130px">
-                    <div class="position-absolute top-0 end-0 m-3 opacity-25">
-                        <i class="bi bi-circle-fill" style="font-size:48px;color:#ffd700"></i>
-                        <i class="bi bi-circle-fill" style="font-size:48px;color:#ff8c00;margin-left:-24px"></i>
-                    </div>
-                    <div class="small opacity-75 mb-2">Số thẻ</div>
-                    <div class="fs-5 fw-bold tracking-widest mb-3" id="card-preview-num">•••• •••• •••• ••••</div>
-                    <div class="d-flex gap-4">
-                        <div>
-                            <div class="small opacity-75">Tên chủ thẻ</div>
-                            <div class="fw-semibold text-uppercase" id="card-preview-name">HỌ TÊN</div>
-                        </div>
-                        <div>
-                            <div class="small opacity-75">Hết hạn</div>
-                            <div class="fw-semibold" id="card-preview-expiry">MM/YY</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="alert alert-light border small mb-3">
-                    <i class="bi bi-info-circle me-1"></i>
-                    Đây là môi trường thử nghiệm, chưa kết nối cổng thanh toán thật. Dùng số thẻ hợp lệ theo chuẩn Luhn để test, ví dụ
-                    <code>4111 1111 1111 1111</code>. Thẻ kết thúc bằng <code>0000</code> sẽ mô phỏng bị ngân hàng từ chối. Thẻ hợp lệ được xử lý thanh toán ngay lập tức, không cần ảnh minh chứng.
-                </div>
-
-                <form method="POST" action="{{ route('checkout.payment.confirm', $order) }}" id="card-payment-form">
-                    @csrf
-                    <div class="alert alert-danger small d-none" id="card-form-error"></div>
-                    @if($errors->any())
-                        <div class="alert alert-danger small">{{ $errors->first() }}</div>
-                    @endif
-
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Số thẻ</label>
-                        <input type="text" name="card_number" id="card-number" class="form-control"
-                               placeholder="0000 0000 0000 0000" maxlength="19" autocomplete="cc-number" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold">Tên chủ thẻ</label>
-                        <input type="text" name="card_name" id="card-name" class="form-control text-uppercase"
-                               placeholder="NGUYEN VAN A" autocomplete="cc-name" required>
-                    </div>
-                    <div class="row g-3 mb-4">
-                        <div class="col-7">
-                            <label class="form-label small fw-semibold">Ngày hết hạn</label>
-                            <input type="text" name="card_expiry" id="card-expiry" class="form-control"
-                                   placeholder="MM/YY" maxlength="5" autocomplete="cc-exp" required>
-                        </div>
-                        <div class="col-5">
-                            <label class="form-label small fw-semibold">CVV</label>
-                            <input type="password" name="card_cvv" class="form-control"
-                                   placeholder="•••" maxlength="4" autocomplete="cc-csc" required>
-                        </div>
-                    </div>
-
-                    <div class="d-flex align-items-center gap-2 mb-3 text-muted small">
-                        <i class="bi bi-lock-fill text-success"></i>
-                        Giao dịch được mã hóa SSL 256-bit
-                    </div>
-
-                    <button class="btn btn-dark btn-lg w-100">
-                        <i class="bi bi-shield-lock me-2"></i>Thanh toán
-                        {{ number_format($amount,0,',','.') }} đ
-                    </button>
-                </form>
-                <a href="{{ route('cart.index') }}" class="btn btn-link text-muted small mt-2 d-block text-center">
-                    ← Quay lại
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
 @endif
 @endif
 
@@ -433,7 +254,7 @@
 @push('scripts')
 <script>
 (function(){
-    {{-- Hiện hóa đơn điện tử với tên người chuyển + tài khoản kinh doanh nhận tiền, giống MoMo/VietQR thật --}}
+    {{-- Hiện hóa đơn điện tử với tên người chuyển + tài khoản kinh doanh nhận tiền, giống VietQR thật --}}
     window.showReceipt = function (receipt, continueUrl) {
         if (!receipt) {
             window.location.href = continueUrl;
@@ -474,14 +295,12 @@
             el.textContent = m+':'+s;
         }, 1000);
     }
-    startTimer('momo-timer', {{ $secondsLeft }});
     startTimer('vietqr-timer', {{ $secondsLeft }});
-    startTimer('card-timer', {{ $secondsLeft }});
 
-    @if(in_array($method, ['bank_transfer', 'momo', 'vietqr'], true) && ! $expired)
+    @if(in_array($method, ['bank_transfer', 'vietqr'], true) && ! $expired)
     {{-- Poll trạng thái thanh toán: bank_transfer/vietqr được webhook SePay thật xác nhận khi có
-        tiền vào tài khoản; momo dùng luồng mô phỏng hoặc IPN thật tùy MOMO_ENABLED. Trang này tự
-        phát hiện thanh toán xong và chuyển sang trang thành công mà không cần khách thao tác gì thêm. --}}
+        tiền vào tài khoản. Trang này tự phát hiện thanh toán xong và chuyển sang trang thành công
+        mà không cần khách thao tác gì thêm. --}}
     (function pollPaymentStatus(){
         const statusUrl = '{{ route('checkout.payment.status', $order) }}';
         const successUrl = '{{ route('checkout.success', $order) }}';
@@ -502,73 +321,8 @@
     })();
     @endif
 
-    {{-- Thẻ xử lý ngay, không cần poll: submit bằng AJAX để hiện hóa đơn ngay khi backend xác
-        nhận thành công, thay vì chuyển trang thẳng luôn (không thấy được hóa đơn). --}}
-    const cardForm = document.getElementById('card-payment-form');
-    cardForm?.addEventListener('submit', function (e) {
-        e.preventDefault();
-        const btn = cardForm.querySelector('button[type="submit"], button:not([type])');
-        const errorBox = document.getElementById('card-form-error');
-        errorBox.classList.add('d-none');
-
-        if (btn) {
-            btn.disabled = true;
-            btn.dataset.originalHtml = btn.dataset.originalHtml || btn.innerHTML;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Đang xử lý giao dịch...';
-        }
-
-        fetch(cardForm.action, {
-            method: 'POST',
-            headers: { 'Accept': 'application/json' },
-            body: new FormData(cardForm),
-        })
-            .then(async (r) => {
-                const data = await r.json();
-                if (!r.ok) throw data;
-                return data;
-            })
-            .then((data) => {
-                showReceipt(data.receipt, data.redirect);
-            })
-            .catch((data) => {
-                const message = data?.errors ? Object.values(data.errors)[0][0] : 'Có lỗi xảy ra, vui lòng thử lại.';
-                errorBox.textContent = message;
-                errorBox.classList.remove('d-none');
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = btn.dataset.originalHtml;
-                }
-            });
-    });
-
-    {{-- Card preview --}}
-    const numInput    = document.getElementById('card-number');
-    const nameInput   = document.getElementById('card-name');
-    const expiryInput = document.getElementById('card-expiry');
-    const previewNum  = document.getElementById('card-preview-num');
-    const previewName = document.getElementById('card-preview-name');
-    const previewExp  = document.getElementById('card-preview-expiry');
-
-    numInput?.addEventListener('input', () => {
-        let v = numInput.value.replace(/\D/g,'').substring(0,16);
-        numInput.value = v.replace(/(.{4})/g,'$1 ').trim();
-        previewNum.textContent = (numInput.value || '•••• •••• •••• ••••').padEnd(19,'•').substring(0,19);
-    });
-
-    nameInput?.addEventListener('input', () => {
-        previewName.textContent = nameInput.value.toUpperCase() || 'HỌ TÊN';
-    });
-
-    expiryInput?.addEventListener('input', () => {
-        let v = expiryInput.value.replace(/\D/g,'');
-        if (v.length >= 2) v = v.substring(0,2)+'/'+v.substring(2,4);
-        expiryInput.value = v;
-        previewExp.textContent = expiryInput.value || 'MM/YY';
-    });
-
-    {{-- Mô phỏng trạng thái "đang xử lý giao dịch" giống cổng thanh toán thật (trừ form thẻ,
-        đã có xử lý AJAX riêng ở trên) --}}
-    document.querySelectorAll('form[action*="payment"]:not(#card-payment-form)').forEach(form => {
+    {{-- Mô phỏng trạng thái "đang xử lý giao dịch" giống cổng thanh toán thật --}}
+    document.querySelectorAll('form[action*="payment"]').forEach(form => {
         form.addEventListener('submit', () => {
             const btn = form.querySelector('button[type="submit"], button:not([type])');
             if (!btn || btn.disabled) return;
