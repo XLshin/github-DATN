@@ -143,16 +143,6 @@
                             <span class="pm-dot"></span>
                         </label>
 
-                        <input type="radio" class="pm-radio btn-check" name="payment_method" id="tm_momo" value="momo">
-                        <label class="pm-card" for="tm_momo">
-                            <span class="pm-icon pm-icon--brand" style="background:#AE2070">M</span>
-                            <span class="pm-text">
-                                <span class="pm-title">Ví MoMo</span>
-                                <span class="pm-subtitle">Quét QR bằng app MoMo</span>
-                            </span>
-                            <span class="pm-dot"></span>
-                        </label>
-
                         <input type="radio" class="pm-radio btn-check" name="payment_method" id="tm_vietqr" value="vietqr">
                         <label class="pm-card" for="tm_vietqr">
                             <span class="pm-icon pm-icon--brand" style="background:#00A0E3;font-size:10px;line-height:1.1">Viet<br>QR</span>
@@ -163,15 +153,6 @@
                             <span class="pm-dot"></span>
                         </label>
 
-                        <input type="radio" class="pm-radio btn-check" name="payment_method" id="tm_card" value="card">
-                        <label class="pm-card" for="tm_card">
-                            <span class="pm-icon pm-icon--card"><i class="bi bi-credit-card-2-front"></i></span>
-                            <span class="pm-text">
-                                <span class="pm-title">Thẻ tín dụng / ghi nợ</span>
-                                <span class="pm-subtitle">Visa, Mastercard, JCB</span>
-                            </span>
-                            <span class="pm-dot"></span>
-                        </label>
                     </div>
                     @error('payment_method')
                         <div class="text-danger small mt-1">{{ $message }}</div>

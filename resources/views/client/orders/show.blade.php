@@ -488,10 +488,8 @@
                 $payment = $order->payment;
                 $methodLabels = [
                     'cod'           => 'Thanh toán khi nhận hàng (COD)',
-                    'card'          => 'Thẻ tín dụng/ghi nợ',
                     'bank_transfer' => 'Chuyển khoản ngân hàng',
-                    'momo'          => 'Ví MoMo',
-                    'vietqr'         => 'VietQR',
+                    'vietqr'        => 'VietQR',
                 ];
                 $statusLabels = [
                     'pending'   => 'Chờ thanh toán',

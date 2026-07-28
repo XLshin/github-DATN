@@ -290,7 +290,7 @@
                         </div>
                     </div>
 
-                    @if(in_array($order->payment->payment_method ?? null, ['bank_transfer', 'momo', 'vietqr'], true))
+                    @if(in_array($order->payment->payment_method ?? null, ['bank_transfer', 'vietqr'], true))
                         <div class="mb-2">
                             <div class="text-muted small">Tài khoản nhận</div>
                             <div>{{ config('services.sepay.account_name') }} — {{ config('services.sepay.account_number') }}</div>
@@ -376,7 +376,7 @@
             <h5 class="mb-3">Thao tác xử lý</h5>
 
             @php
-                $isPrepaidOrder = $order->payment && in_array($order->payment->payment_method, ['card', 'bank_transfer', 'momo', 'vietqr'], true);
+                $isPrepaidOrder = $order->payment && in_array($order->payment->payment_method, ['bank_transfer', 'vietqr'], true);
                 $paymentNotConfirmed = $isPrepaidOrder && $order->payment->payment_status !== 'paid';
             @endphp
 

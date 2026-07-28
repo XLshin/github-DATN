@@ -19,16 +19,15 @@ use Illuminate\Validation\ValidationException;
 class CheckoutService
 {
     /** Phương thức thanh toán trực tuyến có giới hạn thời gian phiên giao dịch. */
-    private const EXPIRING_METHODS = ['card', 'momo', 'vietqr'];
+    private const EXPIRING_METHODS = ['vietqr'];
 
     /**
      * Phương thức được tự động xác nhận bằng bộ đếm giờ mô phỏng nội bộ (không cần đối soát thủ
-     * công) — CHỈ áp dụng cho phương thức chưa có xác nhận thật (card, momo khi MOMO_ENABLED=false).
-     * KHÔNG gồm bank_transfer/vietqr vì 2 phương thức này đã được xác nhận thật qua webhook SePay
-     * (PaymentWebhookService::handleBankTransfer) — nếu thêm vào đây, đơn sẽ bị tự đánh dấu "đã
-     * thanh toán" dù khách chưa thực sự chuyển khoản.
+     * công). Hiện KHÔNG có phương thức nào dùng cơ chế này — bank_transfer/vietqr đã được xác nhận
+     * thật qua webhook SePay (PaymentWebhookService::handleBankTransfer). Giữ hằng số này để các
+     * chỗ gọi in_array(...) không phải sửa lại nếu sau này thêm phương thức mô phỏng khác.
      */
-    public const AUTO_CONFIRM_METHODS = ['card', 'momo'];
+    public const AUTO_CONFIRM_METHODS = [];
 
     private const PAYMENT_EXPIRY_MINUTES = 15;
 
@@ -219,9 +218,8 @@ class CheckoutService
                 'expires_at'       => in_array($data['payment_method'], self::EXPIRING_METHODS, true)
                     ? now()->addMinutes(self::PAYMENT_EXPIRY_MINUTES)
                     : null,
-                // Mô phỏng cổng thanh toán/ngân hàng báo giao dịch thành công sau một khoảng trễ
-                // ngẫu nhiên, giống cảm giác chờ đối soát thật (đồ án — không gọi cổng thật). Áp
-                // dụng cho mọi phương thức online (bank_transfer/momo/vietqr/card), không chỉ chuyển khoản.
+                // Danh sách AUTO_CONFIRM_METHODS hiện rỗng — vietqr/bank_transfer xác nhận thật qua
+                // webhook SePay, không cần mô phỏng giờ giả nữa.
                 'simulate_confirm_at' => in_array($data['payment_method'], self::AUTO_CONFIRM_METHODS, true)
                     ? now()->addSeconds(random_int(8, 20))
                     : null,

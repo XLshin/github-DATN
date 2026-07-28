@@ -40,7 +40,6 @@ class PaymentWebhookService
         }
 
         $secretKey = match (strtolower($gateway)) {
-            'momo' => env('MOMO_SECRET'),
             'zalopay' => env('ZALOPAY_SECRET'),
             default => null,
         };
@@ -266,17 +265,8 @@ class PaymentWebhookService
     }
 
     /**
-     * Xác nhận thanh toán từ IPN thật của MoMo (đã xác thực chữ ký ở MomoController) —
-     * dùng chung logic markPaid với các cổng khác nhưng lưu transId thật do MoMo trả về.
-     */
-    public function confirmMomoPayment(Payment $payment, ?string $transId): void
-    {
-        $this->markPaid($payment, $transId ?: null);
-    }
-
-    /**
      * Đánh dấu payment đã thanh toán, chuyển đơn sang xử lý và tạo vận đơn — dùng chung cho
-     * webhook cổng thanh toán (momo/zalopay) và webhook ngân hàng SePay (bank_transfer/vietqr).
+     * webhook cổng thanh toán (zalopay) và webhook ngân hàng SePay (bank_transfer/vietqr).
      */
     private function markPaid(Payment $payment, ?string $transactionCode): void
     {
@@ -343,9 +333,7 @@ class PaymentWebhookService
     private function brandColor(string $method): array
     {
         return match ($method) {
-            'momo' => ['r' => 174, 'g' => 32, 'b' => 112],
             'vietqr' => ['r' => 0, 'g' => 160, 'b' => 227],
-            'card' => ['r' => 22, 'g' => 33, 'b' => 62],
             default => ['r' => 0, 'g' => 122, 'b' => 77],
         };
     }

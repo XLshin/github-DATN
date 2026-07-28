@@ -7,10 +7,8 @@ use App\Models\User;
 use App\Services\BankTransactionLogService;
 use App\Services\CartService;
 use App\Services\CheckoutService;
-use App\Services\MomoService;
 use App\Models\Coupon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -22,7 +20,6 @@ class CheckoutController extends Controller
         private readonly CartService $cartService,
         private readonly CheckoutService $checkoutService,
         private readonly BankTransactionLogService $logService,
-        private readonly MomoService $momoService,
     ) {}
 
     public function show(Request $request)
@@ -96,7 +93,7 @@ class CheckoutController extends Controller
             'buyer_type' => ['required', 'string', 'in:self,proxy'],
             'buyer_name' => ['required_if:buyer_type,proxy', 'nullable', 'string', 'max:255'],
             'buyer_phone' => ['required_if:buyer_type,proxy', 'nullable', 'string', 'max:20'],
-            'payment_method' => ['required', 'string', 'in:cod,card,bank_transfer,momo,vietqr,wallet'],
+            'payment_method' => ['required', 'string', 'in:cod,bank_transfer,vietqr,wallet'],
             'coupon_id' => ['nullable', 'integer', 'exists:coupons,id'],
             'coupon_code' => ['nullable', 'string', 'max:50'],
             'points_to_use' => ['nullable', 'integer', 'min:0'],
@@ -151,39 +148,13 @@ class CheckoutController extends Controller
             'wallet'        => redirect()->route('checkout.success', $order)
                 ->with('success', 'Đặt hàng thành công! Đã thanh toán bằng số dư ví.'),
             'bank_transfer' => redirect()->route('checkout.payment', $order),
-            'momo'          => $this->startMomoPayment($order, $order->payment),
             'vietqr'        => redirect()->route('checkout.payment', $order),
-            'card'          => redirect()->route('checkout.payment', $order),
             default         => redirect()->route('checkout.success', $order),
         };
     }
 
     /**
-     * Gọi API MoMo Sandbox để khởi tạo giao dịch thật và chuyển khách sang trang MoMo.
-     * Chỉ gọi API thật khi services.momo.enabled = true (cần tài khoản sandbox M4B riêng để
-     * hoàn tất giao dịch trên đó — xem MomoService); mặc định tắt để dùng luồng mô phỏng nội bộ ổn định.
-     * Nếu gọi cổng thất bại (mạng, sandbox lỗi...), cũng rơi về trang mô phỏng nội bộ để demo không bị chặn.
-     */
-    private function startMomoPayment(Order $order, ?\App\Models\Payment $payment)
-    {
-        if (! config('services.momo.enabled')) {
-            return redirect()->route('checkout.payment', $order);
-        }
-
-        try {
-            $result = $this->momoService->createPayment($order, $payment);
-
-            return redirect()->away($result['pay_url']);
-        } catch (\Throwable $e) {
-            Log::error('MoMo createPayment lỗi: ' . $e->getMessage());
-
-            return redirect()->route('checkout.payment', $order)
-                ->with('info', 'Không thể kết nối cổng MoMo thật lúc này, chuyển sang chế độ mô phỏng nội bộ.');
-        }
-    }
-
-    /**
-     * Trang thanh toán theo phương thức (bank_transfer / momo / vietqr / card).
+     * Trang thanh toán theo phương thức (bank_transfer / vietqr).
      */
     public function showPayment(Request $request, Order $order)
     {
@@ -271,21 +242,16 @@ class CheckoutController extends Controller
             return redirect()->route('checkout.success', $order)->with('error', $firstError);
         }
 
-        if ($payment->payment_method === 'momo') {
-            return $this->startMomoPayment($order, $payment->fresh());
-        }
-
         return redirect()->route('checkout.payment', $order)
             ->with('info', 'Đã mở lại phiên thanh toán mới, vui lòng hoàn tất trong thời gian quy định.');
     }
 
     /**
      * Khách xác nhận thanh toán thủ công — dùng làm lối dự phòng khi việc tự động xác nhận
-     * (simulate_confirm_at, xem paymentStatus()) chưa kịp chạy. Thẻ (card) có dữ liệu xác thực
-     * được (số thẻ hợp lệ theo Luhn, còn hạn, không bị mô phỏng từ chối) nên xử lý thanh toán
-     * ngay lập tức; momo/vietqr/bank_transfer chỉ có ảnh chụp màn hình nên vẫn cần admin đối soát.
+     * (simulate_confirm_at, xem paymentStatus()) chưa kịp chạy. vietqr/bank_transfer chỉ có ảnh
+     * chụp màn hình nên vẫn cần admin đối soát.
      */
-    public function confirmPayment(Request $request, Order $order, \App\Services\PaymentWebhookService $webhookService)
+    public function confirmPayment(Request $request, Order $order)
     {
         /** @var User $user */
         $user = $request->user();
@@ -306,72 +272,6 @@ class CheckoutController extends Controller
 
         $method = $payment->payment_method;
 
-        if ($method === 'card') {
-            $validated = $request->validate([
-                'card_number' => ['required', 'string'],
-                'card_expiry' => ['required', 'string', 'regex:/^\d{2}\/\d{2}$/'],
-                'card_cvv'    => ['required', 'string', 'min:3', 'max:4'],
-                'card_name'   => ['required', 'string', 'max:255'],
-            ]);
-
-            $digits = preg_replace('/\D/', '', $validated['card_number']);
-
-            if (! $this->isValidCardNumber($digits)) {
-                throw ValidationException::withMessages([
-                    'card_number' => 'Số thẻ không hợp lệ. Vui lòng kiểm tra lại.',
-                ]);
-            }
-
-            $expMonth = (int) substr($validated['card_expiry'], 0, 2);
-            $expYear  = 2000 + (int) substr($validated['card_expiry'], 3, 2);
-            $now      = now();
-            $expired  = $expYear < $now->year || ($expYear === $now->year && $expMonth < $now->month);
-
-            if ($expMonth < 1 || $expMonth > 12 || $expired) {
-                throw ValidationException::withMessages([
-                    'card_expiry' => 'Thẻ đã hết hạn hoặc ngày hết hạn không hợp lệ.',
-                ]);
-            }
-
-            // Mô phỏng ngân hàng phát hành từ chối giao dịch với thẻ test kết thúc bằng 0000
-            if (str_ends_with($digits, '0000')) {
-                throw ValidationException::withMessages([
-                    'card_number' => 'Giao dịch bị từ chối bởi ngân hàng phát hành thẻ (số dư không đủ).',
-                ]);
-            }
-
-            $payment->update([
-                'payer_name' => Str::upper($validated['card_name']),
-                'payer_note' => 'Thẻ **** **** **** ' . substr($digits, -4) . ' — xác thực Luhn hợp lệ.',
-            ]);
-
-            // Thông tin thẻ đã tự xác thực được (Luhn + hạn dùng + không rơi vào case mô phỏng từ
-            // chối) nên coi như đã thanh toán ngay, không cần chờ đối soát ảnh như momo/vietqr.
-            $webhookService->confirmSimulatedBankTransfer($payment->fresh());
-            $payment->refresh();
-
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'paid' => true,
-                    'redirect' => route('checkout.success', $order),
-                    'receipt' => [
-                        'payer_name'       => $payment->payer_name,
-                        'amount'           => (float) $payment->amount,
-                        'transaction_code' => $payment->transaction_code,
-                        'paid_at'          => $payment->paid_at?->format('H:i:s d/m/Y'),
-                        'business_account' => [
-                            'bank_id'        => config('services.sepay.bank_id'),
-                            'account_number' => config('services.sepay.account_number'),
-                            'account_name'   => config('services.sepay.account_name'),
-                        ],
-                    ],
-                ]);
-            }
-
-            return redirect()->route('checkout.success', $order)
-                ->with('success', 'Thanh toán thẻ thành công!');
-        }
-
         $validated = $request->validate([
             'proof_image' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:4096'],
         ], [
@@ -381,7 +281,6 @@ class CheckoutController extends Controller
 
         $payerNote = match ($method) {
             'bank_transfer' => 'Khách báo đã chuyển khoản lúc ' . now()->format('H:i d/m/Y') . ' — chờ đối soát.',
-            'momo' => 'Khách báo đã thanh toán qua Ví MoMo — chờ đối soát.',
             'vietqr' => 'Khách báo đã thanh toán qua VietQR — chờ đối soát.',
             default => 'Khách báo đã thanh toán — chờ đối soát.',
         };
@@ -399,35 +298,6 @@ class CheckoutController extends Controller
 
         return redirect()->route('checkout.success', $order)
             ->with('info', 'Chúng tôi đã ghi nhận yêu cầu thanh toán. Đơn sẽ được xác nhận sau khi đối soát (thường trong 30 phút).');
-    }
-
-    /**
-     * Kiểm tra số thẻ hợp lệ theo thuật toán Luhn (chuẩn dùng bởi Visa/Mastercard/JCB).
-     */
-    private function isValidCardNumber(string $digits): bool
-    {
-        if (! ctype_digit($digits) || strlen($digits) < 13 || strlen($digits) > 19) {
-            return false;
-        }
-
-        $sum = 0;
-        $alternate = false;
-
-        for ($i = strlen($digits) - 1; $i >= 0; $i--) {
-            $n = (int) $digits[$i];
-
-            if ($alternate) {
-                $n *= 2;
-                if ($n > 9) {
-                    $n -= 9;
-                }
-            }
-
-            $sum += $n;
-            $alternate = ! $alternate;
-        }
-
-        return $sum % 10 === 0;
     }
 
     public function preview(Request $request)
