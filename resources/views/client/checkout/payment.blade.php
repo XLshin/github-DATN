@@ -11,10 +11,10 @@
     $secondsLeft = $payment?->expires_at ? max(0, (int) now()->diffInSeconds($payment->expires_at, false)) : 0;
 
     // QR URL cho chuyển khoản VietQR (Vietcombank – tài khoản giả lập)
-    $bankId  = 'VCB';
-    $acNo    = '1234567890';
+    $bankId  = config('services.sepay.bank_id', 'VCB');
+    $acNo    = config('services.sepay.account_number', '1027201910');
     $info    = urlencode("Thanh toan {$code}");
-    $acName  = urlencode('BYTE ZONE STORE');
+    $acName  = urlencode(config('services.sepay.account_name', 'BYTE ZONE STORE'));
     $vietQr  = "https://img.vietqr.io/image/{$bankId}-{$acNo}-compact.jpg?amount={$amount}&addInfo={$info}&accountName={$acName}";
 
     // QR generic (cho MoMo / VNPay)

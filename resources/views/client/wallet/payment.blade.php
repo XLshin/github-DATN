@@ -8,10 +8,10 @@
     $expired     = $topup->payment_status === 'failed';
     $secondsLeft = $topup->expires_at ? max(0, (int) now()->diffInSeconds($topup->expires_at, false)) : 0;
 
-    $bankId  = 'VCB';
-    $acNo    = '1234567890';
+    $bankId  = config('services.sepay.bank_id', 'VCB');
+    $acNo    = config('services.sepay.account_number', '1027201910');
     $info    = urlencode("Nap vi {$code}");
-    $acName  = urlencode('BYTE ZONE STORE');
+    $acName  = urlencode(config('services.sepay.account_name', 'BYTE ZONE STORE'));
     $vietQr  = "https://img.vietqr.io/image/{$bankId}-{$acNo}-compact.jpg?amount={$amount}&addInfo={$info}&accountName={$acName}";
 
     $qrData  = urlencode("{$code}|{$amount}|" . strtoupper($method));
