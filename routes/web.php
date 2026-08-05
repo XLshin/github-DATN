@@ -349,6 +349,8 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
             ->name('wallet-withdrawals.index');
         Route::get('wallet-withdrawals/{withdrawal}', [AdminWalletWithdrawalController::class, 'show'])
             ->name('wallet-withdrawals.show');
+        Route::get('wallet-withdrawals/{withdrawal}/status', [AdminWalletWithdrawalController::class, 'status'])
+            ->name('wallet-withdrawals.status');
         Route::post('wallet-withdrawals/{withdrawal}/processing', [AdminWalletWithdrawalController::class, 'markProcessing'])
             ->name('wallet-withdrawals.processing');
         Route::post('wallet-withdrawals/{withdrawal}/complete', [AdminWalletWithdrawalController::class, 'complete'])

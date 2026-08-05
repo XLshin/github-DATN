@@ -10,6 +10,7 @@ class WalletCreditedNotification extends Notification
     public function __construct(
         private readonly float $amount,
         private readonly string $reason,
+        private readonly ?string $transactionCode = null,
     ) {}
 
     public function via(object $notifiable): array
@@ -32,12 +33,20 @@ class WalletCreditedNotification extends Notification
     {
         $amountText = number_format($this->amount, 0, ',', '.') . ' đ';
 
-        return (new MailMessage)
-            ->subject('Ví của bạn vừa được cộng tiền - ' . config('app.name'))
-            ->greeting('Xin chào ' . $notifiable->name . '!')
-            ->line($amountText . ' đã được cộng vào ví ByteZone của bạn.')
-            ->line('Lý do: ' . $this->reason)
-            ->action('Xem ví của tôi', config('app.url') . '/wallet')
-            ->salutation('Trân trọng, ' . config('app.name'));
+        $mail = (new MailMessage)
+            ->subject('ByteZone - Ví của bạn vừa được cộng tiền')
+            ->greeting('Xin chào ' . ($notifiable->name ?? '') . ',')
+            ->line('Ví ByteZone của bạn vừa được cộng tiền thành công. Chi tiết:')
+            ->line('**Số tiền:** ' . $amountText)
+            ->line('**Nội dung:** ' . $this->reason);
+
+        if ($this->transactionCode) {
+            $mail->line('**Mã giao dịch:** ' . $this->transactionCode);
+        }
+
+        return $mail
+            ->line('**Thời gian:** ' . now()->format('H:i:s d/m/Y'))
+            ->action('Xem số dư ví', route('wallet.index'))
+            ->line('Cảm ơn bạn đã sử dụng ByteZone!');
     }
 }

@@ -146,6 +146,23 @@
                     </form>
                 @endif
 
+                @if($withdrawal->vietQrPayoutUrl())
+                <div class="alert alert-success text-center mb-4">
+                    <div class="fw-bold mb-2"><i class="bi bi-qr-code"></i> Quét QR để chuyển khoản 1 chạm</div>
+                    <img src="{{ $withdrawal->vietQrPayoutUrl() }}" alt="QR chuyển tiền" class="rounded border bg-white p-2" style="max-width:220px">
+                    <div class="small text-muted mt-2">
+                        Mở app ngân hàng của cửa hàng → Quét QR → Kiểm tra đúng số tiền
+                        <strong>{{ number_format((float) $withdrawal->amount, 0, ',', '.') }} đ</strong> → Xác nhận chuyển khoản.
+                        Hệ thống sẽ <strong>tự động</strong> đánh dấu hoàn tất ngay khi SePay báo tiền đã rời tài khoản, không cần upload ảnh bên dưới.
+                    </div>
+                </div>
+                @else
+                <div class="alert alert-warning small mb-4">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Không nhận diện được mã ngân hàng "{{ $withdrawal->bank_name }}" để tạo QR tự động — vui lòng chuyển khoản thủ công và upload ảnh minh chứng bên dưới.
+                </div>
+                @endif
+
                 <form method="POST" action="{{ route('admin.wallet-withdrawals.complete', $withdrawal) }}" enctype="multipart/form-data">
                     @csrf
                     @if($errors->any())
@@ -195,5 +212,84 @@
         @endif
     </div>
 </div>
+
+@if(in_array($withdrawal->status, ['pending', 'processing'], true))
+{{-- Hóa đơn tự hiện khi SePay xác nhận đã chuyển khoản xong, không cần tải lại trang --}}
+<div class="modal fade" id="payoutReceiptModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:340px">
+        <div class="modal-content border-0 overflow-hidden" style="border-radius:20px">
+            <div class="text-center pt-4 pb-3" style="background:#007A4D">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-white"
+                     style="width:60px;height:60px">
+                    <i class="bi bi-check-lg" style="font-size:34px;color:#007A4D"></i>
+                </div>
+            </div>
+            <div class="text-center px-4 pt-3 pb-2" style="margin-top:-1px">
+                <div class="fw-bold" style="color:#007A4D">Chuyển khoản thành công!</div>
+                <div class="fs-3 fw-bold mt-1" id="payout-amount">—</div>
+            </div>
+            <div class="px-4 pb-4">
+                <div class="rounded-3 p-3 mt-2 bg-light">
+                    <div class="d-flex justify-content-between py-1">
+                        <span class="small text-muted">Ngân hàng nhận</span>
+                        <span class="small fw-semibold text-end" id="payout-bank">—</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1">
+                        <span class="small text-muted">Số tài khoản</span>
+                        <span class="small fw-semibold text-end" id="payout-account">—</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1">
+                        <span class="small text-muted">Chủ tài khoản</span>
+                        <span class="small fw-semibold text-end" id="payout-holder">—</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1">
+                        <span class="small text-muted">Mã giao dịch</span>
+                        <span class="small fw-semibold text-end" id="payout-code">—</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-1">
+                        <span class="small text-muted">Thời gian</span>
+                        <span class="small fw-semibold text-end" id="payout-time">—</span>
+                    </div>
+                </div>
+                <a href="{{ route('admin.wallet-withdrawals.index') }}" class="btn w-100 mt-3 fw-semibold text-white"
+                   style="background:#007A4D;border-radius:8px">Về danh sách</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+(function () {
+    var statusUrl = @json(route('admin.wallet-withdrawals.status', $withdrawal));
+
+    function formatVnd(amount) {
+        return new Intl.NumberFormat('vi-VN').format(Math.round(amount)) + ' đ';
+    }
+
+    var iv = setInterval(function () {
+        fetch(statusUrl, { headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.completed) return;
+                clearInterval(iv);
+
+                var r = data.receipt;
+                document.getElementById('payout-amount').textContent = formatVnd(r.amount);
+                document.getElementById('payout-bank').textContent = r.bank_name || '—';
+                document.getElementById('payout-account').textContent = r.account_number || '—';
+                document.getElementById('payout-holder').textContent = r.account_holder_name || '—';
+                document.getElementById('payout-code').textContent = r.transaction_code || '—';
+                document.getElementById('payout-time').textContent = r.completed_at || '—';
+
+                var modalEl = document.getElementById('payoutReceiptModal');
+                new bootstrap.Modal(modalEl).show();
+            })
+            .catch(function () {});
+    }, 4000);
+})();
+</script>
+@endpush
+@endif
 
 @endsection

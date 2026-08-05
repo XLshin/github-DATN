@@ -3,7 +3,7 @@
     {{-- ƯU ĐÃI DỊCH VỤ --}}
     <div class="container py-4" style="border-bottom:1px solid #e0e0e0;">
         <div class="row g-3 text-center">
-            @foreach([['🚚','Giao hàng nhanh','Toàn quốc 24h'],['🛡️','Bảo hành chính hãng','12-24 tháng'],['💳','Thanh toán đa dạng','COD, VNPay, MoMo'],['🔄','Đổi trả dễ dàng','7 ngày đổi trả']] as $item)
+            @foreach([['🚚','Giao hàng nhanh','Toàn quốc 24h'],['🛡️','Bảo hành chính hãng','12-24 tháng'],['💳','Thanh toán đa dạng','COD, VietQR, Chuyển khoản'],['🔄','Đổi trả dễ dàng','7 ngày đổi trả']] as $item)
             <div class="col-6 col-md-3">
                 <div class="p-3 rounded-3 border">
                     <div style="font-size:1.8rem;">{{ $item[0] }}</div>

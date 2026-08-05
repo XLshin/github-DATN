@@ -32,16 +32,21 @@ class WithdrawalCompletedNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $amountText = number_format((float) $this->withdrawal->amount, 0, ',', '.') . ' đ';
-        $accountText = $this->withdrawal->bank_name . ' (' . $this->withdrawal->account_holder_name . ')';
+        $w = $this->withdrawal;
+        $amountText = number_format((float) $w->amount, 0, ',', '.') . ' đ';
+        $maskedAccount = $this->maskAccountNumber((string) $w->account_number);
 
         return (new MailMessage)
-            ->subject('Rút tiền thành công - ' . config('app.name'))
-            ->greeting('Xin chào ' . $notifiable->name . '!')
-            ->line('Yêu cầu rút tiền của bạn đã được xử lý thành công.')
-            ->line('Số tiền: ' . $amountText)
-            ->line('Tài khoản nhận: ' . $accountText)
-            ->action('Xem lịch sử ví', config('app.url') . '/wallet')
-            ->salutation('Trân trọng, ' . config('app.name'));
+            ->subject('ByteZone - Yêu cầu rút tiền đã hoàn tất')
+            ->greeting('Xin chào ' . ($notifiable->name ?? '') . ',')
+            ->line('Yêu cầu rút tiền của bạn đã được xử lý thành công. Chi tiết giao dịch:')
+            ->line('**Số tiền:** ' . $amountText)
+            ->line('**Ngân hàng nhận:** ' . $w->bank_name)
+            ->line('**Số tài khoản:** ' . $maskedAccount)
+            ->line('**Chủ tài khoản:** ' . $w->account_holder_name)
+            ->when($w->transaction_code, fn ($mail) => $mail->line('**Mã giao dịch:** ' . $w->transaction_code))
+            ->line('**Thời gian:** ' . ($w->completed_at?->format('H:i:s d/m/Y') ?? now()->format('H:i:s d/m/Y')))
+            ->action('Xem chi tiết ví', route('wallet.index'))
+            ->line('Cảm ơn bạn đã sử dụng ByteZone!');
     }
 }

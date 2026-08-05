@@ -7,7 +7,7 @@ use Illuminate\Support\Str;
 
 /**
  * Tự vẽ một ảnh "hóa đơn điện tử" (PNG) cho các giao dịch được hệ thống tự động xác nhận
- * (quét QR momo/vnpay/chuyển khoản, không có ảnh chụp màn hình do khách gửi) — dùng làm
+ * (quét QR vietqr/chuyển khoản, không có ảnh chụp màn hình do khách gửi) — dùng làm
  * chứng từ lưu trữ bên admin, giống vai trò của proof_image cho các giao dịch đối soát thủ công.
  *
  * Chỉ dùng font bitmap có sẵn của GD (không phụ thuộc file TTF nào), nên nội dung tiếng Việt
@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
 class ReceiptImageService
 {
     /**
-     * @param  array{r:int,g:int,b:int}  $color  Màu thương hiệu (momo/vnpay/ngân hàng...)
+     * @param  array{r:int,g:int,b:int}  $color  Màu thương hiệu (vietqr/ngân hàng...)
      * @param  array<int, array{0:string,1:string}>  $rows  Danh sách [nhãn, giá trị]
      */
     public function generate(string $title, string $amountText, array $color, array $rows): string

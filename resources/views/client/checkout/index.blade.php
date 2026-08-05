@@ -546,40 +546,13 @@
                                 <span class="pm-dot"></span>
                             </label>
 
-                            {{-- MoMo --}}
-                            <input type="radio" class="pm-radio btn-check" name="payment_method" id="pm_momo" value="momo">
-                            <label class="pm-card" for="pm_momo">
-                                <span class="pm-icon pm-icon--brand" style="background:#AE2070">M</span>
+                            {{-- VietQR --}}
+                            <input type="radio" class="pm-radio btn-check" name="payment_method" id="pm_vietqr" value="vietqr">
+                            <label class="pm-card" for="pm_vietqr">
+                                <span class="pm-icon pm-icon--brand" style="background:#00A0E3;font-size:10px;line-height:1.1">Viet<br>QR</span>
                                 <span class="pm-text">
-                                    <span class="pm-title">Ví MoMo</span>
-                                    <span class="pm-subtitle">Quét QR bằng app MoMo để thanh toán</span>
-                                </span>
-                                <span class="pm-dot"></span>
-                            </label>
-
-                            {{-- VNPay --}}
-                            <input type="radio" class="pm-radio btn-check" name="payment_method" id="pm_vnpay" value="vnpay">
-                            <label class="pm-card" for="pm_vnpay">
-                                <span class="pm-icon pm-icon--brand" style="background:#005BAA;font-size:10px;line-height:1.1">VN<br>Pay</span>
-                                <span class="pm-text">
-                                    <span class="pm-title">VNPAY</span>
-                                    <span class="pm-subtitle">Thanh toán qua ví VNPAY hoặc QR ngân hàng</span>
-                                </span>
-                                <span class="pm-dot"></span>
-                            </label>
-
-                            {{-- Card --}}
-                            <input type="radio" class="pm-radio btn-check" name="payment_method" id="pm_card" value="card">
-                            <label class="pm-card" for="pm_card">
-                                <span class="pm-icon pm-icon--card"><i class="bi bi-credit-card-2-front"></i></span>
-                                <span class="pm-text">
-                                    <span class="pm-title">Thẻ tín dụng / ghi nợ</span>
-                                    <span class="pm-subtitle">Visa, Mastercard, JCB</span>
-                                    <span class="pm-networks">
-                                        <span class="pm-network-badge" style="background:#1a1f71">VISA</span>
-                                        <span class="pm-network-badge" style="background:#eb001b">MASTERCARD</span>
-                                        <span class="pm-network-badge" style="background:#0f6937">JCB</span>
-                                    </span>
+                                    <span class="pm-title">VietQR</span>
+                                    <span class="pm-subtitle">Quét mã QR bằng app ngân hàng bất kỳ để thanh toán</span>
                                 </span>
                                 <span class="pm-dot"></span>
                             </label>

@@ -61,9 +61,7 @@ class BankTransactionLog extends Model
     {
         return match ($this->payment_method) {
             'bank_transfer' => 'Chuyển khoản',
-            'momo' => 'MoMo',
-            'vnpay' => 'VNPAY',
-            'card' => 'Thẻ',
+            'vietqr' => 'VietQR',
             'wallet' => 'Ví ByteZone',
             default => $this->payment_method ?? '-',
         };

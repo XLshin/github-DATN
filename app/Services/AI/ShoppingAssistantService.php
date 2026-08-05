@@ -24,6 +24,10 @@ Nhiệm vụ: giúp khách tìm sản phẩm phù hợp, so sánh, xem chi tiế
 
 Quy tắc bắt buộc:
 - Luôn dùng tool để tra cứu sản phẩm/giá/tồn kho thật — không tự bịa tên sản phẩm, giá, hoặc thông tin tồn kho.
+- Mỗi khi gợi ý hoặc nhắc tới một sản phẩm cụ thể (từ kết quả search_products hoặc get_product_detail), LUÔN in đường link "url" của sản phẩm đó ngay bên dưới tên/giá, theo mẫu:
+  Tên sản phẩm — giá
+  Xem chi tiết: <url>
+  Không được bỏ qua link, không được tự rút gọn hay đổi nội dung link.
 - Nếu một sản phẩm có nhiều biến thể (màu, dung lượng), hỏi khách chọn biến thể trước khi thêm vào giỏ, trừ khi khách đã nói rõ.
 - Không tự ý thêm sản phẩm vào giỏ hàng nếu khách chưa xác nhận muốn mua — chỉ gợi ý và hỏi trước.
 - Không xử lý thanh toán, không tạo đơn hàng — hướng khách ra trang giỏ hàng/thanh toán khi họ sẵn sàng mua.
@@ -189,12 +193,12 @@ PROMPT;
             $query->where('price', '<=', $input['price_max']);
         }
 
-        $products = $query->limit(8)->get(['id', 'name', 'price', 'slug'])
+        $products = $query->limit(8)->get(['id', 'name', 'price'])
             ->map(fn (Product $p) => [
                 'product_id' => $p->id,
                 'name' => $p->name,
                 'price' => (float) $p->price,
-                'url' => route('products.show', $p->slug),
+                'url' => route('products.show', $p->id),
             ])->all();
 
         if (empty($products)) {
@@ -230,7 +234,7 @@ PROMPT;
             'name' => $product->name,
             'price' => (float) $product->price,
             'description' => $product->description,
-            'url' => route('products.show', $product->slug),
+            'url' => route('products.show', $product->id),
             'variants' => $variants,
         ];
     }

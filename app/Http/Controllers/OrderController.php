@@ -177,18 +177,21 @@ class OrderController extends Controller
             'cancel_reason' => ['required', 'string', 'max:500', 'min:5'],
         ];
 
+        // Khách hủy đơn đã thanh toán luôn được hoàn tự động vào Ví (thật, tức thì, không cần chọn
+        // phương thức) — hoàn qua ngân hàng ngoài không còn là lựa chọn ở đây vì cần admin xử lý
+        // thủ công (xem RefundController cho luồng hoàn ngân hàng riêng, nếu có).
         if ($needsRefund) {
-            $rules['refund_method'] = ['required', 'string', 'in:wallet,bank'];
-            $rules['bank_name'] = ['required_if:refund_method,bank', 'nullable', 'string', 'max:255'];
-            $rules['bank_account_number'] = ['required_if:refund_method,bank', 'nullable', 'string', 'max:50'];
-            $rules['bank_account_name'] = ['required_if:refund_method,bank', 'nullable', 'string', 'max:255'];
+            $rules['refund_method'] = ['nullable', 'string', 'in:wallet'];
         }
 
         $validated = $request->validate($rules, [
             'cancel_reason.required' => 'Vui lòng nhập lý do hủy đơn hàng.',
             'cancel_reason.min' => 'Lý do hủy đơn cần cụ thể hơn (tối thiểu 5 ký tự).',
-            'refund_method.required' => 'Vui lòng chọn phương thức nhận hoàn tiền.',
         ]);
+
+        if ($needsRefund) {
+            $validated['refund_method'] = 'wallet';
+        }
 
         // Ràng buộc điều kiện hủy đơn: Chỉ cho phép khi đơn hàng ở trạng thái 'pending' hoặc 'waiting_pack'
         if (!in_array($order->fulfillment_status, ['pending', 'waiting_pack'], true)) {

@@ -40,9 +40,7 @@
                         <div class="fw-semibold">
                             @switch($topup->payment_method)
                                 @case('bank_transfer') Chuyển khoản ngân hàng @break
-                                @case('momo') Ví MoMo @break
-                                @case('vnpay') VNPAY @break
-                                @case('card') Thẻ tín dụng/ghi nợ @break
+                                @case('vietqr') VietQR @break
                                 @default {{ $topup->payment_method }}
                             @endswitch
                         </div>

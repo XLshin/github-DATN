@@ -54,10 +54,11 @@ class WalletWithdrawalService
         return DB::transaction(function () use ($user, $bankAccount, $amount) {
             $now = now();
 
-            // Rút dưới ngưỡng thì tự động xử lý (mô phỏng ngân hàng chuyển xong sau khoảng trễ
-            // ngắn), giống hệt cơ chế đã dùng cho hoàn tiền/nạp ví — không cần chờ admin duyệt.
-            // Trên ngưỡng vẫn giữ quy trình cũ: admin xác nhận thủ công kèm ảnh minh chứng.
-            $autoWithdraw = $amount <= WalletWithdrawal::AUTO_WITHDRAWAL_MAX_AMOUNT;
+            // Rút tiền LUÔN cần admin tự tay chuyển khoản thật + đính kèm ảnh minh chứng
+            // (WalletWithdrawalService::complete) — không tự động giả lập nữa dù dưới ngưỡng, vì
+            // hệ thống không có API chuyển tiền ra ngân hàng thật (khác nạp ví/hoàn ví — tiền vào
+            // có thể xác nhận thật qua webhook SePay, còn tiền ra luôn cần một người thao tác thật).
+            $autoWithdraw = false;
 
             $withdrawal = WalletWithdrawal::create([
                 'user_id' => $user->id,
@@ -71,6 +72,11 @@ class WalletWithdrawalService
                 'eligible_at' => $now->copy()->addDays(WalletWithdrawal::MIN_PROCESSING_DAYS),
                 'simulate_confirm_at' => $autoWithdraw ? $now->copy()->addSeconds(random_int(8, 20)) : null,
             ]);
+
+            // Mã đối soát cố định ngay từ lúc tạo — dùng làm nội dung chuyển khoản trong QR admin
+            // quét để chuyển tiền ra (xem vietQrPayoutUrl()), SePay dò thấy mã này trong giao dịch
+            // "tiền ra" của tài khoản cửa hàng thì tự xác nhận hoàn tất, không cần admin upload ảnh.
+            $withdrawal->update(['transaction_code' => 'RUT' . str_pad((string) $withdrawal->id, 6, '0', STR_PAD_LEFT)]);
 
             // Trừ ví ngay (giữ tiền); ném lỗi + rollback toàn bộ nếu không đủ số dư.
             $this->walletService->debit(
@@ -92,13 +98,17 @@ class WalletWithdrawalService
     }
 
     /**
-     * Mô phỏng ngân hàng báo đã chuyển tiền rút thành công: dùng cho demo đồ án, được gọi khi đã
-     * quá thời điểm simulate_confirm_at. Chỉ áp dụng cho yêu cầu dưới ngưỡng tự động — yêu cầu
-     * vượt ngưỡng luôn cần admin xác nhận thủ công (xem complete()).
+     * Mô phỏng ngân hàng báo đã chuyển tiền rút thành công — CHỈ chạy khi request() thực sự có đặt
+     * simulate_confirm_at và đã đến hạn (hiện tại luôn null vì rút tiền bắt buộc admin xác nhận
+     * thật, xem complete()). Giữ lại hàm này cho tương thích ngược, không tự ý bỏ qua điều kiện.
      */
     public function confirmSimulated(WalletWithdrawal $withdrawal): void
     {
-        if ($withdrawal->status !== 'pending') {
+        if (
+            $withdrawal->status !== 'pending'
+            || ! $withdrawal->simulate_confirm_at
+            || $withdrawal->simulate_confirm_at->isFuture()
+        ) {
             return;
         }
 
@@ -128,6 +138,45 @@ class WalletWithdrawalService
         ]);
 
         $this->logService->logWithdrawal($withdrawal->fresh(), 'completed', null, 'Tự động xác nhận — không cần admin (dưới ngưỡng ' . number_format(WalletWithdrawal::AUTO_WITHDRAWAL_MAX_AMOUNT, 0, ',', '.') . ' đ).');
+
+        $this->sendWithdrawalNotifications($withdrawal->fresh());
+    }
+
+    /**
+     * Xác nhận rút tiền THẬT từ webhook SePay (giao dịch "tiền ra" thật của tài khoản cửa hàng) —
+     * admin chỉ cần quét QR (vietQrPayoutUrl trên WalletWithdrawal) bằng app ngân hàng để chuyển,
+     * không cần upload ảnh minh chứng thủ công nữa vì SePay đã tự xác nhận tiền thật đã rời tài khoản.
+     */
+    public function confirmSepayPayout(WalletWithdrawal $withdrawal, ?string $referenceCode): void
+    {
+        if (! in_array($withdrawal->status, ['pending', 'processing'], true)) {
+            return;
+        }
+
+        $completedAt = now();
+        $transactionCode = $referenceCode ?: $withdrawal->transaction_code;
+
+        $withdrawal->update([
+            'status' => 'completed',
+            'completed_at' => $completedAt,
+            'transaction_code' => $transactionCode,
+            'admin_note' => 'Tự động xác nhận qua webhook SePay (đã quét QR chuyển khoản thật).',
+            'proof_image' => $withdrawal->proof_image ?: $this->receiptImageService->generate(
+                'RUT TIEN THANH CONG',
+                number_format((float) $withdrawal->amount, 0, ',', '.') . ' VND',
+                ['r' => 0, 'g' => 122, 'b' => 77],
+                [
+                    ['Don vi chuyen', config('services.sepay.account_name')],
+                    ['Nguoi nhan', $withdrawal->account_holder_name],
+                    ['Ngan hang nhan', $withdrawal->bank_name],
+                    ['So TK nhan', $this->maskAccountNumber($withdrawal->account_number)],
+                    ['Ma giao dich', (string) $transactionCode],
+                    ['Thoi gian', $completedAt->format('H:i:s d/m/Y')],
+                ]
+            ),
+        ]);
+
+        $this->logService->logWithdrawal($withdrawal->fresh(), 'completed', null, 'Xác nhận thật qua webhook SePay — tiền đã rời tài khoản cửa hàng.');
 
         $this->sendWithdrawalNotifications($withdrawal->fresh());
     }
@@ -222,6 +271,8 @@ class WalletWithdrawalService
             );
 
             $this->logService->logWithdrawal($withdrawal->fresh(), 'rejected', $admin, $reason);
+
+            $withdrawal->user->notify(new \App\Notifications\WithdrawalRejectedNotification($withdrawal->fresh(), $reason));
         });
     }
 

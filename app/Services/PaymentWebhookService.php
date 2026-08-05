@@ -5,9 +5,12 @@ namespace App\Services;
 use Illuminate\Http\Request;
 use App\Models\BankAccount;
 use App\Models\Payment;
+use App\Models\WalletTopup;
 use App\Services\CarrierSelectorService;
 use App\Services\ImeiReservationService;
 use App\Services\ShippingService;
+use App\Services\WalletService;
+use App\Services\WalletWithdrawalService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
@@ -19,7 +22,8 @@ class PaymentWebhookService
         private ShippingService $shippingService,
         private CarrierSelectorService $carrierSelector,
         private ReceiptImageService $receiptImageService,
-        private OrderCustomerNotificationService $orderNotificationService,
+        private WalletService $walletService,
+        private WalletWithdrawalService $walletWithdrawalService,
     ) {}
 
     /**
@@ -36,8 +40,6 @@ class PaymentWebhookService
         }
 
         $secretKey = match (strtolower($gateway)) {
-            'momo' => env('MOMO_SECRET'),
-            'vnpay' => env('VNPAY_SECRET'),
             'zalopay' => env('ZALOPAY_SECRET'),
             default => null,
         };
@@ -108,9 +110,11 @@ class PaymentWebhookService
     /**
      * Webhook biến động số dư ngân hàng kiểu SePay/Casso: mỗi khi có tiền vào tài khoản shop,
      * dịch vụ trung gian POST về đây kèm nội dung chuyển khoản. Ta đối chiếu mã đơn hàng (order_code,
-     * đã lưu sẵn ở payments.transaction_code khi tạo phiên bank_transfer) có xuất hiện trong nội dung
-     * hay không, và số tiền chuyển vào có khớp với số tiền đơn hàng hay không. Khớp cả hai mới tự động
-     * xác nhận — nếu không sẽ bỏ qua để admin đối soát thủ công như trước (an toàn, tránh cộng nhầm tiền).
+     * đã lưu sẵn ở payments.transaction_code khi tạo phiên bank_transfer/vietqr) có xuất hiện trong
+     * nội dung hay không, và số tiền chuyển vào có khớp với số tiền đơn hàng hay không. Khớp cả hai mới
+     * tự động xác nhận — nếu không sẽ bỏ qua để admin đối soát thủ công như trước (an toàn, tránh cộng
+     * nhầm tiền). Dùng chung cho cả "Chuyển khoản ngân hàng" và "VietQR" vì cả hai đều là chuyển khoản
+     * thật vào cùng 1 tài khoản ngân hàng, chỉ khác giao diện QR hiển thị.
      *
      * Payload tham khảo định dạng SePay: { content, transferAmount, transferType, referenceCode, ... }
      */
@@ -125,14 +129,15 @@ class PaymentWebhookService
         }
 
         $transferType = strtolower((string) $request->input('transferType', 'in'));
-        if ($transferType !== 'in') {
-            // Tiền ra khỏi tài khoản (hoàn tiền thủ công...) không liên quan đến xác nhận đơn hàng.
-            return [200, 'Ignored (not incoming transfer)'];
-        }
-
         $content = (string) $request->input('content', $request->input('description', ''));
         $amount = (float) $request->input('transferAmount', 0);
         $referenceCode = (string) $request->input('referenceCode', $request->input('id', ''));
+
+        if ($transferType !== 'in') {
+            // Tiền ra khỏi tài khoản cửa hàng — chỉ quan tâm nếu khớp với 1 yêu cầu rút tiền đang
+            // chờ admin quét QR chuyển khoản thật (WalletWithdrawalService::confirmSepayPayout).
+            return $this->handlePayoutTransfer($content, $amount, $referenceCode);
+        }
 
         if (! preg_match('/[A-Z0-9]{6,}/i', $content, $matches)) {
             Log::info('SePay webhook: no order code pattern found in content', ['content' => $content]);
@@ -143,33 +148,108 @@ class PaymentWebhookService
         // tìm payment có transaction_code (order_code) xuất hiện như một chuỗi con của content,
         // thay vì so khớp tuyệt đối.
         $payment = Payment::query()
-            ->where('payment_method', 'bank_transfer')
+            ->whereIn('payment_method', ['bank_transfer', 'vietqr'])
             ->where('payment_status', 'pending')
             ->get()
             ->first(fn (Payment $p) => $p->transaction_code && stripos($content, $p->transaction_code) !== false);
 
-        if (! $payment) {
-            Log::info('SePay webhook: no matching pending bank_transfer payment', ['content' => $content]);
+        if ($payment) {
+            if ($payment->isExpired()) {
+                Log::info('SePay webhook: matched payment already expired', ['payment_id' => $payment->id]);
+                return [200, 'Payment expired'];
+            }
+
+            // Số tiền phải khớp đúng (cho phép sai số làm tròn 1đ) để tránh xác nhận nhầm khi khách
+            // chuyển thiếu/thừa hoặc nội dung trùng ngẫu nhiên với đơn khác.
+            if (abs($amount - (float) $payment->amount) > 1) {
+                Log::warning('SePay webhook: amount mismatch, falling back to manual review', [
+                    'payment_id' => $payment->id,
+                    'expected' => $payment->amount,
+                    'received' => $amount,
+                ]);
+                return [200, 'Amount mismatch — left for manual review'];
+            }
+
+            $this->markPaid($payment, $referenceCode ?: $payment->transaction_code);
+
+            return [200, 'OK'];
+        }
+
+        // Không khớp đơn hàng nào — thử tìm yêu cầu nạp ví (transaction_code dạng "NAPVI...",
+        // xem WalletService::initiateTopup) theo đúng cơ chế đối chiếu nội dung + số tiền như trên.
+        $topup = WalletTopup::query()
+            ->whereIn('payment_method', ['bank_transfer', 'vietqr'])
+            ->where('payment_status', 'pending')
+            ->get()
+            ->first(fn (WalletTopup $t) => $t->transaction_code && stripos($content, $t->transaction_code) !== false);
+
+        if (! $topup) {
+            Log::info('SePay webhook: no matching pending payment/topup', ['content' => $content]);
             return [200, 'No matching payment'];
         }
 
-        if ($payment->isExpired()) {
-            Log::info('SePay webhook: matched payment already expired', ['payment_id' => $payment->id]);
-            return [200, 'Payment expired'];
+        if ($topup->isExpired()) {
+            Log::info('SePay webhook: matched topup already expired', ['topup_id' => $topup->id]);
+            return [200, 'Topup expired'];
         }
 
-        // Số tiền phải khớp đúng (cho phép sai số làm tròn 1đ) để tránh xác nhận nhầm khi khách
-        // chuyển thiếu/thừa hoặc nội dung trùng ngẫu nhiên với đơn khác.
-        if (abs($amount - (float) $payment->amount) > 1) {
-            Log::warning('SePay webhook: amount mismatch, falling back to manual review', [
-                'payment_id' => $payment->id,
-                'expected' => $payment->amount,
+        if (abs($amount - (float) $topup->amount) > 1) {
+            Log::warning('SePay webhook: topup amount mismatch, falling back to manual review', [
+                'topup_id' => $topup->id,
+                'expected' => $topup->amount,
                 'received' => $amount,
             ]);
             return [200, 'Amount mismatch — left for manual review'];
         }
 
-        $this->markPaid($payment, $referenceCode ?: $payment->transaction_code);
+        $this->walletService->confirmSepayTopup($topup, $referenceCode ?: null);
+
+        return [200, 'OK'];
+    }
+
+    /**
+     * Xử lý giao dịch "tiền ra" SePay báo về — chỉ dùng để tự động hoàn tất yêu cầu rút tiền khi
+     * admin đã quét QR (vietQrPayoutUrl) chuyển khoản thật cho khách. Ưu tiên đối chiếu theo
+     * transaction_code "RUT..." xuất hiện trong nội dung; nếu app ngân hàng của admin không giữ
+     * lại đúng nội dung QR (một số app tự thay bằng mô tả mặc định kiểu "X chuyen tien"), rơi về
+     * khớp theo SỐ TIỀN khi chỉ có đúng 1 yêu cầu đang chờ — an toàn vì tiền ra luôn do admin cửa
+     * hàng chủ động khởi tạo (không phải nhiều khách gửi ngẫu nhiên như tiền vào).
+     */
+    private function handlePayoutTransfer(string $content, float $amount, string $referenceCode): array
+    {
+        $pendingWithdrawals = \App\Models\WalletWithdrawal::query()
+            ->whereIn('status', ['pending', 'processing'])
+            ->get();
+
+        $withdrawal = $pendingWithdrawals->first(fn ($w) => $w->transaction_code && stripos($content, $w->transaction_code) !== false);
+
+        if (! $withdrawal) {
+            $amountMatches = $pendingWithdrawals->filter(fn ($w) => abs($amount - (float) $w->amount) <= 1);
+
+            if ($amountMatches->count() === 1) {
+                $withdrawal = $amountMatches->first();
+                Log::info('SePay webhook: matched outgoing transfer by amount fallback (content had no reference code)', [
+                    'withdrawal_id' => $withdrawal->id,
+                    'content' => $content,
+                ]);
+            }
+        }
+
+        if (! $withdrawal) {
+            Log::info('SePay webhook: no matching pending withdrawal for outgoing transfer', ['content' => $content, 'amount' => $amount]);
+            return [200, 'No matching withdrawal'];
+        }
+
+        if (abs($amount - (float) $withdrawal->amount) > 1) {
+            Log::warning('SePay webhook: withdrawal amount mismatch, left for manual admin confirmation', [
+                'withdrawal_id' => $withdrawal->id,
+                'expected' => $withdrawal->amount,
+                'received' => $amount,
+            ]);
+            return [200, 'Amount mismatch — left for manual review'];
+        }
+
+        $this->walletWithdrawalService->confirmSepayPayout($withdrawal, $referenceCode ?: null);
 
         return [200, 'OK'];
     }
@@ -186,7 +266,7 @@ class PaymentWebhookService
 
     /**
      * Đánh dấu payment đã thanh toán, chuyển đơn sang xử lý và tạo vận đơn — dùng chung cho
-     * webhook cổng thanh toán (momo/vnpay/zalopay) và webhook ngân hàng (SePay).
+     * webhook cổng thanh toán (zalopay) và webhook ngân hàng SePay (bank_transfer/vietqr).
      */
     private function markPaid(Payment $payment, ?string $transactionCode): void
     {
@@ -259,9 +339,7 @@ class PaymentWebhookService
     private function brandColor(string $method): array
     {
         return match ($method) {
-            'momo' => ['r' => 174, 'g' => 32, 'b' => 112],
-            'vnpay' => ['r' => 0, 'g' => 91, 'b' => 170],
-            'card' => ['r' => 22, 'g' => 33, 'b' => 62],
+            'vietqr' => ['r' => 0, 'g' => 160, 'b' => 227],
             default => ['r' => 0, 'g' => 122, 'b' => 77],
         };
     }
