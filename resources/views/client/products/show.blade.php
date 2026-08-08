@@ -598,6 +598,14 @@
                                 Tạm hết hàng
                             </button>
                         </form>
+
+                        {{-- Form mua ngay (ẩn) --}}
+                        <form method="POST" action="{{ route('buy.now') }}" id="buyNowForm" class="d-none">
+                            @csrf
+                            <input type="hidden" name="product_id" value="{{ $product->id }}">
+                            <input type="hidden" name="variant_id" id="buyNowVariantId" value="{{ $selectedVariant?->id }}">
+                            <input type="hidden" name="quantity" value="1">
+                        </form>
                     @else
                         <a href="{{ route('login') }}" class="btn btn-primary btn-lg w-100">
                             Đăng nhập để mua hàng
@@ -807,6 +815,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     const selectedPrice = document.getElementById('selectedPrice');
     const selectedVariantId = document.getElementById('selectedVariantId');
+    const buyNowVariantId = document.getElementById('buyNowVariantId');
     const selectedStock = document.getElementById('selectedStock');
     const purchaseActions = document.getElementById('purchaseActions');
     const outOfStockButton = document.getElementById('outOfStockButton');
@@ -908,6 +917,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (selectedVariantId) {
                 selectedVariantId.value = button.dataset.variantId;
+            }
+
+            if (buyNowVariantId) {
+                buyNowVariantId.value = button.dataset.variantId;
             }
 
             if (selectedPrice && button.dataset.price) {
