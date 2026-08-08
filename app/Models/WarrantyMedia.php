@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class WarrantyMedia extends Model
 {
@@ -33,7 +32,7 @@ class WarrantyMedia extends Model
 
     public function getUrlAttribute(): string
     {
-        return Storage::disk('public')->url($this->file_path);
+        return '/storage/' . ltrim($this->file_path, '/');
     }
 
     public function getTypeLabelAttribute(): string

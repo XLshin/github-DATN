@@ -91,20 +91,56 @@ class ProductController extends Controller
             'variants'     => 'required|array|min:1',
             'variants.*.color'            => 'required|string|max:100',
             'variants.*.stock_quantity'   => 'nullable|integer|min:0',
+            'price' => 'required|numeric|min:0',
             'variants.*.additional_price' => 'nullable|numeric|min:0',
-            'variants.*.imeis'            => 'nullable|string',
-            'variants.*.images'           => 'nullable|array',
-            'variants.*.images.*'         => 'nullable|image|max:2048',
-        ], [
-            'variants.required'              => 'Sản phẩm phải có ít nhất một biến thể.',
-            'variants.min'                   => 'Sản phẩm phải có ít nhất một biến thể.',
-            'variants.*.color.required'      => 'Màu sắc biến thể không được để trống.',
-            'storage.required'               => 'Dung lượng là bắt buộc với sản phẩm IMEI/Serial.',
+            'variants.*.imeis'   => 'nullable|string',
+            'variants.*.images'  => 'nullable|array',
+            'variants.*.images.*'=> 'nullable|image|max:2048',
+            'storage' => $storageRules,
         ]);
 
         if (!$requiresStorage) {
             $validated['storage'] = null;
         }
+
+        if (
+            false && $this->productHasInventory($product)
+            && (
+                (int) $validated['product_group_id'] !== (int) $product->product_group_id
+                || trim((string) $validated['storage']) !== trim((string) $product->storage)
+                || trim((string) $validated['name']) !== trim((string) $product->name)
+            )
+        ) {
+            return back()
+                ->withErrors(['name' => 'Không thể đổi tên, dung lượng hoặc dòng sản phẩm vì phiên bản đã có IMEI hoặc tồn kho.'])
+                ->withInput();
+        }
+
+        $validated['category_id'] = $productGroup->category_id;
+        $validated['brand_id'] = $productGroup->brand_id;
+        $validated['product_type'] = $productGroup->product_type;
+
+        $validated['slug']           = Str::slug($request->name);
+        $validated['status']         = $request->boolean('status', false);
+
+        if ($request->hasFile('thumbnail')) {
+            $validated['thumbnail'] = $request->file('thumbnail')->store('products/thumbnails', 'public');
+        }
+
+        $product = Product::create([
+            'product_group_id' => $validated['product_group_id'],
+
+            'name'=>$validated['name'],
+
+            'category_id'=>$validated['category_id'],
+
+            'storage' => $validated['storage'] ?? null,
+
+            'brand_id'=>$validated['brand_id'],
+
+            'description'=>$validated['description'],
+
+            'thumbnail'=>$validated['thumbnail'] ?? null,
 
         DB::beginTransaction();
         try {
@@ -278,9 +314,6 @@ class ProductController extends Controller
             'variants.*.imeis'   => 'nullable|string',
             'variants.*.images'  => 'nullable|array',
             'variants.*.images.*'=> 'nullable|image|max:2048',
-        ], [
-            'variants.*.color.required_with' => 'Màu sắc biến thể không được để trống.',
-            'storage.required'               => 'Dung lượng là bắt buộc với sản phẩm IMEI/Serial.',
         ]);
 
         if (!$requiresStorage) {
@@ -324,88 +357,38 @@ class ProductController extends Controller
                             }
                         }
                     }
-
-                    // Tìm biến thể hiện có theo product_id + color
-                    $existingVariant = ProductVariant::where('product_id', $product->id)
-                        ->where('color', $color)
-                        ->first();
-
-                    if ($existingVariant) {
-                        // Biến thể đã tồn tại: cộng thêm tồn kho (nếu là quantity)
-                        if ($validated['product_type'] === 'quantity' && $addQty > 0) {
-                            $existingVariant->increment('stock_quantity', $addQty);
-                            InventoryTransaction::create([
-                                'product_variant_id' => $existingVariant->id,
-                                'type'               => 'import',
-                                'quantity'           => $addQty,
-                                'note'               => 'Nhập thêm tồn kho qua form sửa sản phẩm',
-                            ]);
-                        }
-
-                        if (!empty($paths)) {
-                            if (!$existingVariant->image_path) {
-                                $existingVariant->update(['image_path' => $paths[0]]);
-                            }
-                            foreach (array_slice($paths, $existingVariant->image_path ? 0 : 1) as $path) {
-                                ProductImage::create([
-                                    'product_id'         => $product->id,
-                                    'product_variant_id' => $existingVariant->id,
-                                    'image_path'         => $path,
-                                ]);
-                            }
-                        }
-
-                        $variant = $existingVariant;
-                    } else {
-                        // Biến thể mới: tạo mới
-                        $newVariantData = [
-                            'product_id'       => $product->id,
-                            'color'            => $color,
-                            'stock_quantity'   => $validated['product_type'] === 'quantity' ? $addQty : 0,
-                            'additional_price' => $variantData['additional_price'] ?? 0,
-                            'status'           => true,
-                        ];
-
-                        if (!empty($paths)) {
-                            $newVariantData['image_path'] = $paths[0];
-                        }
-
-                        $variant = ProductVariant::create($newVariantData);
-
-                        if ($validated['product_type'] === 'quantity' && $addQty > 0) {
-                            InventoryTransaction::create([
-                                'product_variant_id' => $variant->id,
-                                'type'               => 'import',
-                                'quantity'           => $addQty,
-                                'note'               => 'Nhập kho ban đầu khi thêm biến thể mới',
-                            ]);
-                        }
-
-                        if (count($paths) > 1) {
-                            foreach (array_slice($paths, 1) as $path) {
-                                ProductImage::create([
-                                    'product_id'         => $product->id,
-                                    'product_variant_id' => $variant->id,
-                                    'image_path'         => $path,
-                                ]);
-                            }
-                        }
+                    if (!empty($paths)) {
+                        $variantInfo['image_path'] = $paths[0];
                     }
+                }
 
-                    if ($validated['product_type'] === 'imei/serial' && !empty($variantData['imeis'])) {
-                        $imeiList = array_filter(array_map('trim', explode("\n", $variantData['imeis'])));
-                        foreach ($imeiList as $imeiCode) {
-                            if ($imeiCode !== '') {
-                                Imei::firstOrCreate(
-                                    ['imei' => $imeiCode],
-                                    ['product_variant_id' => $variant->id, 'status' => 'available']
-                                );
-                            }
+                $variant = ProductVariant::create($variantInfo);
+
+                if (!empty($paths) && count($paths) > 1) {
+                    foreach (array_slice($paths, 1) as $path) {
+                        ProductImage::create([
+                            'product_id' => $product->id,
+                            'product_variant_id' => $variant->id,
+                            'image_path' => $path,
+                        ]);
+                    }
+                }
+
+                if ($validated['product_type'] === 'imei/serial' && !empty($variantData['imeis'])) {
+                    $imeiList = array_filter(array_map('trim', explode("\n", $variantData['imeis'])));
+                    foreach ($imeiList as $imeiCode) {
+                        if ($imeiCode !== '') {
+                            Imei::create([
+                                'product_variant_id' => $variant->id,
+                                'imei'               => $imeiCode,
+                                'status'             => 'available',
+                            ]);
                         }
                         $variant->update([
                             'stock_quantity' => $variant->imeis()->where('status', 'available')->count(),
                         ]);
                     }
+                    $variant->update(['stock_quantity' => count($imeiList)]);
                 }
             }
 
@@ -421,6 +404,10 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
+        if ($this->productHasInventory($product)) {
+            return back()->with('error', 'Không thể xóa phiên bản đã có IMEI hoặc tồn kho.');
+        }
+
         if ($product->thumbnail) {
             Storage::disk('public')->delete($product->thumbnail);
         }
@@ -469,6 +456,8 @@ class ProductController extends Controller
 
     public function updateVariant(Request $request, ProductVariant $variant)
     {
+        $variant->load('product');
+
         $validated = $request->validate([
             'color'            => 'required|string|max:100',
             'stock_quantity'   => 'nullable|integer|min:0',
@@ -480,6 +469,15 @@ class ProductController extends Controller
 
         $validated['status']           = $request->boolean('status', false);
         $validated['additional_price'] = $validated['additional_price'] ?? 0;
+
+        if (
+            $this->variantHasInventory($variant)
+            && trim((string) $variant->color) !== trim((string) $validated['color'])
+        ) {
+            return back()
+                ->withErrors(['color' => 'Không thể đổi màu vì biến thể đã có IMEI hoặc tồn kho.'])
+                ->withInput();
+        }
 
         if ($request->hasFile('images')) {
             if ($variant->image_path) {
@@ -519,8 +517,8 @@ class ProductController extends Controller
             }
             // Cập nhật stock_quantity theo số IMEI available
             $validated['stock_quantity'] = $variant->imeis()->where('status', 'available')->count();
-        } else {
-            $validated['stock_quantity'] = $validated['stock_quantity'] ?? 0;
+        } elseif (!$request->has('stock_quantity')) {
+            unset($validated['stock_quantity']);
         }
 
         $variant->update($validated);
@@ -531,8 +529,8 @@ class ProductController extends Controller
 
     public function destroyVariant(ProductVariant $variant)
     {
-        if ($variant->product->variants()->count() <= 1) {
-            return back()->with('error', 'Không thể xóa biến thể duy nhất của sản phẩm.');
+        if ($this->variantHasInventory($variant)) {
+            return back()->with('error', 'Không thể xóa biến thể đã có IMEI hoặc tồn kho.');
         }
 
         if ($variant->image_path) {
@@ -548,6 +546,21 @@ class ProductController extends Controller
 
         return redirect()->route('admin.products.index')
             ->with('success', 'Đã xóa biến thể.');
+    }
+
+    private function variantHasInventory(ProductVariant $variant): bool
+    {
+        return $variant->imeis()->exists() || (int) $variant->stock_quantity > 0;
+    }
+
+    private function productHasInventory(Product $product): bool
+    {
+        return $product->variants()
+            ->where(function ($query) {
+                $query->where('stock_quantity', '>', 0)
+                    ->orWhereHas('imeis');
+            })
+            ->exists();
     }
 
     public function ajaxStore(Request $request)

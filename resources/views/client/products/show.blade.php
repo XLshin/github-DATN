@@ -28,9 +28,14 @@
 
     $variantPayload = $product->variants->map(function ($variant) use ($product, $mainImageUrl) {
         $imagePath = $variant->image_path ?: $variant->images->first()?->image_path;
-        $stockCount = $product->product_type === 'imei/serial'
-            ? (int) ($variant->available_imeis_count ?? 0)
-            : (int) ($variant->stock_quantity ?? 0);
+
+        // IMEI/serial: đếm từ bảng imeis (available_imeis_count được load sẵn bởi withCount)
+        // quantity: dùng stock_quantity của variant
+        if ($product->product_type === 'imei/serial') {
+            $stockCount = (int) ($variant->available_imeis_count ?? 0);
+        } else {
+            $stockCount = (int) ($variant->stock_quantity ?? 0);
+        }
 
         return [
             'id' => $variant->id,
@@ -570,8 +575,7 @@
                     </div>
 
                     @auth
-                        {{-- Form thêm vào giỏ --}}
-                        <form method="POST" action="{{ route('cart.add') }}" id="addToCartForm" class="d-grid gap-2">
+                        <form method="POST" action="{{ route('cart.add') }}" id="productPurchaseForm" class="d-grid gap-2 add-to-cart-form">
                             @csrf
                             <input type="hidden" name="product_id" value="{{ $product->id }}">
                             <input type="hidden" name="variant_id" id="selectedVariantId" value="{{ $selectedVariant?->id }}">
@@ -581,13 +585,13 @@
                                 <button type="submit" class="btn btn-outline-primary cart-icon-button" title="Thêm vào giỏ" aria-label="Thêm vào giỏ">
                                     <i class="lni lni-cart"></i>
                                 </button>
-                                <button type="submit" form="buyNowForm" class="btn btn-danger btn-lg">
+                                <button type="submit" formaction="{{ route('buy.now') }}" class="btn btn-danger btn-lg">
                                     Mua ngay
                                 </button>
                             </div>
 
                             <button
-                                type="button"
+                                type="button"   
                                 id="outOfStockButton"
                                 @class(['btn btn-secondary btn-lg w-100', 'd-none' => ($selectedVariantData['in_stock'] ?? false)])
                                 disabled>
@@ -623,6 +627,7 @@
             </div>
 
             <div class="col-lg-5">
+                @if(! request()->boolean('hide_reviews'))
                 <section class="product-surface p-3 p-md-4">
                     <h2 class="h5 mb-3">Đánh giá sản phẩm</h2>
 
@@ -699,6 +704,7 @@
                     @endauth
                 </section>
             </div>
+            @endif
         </div>
 
         @if($relatedProducts->isNotEmpty())
@@ -716,8 +722,8 @@
                     @foreach($relatedProducts as $relatedProduct)
                         @php
                             $relatedImage = collect([
-                                $relatedProduct->thumbnail,
                                 $relatedProduct->productGroup?->images?->first()?->image_path,
+                                $relatedProduct->thumbnail,
                                 $relatedProduct->images?->first()?->image_path,
                                 $relatedProduct->variants?->first()?->image_path,
                                 $relatedProduct->variants?->first()?->images?->first()?->image_path,
@@ -979,6 +985,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
         setRating(input ? input.value : 5);
     });
+
+    const buyNowButton = document.getElementById('buyNowButton');
+    const productPurchaseForm = document.getElementById('productPurchaseForm');
+
+    if (buyNowButton && productPurchaseForm) {
+        buyNowButton.addEventListener('click', function () {
+            const originalAction = productPurchaseForm.action;
+            productPurchaseForm.action = @json(route('buy.now'));
+            productPurchaseForm.submit();
+            productPurchaseForm.action = originalAction;
+        });
+    }
 });
 </script>
 @endpush

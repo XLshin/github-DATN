@@ -1,89 +1,234 @@
-@extends('layouts.client')
+@extends('layouts.app')
 
 @section('title', 'Tra cứu bảo hành')
 
 @section('content')
 <div class="container py-4">
-    <h1 class="mb-4">Tra cứu bảo hành</h1>
+    <h1 class="mb-2">Tra cứu bảo hành</h1>
 
-    <form method="POST" action="{{ route('warranties.lookup.post') }}" class="mb-4">
-        @csrf
+    <p class="text-muted mb-4">
+        Hiển thị tất cả phiếu bảo hành của các sản phẩm thuộc tài khoản của bạn.
+    </p>
+
+    <form
+        method="GET"
+        action="{{ route('warranties.lookup') }}"
+        class="mb-4"
+    >
         <div class="row g-2 align-items-end">
-            <div class="col-md-5">
-                <label class="form-label">IMEI</label>
-                <input id="imei-input" name="imei" class="form-control" value="{{ old('imei') }}" list="user-imeis" placeholder="Nhập IMEI để tra cứu">
-                <datalist id="user-imeis">
-                    @if(!empty($userImeis))
-                        @foreach($userImeis as $ui)
-                            <option value="{{ $ui }}"></option>
-                        @endforeach
-                    @endif
-                </datalist>
-                @if(!empty($userImeis))
-                    <div class="mt-2">
-                        <small class="text-muted">IMEI của bạn: </small>
-                        @foreach($userImeis as $ui)
-                            <button type="button" class="btn btn-sm btn-outline-secondary btn-imei m-1" data-imei="{{ $ui }}">{{ $ui }}</button>
-                        @endforeach
-                    </div>
-                @endif
+            <div class="col-md-8">
+                <label
+                    for="warranty-search"
+                    class="form-label"
+                >
+                    Tên sản phẩm
+                </label>
+
+                <input
+                    id="warranty-search"
+                    type="text"
+                    name="search"
+                    class="form-control"
+                    value="{{ $search ?? '' }}"
+                    placeholder="Nhập tên sản phẩm cần tìm"
+                >
             </div>
-            <div class="col-md-5">
-                <label class="form-label">Mã đơn hàng</label>
-                <input name="order_code" class="form-control" value="{{ old('order_code') }}" placeholder="Hoặc nhập mã đơn hàng">
-            </div>
-            <div class="col-md-2">
-                <button class="btn btn-primary w-100">Tra cứu</button>
+
+            <div class="col-md-4">
+                <button
+                    type="submit"
+                    class="btn btn-primary w-100"
+                >
+                    Tìm sản phẩm
+                </button>
             </div>
         </div>
     </form>
 
-    @if(isset($imei) && $imei)
-        <div class="card mb-3">
-            <div class="card-body">
-                <h5>IMEI: {{ $imei->imei }}</h5>
-                <p>Trạng thái: {{ $imei->status }}</p>
-            </div>
-        </div>
-    @endif
+    @php
+        /*
+         * Gom toàn bộ phiếu bảo hành của tất cả IMEI.
+         *
+         * Mỗi phần tử gồm:
+         * - item: sản phẩm trong đơn hàng
+         * - warranty: phiếu bảo hành
+         */
+        $warrantyRows = collect();
 
-@push('scripts')
-<script>
-document.addEventListener('click', function(e){
-    var btn = e.target.closest('.btn-imei');
-    if(!btn) return;
-    var imei = btn.getAttribute('data-imei');
-    var input = document.getElementById('imei-input');
-    if(input){ input.value = imei; }
-});
-</script>
-@endpush
+        foreach ($orderItems as $item) {
+            foreach ($item->imeis as $imei) {
+                foreach ($imei->warranties as $warranty) {
+                    $warrantyRows->push([
+                        'item' => $item,
+                        'warranty' => $warranty,
+                    ]);
+                }
+            }
+        }
 
-    @if(isset($currentWarranty) && $currentWarranty)
-        <div class="alert alert-warning">Hiện tại có phiếu bảo hành đang xử lý: <strong>{{ $currentWarranty->warranty_code ?? '---' }}</strong></div>
-    @endif
+        /*
+         * Loại bỏ phiếu bị trùng nếu dữ liệu quan hệ trả về lặp,
+         * sau đó sắp xếp phiếu mới nhất lên đầu.
+         */
+        $warrantyRows = $warrantyRows
+            ->unique(function ($row) {
+                return $row['warranty']->id;
+            })
+            ->sortByDesc(function ($row) {
+                return $row['warranty']->created_at;
+            })
+            ->values();
+    @endphp
 
-    @if(isset($warranties) && $warranties->isNotEmpty())
-        <h4 class="mb-3">Lịch sử phiếu bảo hành</h4>
-        <div class="list-group">
-            @foreach($warranties as $w)
-                <div class="list-group-item">
-                    <div class="d-flex w-100 justify-content-between">
-                        <h5 class="mb-1">{{ $w->warranty_code ?? 'Phiếu #' . $w->id }}</h5>
-                        <small>{{ $w->created_at?->format('d/m/Y') }}</small>
-                    </div>
-                    <p class="mb-1">Trạng thái: {{ $w->status }}</p>
-                    <p class="mb-1">Ghi chú khách hàng: {{ $w->customer_note ?? '-' }}</p>
-                    <small>Đơn hàng: {{ $w->order?->order_code ?? '-' }}</small>
-                    <div class="mt-2">
-                        <a href="{{ route('warranties.show', $w) }}" class="btn btn-sm btn-outline-primary">Xem chi tiết</a>
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title mb-3">
+                Phiếu bảo hành
+            </h5>
+
+            @forelse($warrantyRows as $row)
+                @php
+                    $item = $row['item'];
+                    $warranty = $row['warranty'];
+                @endphp
+
+                <div class="list-group-item border rounded mb-3 p-3">
+                    <div
+                        class="d-flex justify-content-between align-items-start flex-column flex-md-row gap-3"
+                    >
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center flex-wrap gap-2 mb-3">
+                                <h6 class="mb-0">
+                                    {{ $item->product?->name ?? 'Sản phẩm chưa xác định' }}
+                                </h6>
+
+                                <span
+                                    class="badge text-bg-{{ $warranty->status_badge ?? 'light' }}"
+                                >
+                                    {{ $warranty->status_label ?? 'Chưa xác định' }}
+                                </span>
+
+                                @if($loop->first)
+                                    <span class="badge text-bg-primary">
+                                        Phiếu mới nhất
+                                    </span>
+                                @endif
+                            </div>
+
+                            <div class="row g-3 small text-muted">
+                                <div class="col-md-6">
+                                    <div class="fw-semibold text-dark">
+                                        Mã phiếu bảo hành
+                                    </div>
+
+                                    <div class="fw-bold text-primary">
+                                        {{ $warranty->warranty_code }}
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="fw-semibold text-dark">
+                                        IMEI
+                                    </div>
+
+                                    <div>
+                                        {{ $warranty->imei?->imei ?? '---' }}
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="fw-semibold text-dark">
+                                        Thời gian bảo hành
+                                    </div>
+
+                                    <div>
+                                        {{ optional($warranty->warranty_start)->format('d/m/Y') ?? '---' }}
+                                        -
+                                        {{ optional($warranty->warranty_end)->format('d/m/Y') ?? '---' }}
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="fw-semibold text-dark">
+                                        Ngày tạo phiếu
+                                    </div>
+
+                                    <div>
+                                        {{ optional($warranty->created_at)->format('d/m/Y H:i') ?? '---' }}
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="fw-semibold text-dark">
+                                        Đơn hàng
+                                    </div>
+
+                                    <div>
+                                        {{ $item->order?->order_code ?? '---' }}
+                                        ·
+                                        {{ optional($item->order?->created_at)->format('d/m/Y') ?? '---' }}
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="fw-semibold text-dark">
+                                        Khách hàng
+                                    </div>
+
+                                    <div>
+                                        {{ $warranty->order?->customer_name
+                                            ?? $item->order?->customer_name
+                                            ?? '---' }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p class="mb-0 mt-3 text-muted">
+                                Màu:
+                                {{ $item->variant?->color ?? 'Mặc định' }}
+
+                                @if($item->product?->storage)
+                                    · Dung lượng:
+                                    {{ $item->product->storage }}
+                                @endif
+
+                                · Số lượng:
+                                {{ $item->quantity }}
+                            </p>
+
+                            @if(filled($warranty->customer_note))
+                                <div class="mt-3 p-2 bg-light border rounded">
+                                    <div class="small fw-semibold text-dark">
+                                        Lỗi khách hàng báo
+                                    </div>
+
+                                    <div class="small text-muted mt-1">
+                                        {{ $warranty->customer_note }}
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+
+                        <div class="d-flex flex-column gap-2">
+                            <a
+                                href="{{ route('warranties.show', $warranty) }}"
+                                class="btn btn-outline-primary"
+                            >
+                                Xem bảo hành
+                            </a>
+                        </div>
                     </div>
                 </div>
-            @endforeach
+            @empty
+                <div class="alert alert-info mb-0">
+                    @if(($search ?? '') !== '')
+                        Không tìm thấy phiếu bảo hành theo tên sản phẩm đã nhập.
+                    @else
+                        Tài khoản của bạn chưa có phiếu bảo hành nào.
+                    @endif
+                </div>
+            @endforelse
         </div>
-    @elseif(request()->isMethod('post'))
-        <div class="alert alert-info">Không tìm thấy thông tin bảo hành tương ứng.</div>
-    @endif
-
+    </div>
 </div>
 @endsection

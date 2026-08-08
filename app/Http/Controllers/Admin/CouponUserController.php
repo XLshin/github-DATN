@@ -6,6 +6,7 @@ use App\Models\Coupon;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use Illuminate\Validation\Rule;
 
 class CouponUserController extends Controller
 {
@@ -14,6 +15,8 @@ class CouponUserController extends Controller
      */
     public function edit(Coupon $coupon)
     {
+        abort_unless($coupon->isAssigned(), 404);
+
         $coupon->load('users');
         $allUsers = User::where('role', 'customer')->orderBy('name')->get();
 
@@ -25,14 +28,19 @@ class CouponUserController extends Controller
      */
     public function update(Request $request, Coupon $coupon)
     {
+        abort_unless($coupon->isAssigned(), 404);
+
         $request->validate([
-            'user_ids' => ['required', 'array'],
-            'user_ids.*' => ['integer', 'exists:users,id'],
+            'user_ids' => ['nullable', 'array'],
+            'user_ids.*' => [
+                'integer',
+                Rule::exists('users', 'id')->where('role', User::ROLE_CUSTOMER),
+            ],
         ]);
 
         // Sync users: chỉ những user được chọn sẽ có quyền dùng voucher này
-        $coupon->users()->sync($request->user_ids);
+        $coupon->users()->sync($request->input('user_ids', []));
 
-        return redirect()->route('coupons.index')->with('success', 'Cập nhật người dùng được cấp voucher thành công!');
+        return redirect()->route('admin.coupons.index')->with('success', 'Cập nhật người dùng được cấp voucher thành công!');
     }
 }

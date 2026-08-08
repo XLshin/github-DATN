@@ -15,11 +15,13 @@ class HomeController extends Controller
     {
         $banners = Banner::where('status', true)->orderBy('id')->get();
 
-        $categories = Category::withCount(['products' => fn($q) => $q->where('status', true)])
-            ->having('products_count', '>', 0)->get();
+        $categories = Category::whereHas('products', fn($q) => $q->where('status', true))
+            ->withCount(['products' => fn($q) => $q->where('status', true)])
+            ->get();
 
-        $brands = Brand::withCount(['products' => fn($q) => $q->where('status', true)])
-            ->having('products_count', '>', 0)->get();
+        $brands = Brand::whereHas('products', fn($q) => $q->where('status', true))
+            ->withCount(['products' => fn($q) => $q->where('status', true)])
+            ->get();
 
         // Sản phẩm mới nhất
         $newProducts = Product::with([
@@ -151,7 +153,10 @@ class HomeController extends Controller
             ->when(request('category_id'), fn($q) => $q->where('category_id', request('category_id')))
             ->paginate(12)->withQueryString();
 
-        $categories = Category::whereHas('products', fn($q) => $q->where('status', true)->where('brand_id', $brand->id))->get();
+        $categories = Category::whereHas('products', fn($q) => $q
+            ->where('status', true)
+            ->where('brand_id', $brand->id)
+        )->get();
 
         return view('client.products.by_brand', compact('brand', 'products', 'categories'));
     }
