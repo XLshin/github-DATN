@@ -221,10 +221,8 @@
                         @if($variant->product->storage !== null && $variant->product->storage !== '')
                         <div class="col-md-6">
                             <label class="form-label">Bộ nhớ</label>
-                            <input type="text" name="storage" class="form-control" value="{{ old('storage', $variant->product->storage) }}">
+                            <input type="text" class="form-control" value="{{ $variant->product->storage }}" disabled>
                         </div>
-                        @else
-                        <input type="hidden" name="storage" value="">
                         @endif
                         <div class="col-md-6">
                             <label class="form-label">Ảnh biến thể</label>

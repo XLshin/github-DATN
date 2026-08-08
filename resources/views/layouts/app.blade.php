@@ -34,6 +34,12 @@
 
     @include('partials.client.footer')
 
+    @auth
+        @if (auth()->user()->role === 'customer')
+            @include('partials.client.assistant-widget')
+        @endif
+    @endauth
+
     @include('partials.client.scripts')
     @stack('scripts')
 </body>

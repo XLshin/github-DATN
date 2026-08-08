@@ -1,4 +1,4 @@
-@extends('layouts.client')
+@extends('layouts.app')
 
 @section('title', 'Chi tiết phiếu bảo hành')
 
@@ -10,7 +10,81 @@
         $isWarrantyExpired = $warranty->warranty_end
             ? now()->startOfDay()->gt($warranty->warranty_end->copy()->startOfDay())
             : false;
+
+        // Giá trị status khi admin đã hoàn tất xử lý kỹ thuật
+        $isCompleted = $warranty->status === 'active';
+
+        // Đã có ảnh/video minh chứng bàn giao khách hàng
+        $hasReceiptMedia = $warranty->receiptMedia->isNotEmpty();
+
+        // Chờ khách đến nhận máy
+        $showPickupNotice = $isCompleted && ! $hasReceiptMedia;
+
+        // Đã bàn giao máy cho khách
+        $showDeliveredNotice = $isCompleted && $hasReceiptMedia;
     @endphp
+
+    @if($showPickupNotice)
+        <div
+            class="alert alert-warning border border-warning border-2 shadow-sm mb-4"
+            role="alert"
+        >
+            <div class="d-flex align-items-center gap-3">
+                <div class="fs-2 text-warning">
+                    <i class="bi bi-bell-fill"></i>
+                </div>
+
+                <div class="flex-grow-1">
+                    <h5 class="fw-bold text-dark mb-1">
+                        Thiết bị đã hoàn tất xử lý
+                    </h5>
+
+                    <div class="text-dark">
+                        Sản phẩm đã được sửa chữa xong. Quý khách vui lòng đến cửa hàng
+                        để kiểm tra và nhận lại thiết bị.
+                    </div>
+                </div>
+
+                <span class="badge bg-warning text-dark px-3 py-2">
+                    Chờ khách nhận máy
+                </span>
+            </div>
+        </div>
+    @endif
+
+    @if($showDeliveredNotice)
+        <div
+            class="alert alert-success border border-success border-2 shadow-sm mb-4"
+            role="alert"
+        >
+            <div class="d-flex align-items-center gap-3">
+                <div class="fs-2 text-success">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+
+                <div class="flex-grow-1">
+                    <h5 class="fw-bold mb-1">
+                        Đã bàn giao thiết bị cho khách hàng
+                    </h5>
+
+                    <div>
+                        Thiết bị đã được bàn giao và đã có minh chứng xác nhận bàn giao.
+                    </div>
+
+                    @if(filled($warranty->customer_receipt_note))
+                        <div class="small mt-2">
+                            <strong>Ghi chú bàn giao:</strong>
+                            {{ $warranty->customer_receipt_note }}
+                        </div>
+                    @endif
+                </div>
+
+                <span class="badge bg-success px-3 py-2">
+                    Đã bàn giao
+                </span>
+            </div>
+        </div>
+    @endif
 
     <div class="row g-3 mb-3">
         <div class="col-lg-7">
@@ -241,4 +315,22 @@
 
     <a href="{{ route('warranties.lookup') }}" class="btn btn-light">← Quay lại tra cứu</a>
 </div>
+<<<<<<< HEAD
+=======
+
+<div class="card mt-3">
+    <div class="card-body">
+        <h5 class="card-title">Kết quả bảo hành</h5>
+        <div class="mb-2"><span class="text-muted">Nguyên nhân:</span> <strong>{{ $warranty->fault_source_label }}</strong></div>
+        <div class="mb-2"><span class="text-muted">Hình thức xử lý:</span> <strong>{{ $warranty->resolution_type_label }}</strong></div>
+        @if($warranty->resolution_type === 'replace')
+            <div class="alert alert-success mb-0">
+                <div class="fw-bold">Sản phẩm đã được đổi máy mới theo chính sách 30 ngày</div>
+                <div class="mt-2">IMEI máy mới: <strong>{{ $warranty->replacementImei?->imei ?? 'Đang cập nhật' }}</strong></div>
+                @if($warranty->replaced_at)<div>Ngày đổi: {{ $warranty->replaced_at->format('d/m/Y') }}</div>@endif
+            </div>
+        @endif
+    </div>
+</div>
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
 @endsection

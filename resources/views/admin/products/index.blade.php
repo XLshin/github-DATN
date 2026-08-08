@@ -293,14 +293,6 @@
                                             <a href="{{ route('admin.variants.show', $v) }}" class="btn btn-sm btn-light">
                                                 <i class="bi bi-eye"></i> Xem
                                             </a>
-                                            <form action="{{ route('admin.variants.destroy', $v) }}" method="POST"
-                                                class="d-inline"
-                                                onsubmit="return confirm('Xóa biến thể này?')">
-                                                @csrf @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </form>
                                         </td>
                                     </tr>
                                     @endforeach

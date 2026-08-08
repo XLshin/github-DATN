@@ -39,6 +39,12 @@ class ReviewSeeder extends Seeder
 
         foreach ($products as $product) {
             foreach ($users as $user) {
+                // Skip seeding reviews for the dedicated test account to avoid
+                // confusing the UI during manual QA.
+                if ($user->email === 'customer.test@gmail.com') {
+                    continue;
+                }
+
                 $rating = collect([5, 5, 4, 4, 3])->random();
                 $commentList = $comments[$rating];
                 DB::table('reviews')->insert([
@@ -46,6 +52,7 @@ class ReviewSeeder extends Seeder
                     'product_id' => $product->id,
                     'rating' => $rating,
                     'comment' => $commentList[array_rand($commentList)],
+                    'status' => 0, // seeded reviews are inactive by default
                     'created_at' => $now->copy()->subDays(rand(1, 30)),
                     'updated_at' => $now,
                 ]);

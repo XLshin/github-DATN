@@ -10,7 +10,7 @@
 @section('content')
     <div class="row g-4">
         <div class="col-lg-8">
-            
+
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body">
                     @if($order->fulfillment_status === 'pending')
@@ -26,7 +26,7 @@
         </div>
     @endif
                     <h5 class="mb-3"><i class="bi bi-truck me-2"></i>Thông Tin Vận Chuyển</h5>
-                    
+
                     @php
                         // Định nghĩa màu sắc khung theo trạng thái để tăng tính trực quan cho hộp thông báo hiện tại
                         $borderClass = match($order->fulfillment_status) {
@@ -58,8 +58,8 @@
                             @case('shipping')
                                 <h6 class="text-warning fw-bold mb-1">🚚 Đơn hàng đang được giao đến bạn</h6>
                                 <p class="text-dark small mb-0">
-                                    Đơn hàng đã được bàn giao cho bưu tá vận chuyển lúc <strong>{{ $order->handed_over_at ? $order->handed_over_at->format('H:i d/m/Y') : '-' }}</strong>. 
-                                    Hiện tại, đơn hàng đang trên đường di chuyển và <strong>dự kiến sẽ giao tới bạn trong vòng một vài giờ tới hoặc trong ngày hôm nay</strong>. 
+                                    Đơn hàng đã được bàn giao cho bưu tá vận chuyển lúc <strong>{{ $order->handed_over_at ? $order->handed_over_at->format('H:i d/m/Y') : '-' }}</strong>.
+                                    Hiện tại, đơn hàng đang trên đường di chuyển và <strong>dự kiến sẽ giao tới bạn trong vòng một vài giờ tới hoặc trong ngày hôm nay</strong>.
                                     Bạn hãy chú ý điện thoại để shipper tiện liên hệ nhé!
                                 </p>
                                 @break
@@ -69,7 +69,7 @@
                                 <p class="text-dark small mb-1">
                                     Shipper báo cáo không thể giao kiện hàng này đến bạn. Nguyên nhân thường gặp do không liên hệ được số điện thoại hoặc sai lệch thông tin địa chỉ giao nhận.
                                 </p>
-                                
+
                                 @php
                                     $failedProof = $order->proofs->where('type', 'failed_delivery')->last();
                                 @endphp
@@ -78,7 +78,7 @@
                                         <strong>Chi tiết từ shipper:</strong> {{ $failedProof->note }}
                                     </div>
                                 @endif
-                                
+
                                 <p class="text-muted small mb-0">💡 <em>Đừng lo lắng! Nhân viên chăm sóc khách hàng sẽ kiểm tra lại đơn và lên lịch <strong>giao lại</strong> cho bạn sớm nhất có thể.</em></p>
                                 @break
 
@@ -134,9 +134,9 @@
 
                     <div class="mt-4 pt-2">
                         <h6 class="fw-bold text-dark mb-3"><i class="bi bi-clock-history me-2"></i>Lịch sử hành trình đơn hàng</h6>
-                        
+
                         <div class="position-relative ps-3 ms-2 border-start border-2 border-primary-subtle" style="list-style: none;">
-                            
+
                             <div class="position-relative mb-3">
                                 <span class="position-absolute bg-success rounded-circle" style="width: 12px; height: 12px; left: -22px; top: 6px;"></span>
                                 <div class="fw-bold small text-success">🛍️ Đặt hàng thành công</div>
@@ -263,7 +263,13 @@
                         <tbody>
                             @foreach ($order->items as $item)
                                 <tr>
-                                    <td>{{ $item->product->name ?? 'Sản phẩm' }}</td>
+                                    <td>
+                                        @if($item->product)
+                                            <a href="{{ route('products.show', $item->product) }}?hide_reviews=1" class="text-decoration-none text-dark">{{ $item->product->name }}</a>
+                                        @else
+                                            Sản phẩm
+                                        @endif
+                                    </td>
                                     <td>
                                         @if($item->variant)
 
@@ -279,35 +285,11 @@
 
                                             Dung lượng:
 
-                                            {{ $item->product->storage ?? "-" }}
+                                            {{ $item->product?->storage ?? '-' }}
 
                                             </div>
 
                                             @endif
-
-                                            <!-- @if($item->imeis->count())
-
-                                                <div class="mt-2">
-
-                                                <div class="fw-semibold">
-
-                                                IMEI
-
-                                                </div>
-
-                                                @foreach($item->imeis as $imei)
-
-                                                <div class="small text-success">
-
-                                                {{ $imei->imei }}
-
-                                                </div>
-
-                                                @endforeach
-
-                                                </div>
-
-                                                @endif -->
                                     </td>
                                     <td>
                                         @php
@@ -317,18 +299,67 @@
                                             ?? $item->product?->image_path;
 
                                         @endphp
-                                            @if($image)
+                                        @if($image)
 
-                                                <img
-                                                    src="{{ asset('storage/'.$image) }}"
-                                                    width="80"
-                                                    class="rounded border me-3">
+                                            <img
+                                                src="{{ asset('storage/'.$image) }}"
+                                                width="80"
+                                                class="rounded border me-3">
 
-                                                @endif
+                                        @endif
                                     </td>
                                     <td class="text-end">{{ $item->quantity }}</td>
                                     <td class="text-end">{{ number_format($item->total, 0, ',', '.') }} đ</td>
                                 </tr>
+
+                                @if($order->fulfillment_status === 'completed')
+                                    @auth
+                                        @if($item->product)
+                                            @php
+                                                $hasReviewed = \App\Models\Review::where('product_id', $item->product->id)
+                                                    ->where('user_id', auth()->id())
+                                                    ->where('status', 1)
+                                                    ->exists();
+                                            @endphp
+                                            @if(! $hasReviewed)
+                                                <tr>
+                                                    <td colspan="5">
+                                                        <form action="{{ route('reviews.store', $item->product) }}" method="POST" class="mt-2" enctype="multipart/form-data">
+                                                            @csrf
+                                                            <div class="row g-2 align-items-end">
+                                                                <div class="col-auto">
+                                                                    <label class="form-label small mb-0">Đánh giá</label>
+                                                                    <select name="rating" class="form-select form-select-sm">
+                                                                        @for($r = 5; $r >= 1; $r--)
+                                                                            <option value="{{ $r }}">{{ $r }} ★</option>
+                                                                        @endfor
+                                                                    </select>
+                                                                </div>
+                                                                <div class="col">
+                                                                    <label class="form-label small mb-0">Nhận xét</label>
+                                                                    <input name="comment" class="form-control form-control-sm" placeholder="Viết nhận xét về sản phẩm (tùy chọn)">
+                                                                </div>
+                                                                <div class="col-12">
+                                                                    <label class="form-label small mb-0">Ảnh/Video (tùy chọn)</label>
+                                                                    <input type="file" name="attachments[]" multiple accept="image/*,video/*" class="form-control form-control-sm">
+                                                                </div>
+                                                                <div class="col-auto">
+                                                                    <button class="btn btn-sm btn-outline-primary">Gửi</button>
+                                                                </div>
+                                                            </div>
+                                                        </form>
+                                                    </td>
+                                                </tr>
+                                            @else
+                                                    <tr>
+                                                        <td colspan="5"><div class="small text-muted">Bạn đã đánh giá sản phẩm này.</div></td>
+                                                    </tr>
+                                                @endif
+
+
+                                        @endif
+                                    @endauth
+                                @endif
                             @endforeach
                         </tbody>
                     </table>
@@ -337,13 +368,23 @@
         </div>
 
         <div class="col-lg-4">
-            <div class="card shadow-sm border-0">
+            <div class="card shadow-sm border-0 mb-4">
                 <div class="card-body">
 
                     {{-- Thông tin người đặt hàng --}}
                     <h6 class="fw-bold mb-3">
                         <i class="bi bi-person-circle me-2"></i>Thông tin người đặt
                     </h6>
+
+                    <p class="mb-1"><strong>Trạng thái:</strong> {{ $order->status }}</p>
+
+                    @if($order->buyer_type === 'proxy')
+                        <p class="mb-1">
+                            <strong>Người đặt mua:</strong> {{ $order->buyer_name }}
+                            <span class="badge bg-info text-dark ms-1">Mua hộ</span>
+                        </p>
+                        <p class="mb-1"><strong>SĐT người đặt:</strong> {{ $order->buyer_phone }}</p>
+                    @endif
 
                     <p class="mb-1">
                         <strong>Họ tên:</strong>
@@ -442,6 +483,78 @@
 
                 </div>
             </div>
+
+            @php
+                $payment = $order->payment;
+                $methodLabels = [
+                    'cod'           => 'Thanh toán khi nhận hàng (COD)',
+                    'card'          => 'Thẻ tín dụng/ghi nợ',
+                    'bank_transfer' => 'Chuyển khoản ngân hàng',
+                    'momo'          => 'Ví MoMo',
+                    'vnpay'         => 'VNPAY',
+                ];
+                $statusLabels = [
+                    'pending'   => 'Chờ thanh toán',
+                    'paid'      => 'Đã thanh toán',
+                    'failed'    => 'Thanh toán thất bại',
+                    'cancelled' => 'Đã hủy',
+                    'refunded'  => 'Đã hoàn tiền',
+                ];
+                $statusClasses = [
+                    'pending'   => 'bg-warning text-dark',
+                    'paid'      => 'bg-success',
+                    'failed'    => 'bg-danger',
+                    'cancelled' => 'bg-danger',
+                    'refunded'  => 'bg-secondary',
+                ];
+            @endphp
+
+            @if($payment)
+                <div class="card shadow-sm border-0">
+                    <div class="card-body">
+                        <h6 class="mb-3">Thông tin thanh toán</h6>
+                        <table class="table table-sm table-borderless mb-0 small">
+                            <tr>
+                                <td class="text-muted ps-0" style="width:130px">Phương thức</td>
+                                <td class="fw-semibold">{{ $methodLabels[$payment->payment_method] ?? strtoupper($payment->payment_method) }}</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-0">Trạng thái</td>
+                                <td>
+                                    <span class="badge {{ $statusClasses[$payment->payment_status] ?? 'bg-secondary' }}">
+                                        {{ $statusLabels[$payment->payment_status] ?? $payment->payment_status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-0">Số tiền</td>
+                                <td class="fw-semibold">{{ number_format($payment->amount, 0, ',', '.') }} đ</td>
+                            </tr>
+                            @if($payment->payment_status === 'paid')
+                                <tr>
+                                    <td class="text-muted ps-0">Người thanh toán</td>
+                                    <td>
+                                        {{ $payment->payer_name ?? $order->customer_name }}
+                                        @if($payment->payer_note)
+                                            <div class="text-muted">{{ $payment->payer_note }}</div>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @if($payment->transaction_code)
+                                    <tr>
+                                        <td class="text-muted ps-0">Mã giao dịch</td>
+                                        <td><code>{{ $payment->transaction_code }}</code></td>
+                                    </tr>
+                                @endif
+                                <tr>
+                                    <td class="text-muted ps-0">Thời gian</td>
+                                    <td>{{ $payment->paid_at?->format('H:i d/m/Y') }}</td>
+                                </tr>
+                            @endif
+                        </table>
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 
@@ -560,6 +673,72 @@
 
                 </div>
 
+                @if($order->payment && $order->payment->payment_status === 'paid')
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        Đơn hàng đã thanh toán — chọn phương thức nhận hoàn tiền <span class="text-danger">*</span>
+                    </label>
+
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="refund_method" id="refundWallet" value="wallet" checked>
+                        <label class="form-check-label" for="refundWallet">
+                            Hoàn vào Ví ByteZone <span class="text-success small">(nhận ngay lập tức)</span>
+                        </label>
+                    </div>
+
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="refund_method" id="refundBank" value="bank">
+                        <label class="form-check-label" for="refundBank">
+                            Hoàn qua tài khoản ngân hàng <span class="text-muted small">(xử lý trong tối đa 7 ngày)</span>
+                        </label>
+                    </div>
+
+                    <div id="refundBankFields" class="d-none border rounded p-3 bg-light mt-2">
+                        @if($bankAccounts->isNotEmpty())
+                            <div class="mb-3">
+                                <label class="form-label small">Chọn nhanh tài khoản đã liên kết</label>
+                                <select id="savedBankAccountSelect" class="form-select form-select-sm">
+                                    <option value="">-- Nhập thủ công --</option>
+                                    @foreach($bankAccounts as $account)
+                                        <option value="{{ $account->id }}"
+                                                data-bank-name="{{ $account->bank_name }}"
+                                                data-account-number="{{ $account->account_number }}"
+                                                data-account-holder-name="{{ $account->account_holder_name }}"
+                                                {{ $account->is_default ? 'selected' : '' }}>
+                                            {{ $account->bank_name }} — {{ $account->account_number }} ({{ $account->account_holder_name }})
+                                            {{ $account->is_verified ? '' : ' — chưa xác minh' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
+                        <div class="mb-2">
+                            <label class="form-label small">Ngân hàng</label>
+                            <select name="bank_name" class="form-select form-select-sm">
+                                <option value="">-- Chọn ngân hàng --</option>
+                                @foreach([
+                                    'Vietcombank', 'VietinBank', 'BIDV', 'Agribank', 'Techcombank',
+                                    'MB Bank', 'ACB', 'VPBank', 'Sacombank', 'TPBank',
+                                    'HDBank', 'SHB', 'VIB', 'Eximbank', 'MSB',
+                                    'OCB', 'SeABank', 'SCB', 'Nam A Bank', 'BacA Bank',
+                                    'PVcomBank', 'Vietbank', 'ABBANK', 'LPBank', 'Kienlongbank',
+                                ] as $bankOption)
+                                    <option value="{{ $bankOption }}">{{ $bankOption }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">Số tài khoản</label>
+                            <input type="text" name="bank_account_number" class="form-control form-control-sm">
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label small">Chủ tài khoản</label>
+                            <input type="text" name="bank_account_name" class="form-control form-control-sm">
+                        </div>
+                    </div>
+                </div>
+                @endif
+
             </div>
 
             <div class="modal-footer">
@@ -635,9 +814,102 @@ document.addEventListener('DOMContentLoaded', function () {
 
         });
 
+        const refundBankFields = modal.querySelector('#refundBankFields');
+        const refundRadios = modal.querySelectorAll('input[name="refund_method"]');
+        const bankInputs = refundBankFields ? refundBankFields.querySelectorAll('input, select[name="bank_name"]') : [];
+
+        function toggleRefundBankFields() {
+            const isBank = modal.querySelector('#refundBank')?.checked;
+            refundBankFields?.classList.toggle('d-none', !isBank);
+            bankInputs.forEach(input => input.required = !!isBank);
+        }
+
+        refundRadios.forEach(function (radio) {
+            radio.addEventListener('change', toggleRefundBankFields);
+        });
+
+        toggleRefundBankFields();
+
+        // Chọn nhanh tài khoản ngân hàng đã liên kết -> tự điền 3 ô bên dưới
+        const savedBankSelect = modal.querySelector('#savedBankAccountSelect');
+        const bankNameSelect = modal.querySelector('select[name="bank_name"]');
+        const accountNumberInput = modal.querySelector('input[name="bank_account_number"]');
+        const accountHolderInput = modal.querySelector('input[name="bank_account_name"]');
+
+        function applySavedBankAccount() {
+            const option = savedBankSelect?.selectedOptions[0];
+            if (!option || !option.value) return;
+
+            const bankName = option.dataset.bankName || '';
+
+            if (bankNameSelect) {
+                const hasOption = Array.from(bankNameSelect.options).some(opt => opt.value === bankName);
+                if (!hasOption && bankName) {
+                    const newOpt = document.createElement('option');
+                    newOpt.value = bankName;
+                    newOpt.textContent = bankName;
+                    bankNameSelect.appendChild(newOpt);
+                }
+                bankNameSelect.value = bankName;
+            }
+
+            if (accountNumberInput) accountNumberInput.value = option.dataset.accountNumber || '';
+            if (accountHolderInput) accountHolderInput.value = option.dataset.accountHolderName || '';
+        }
+
+        savedBankSelect?.addEventListener('change', applySavedBankAccount);
+        applySavedBankAccount();
+
     });
 
 });
 
+// Tự động phát hiện thay đổi trạng thái đơn hàng (xác nhận/đóng gói/hủy...) và cập nhật
+// trang mà khách không cần bấm tải lại thủ công.
+(function () {
+<<<<<<< HEAD
+    var statusCheckUrl = @json(route('orders.statusCheck', $order->id));
+    var initialState = @json([
+        'status' => $order->status,
+        'fulfillment_status' => $order->fulfillment_status,
+        'payment_status' => $order->payment->payment_status ?? null,
+    ]);
+=======
+        var statusCheckUrl = {{ Illuminate\Support\Js::from(
+        route('orders.statusCheck', $order->id)
+    ) }};
+
+    var initialState = {{ Illuminate\Support\Js::from([
+        'status' => $order->status,
+        'fulfillment_status' => $order->fulfillment_status,
+        'payment_status' => optional($order->payment)->payment_status,
+    ]) }};
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
+    var pollIntervalMs = 15000;
+    var reloading = false;
+
+    function poll() {
+        if (reloading) return;
+
+        fetch(statusCheckUrl, { headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var changed = data.status !== initialState.status
+                    || data.fulfillment_status !== initialState.fulfillment_status
+                    || data.payment_status !== initialState.payment_status;
+
+                if (changed) {
+                    reloading = true;
+                    if (typeof window.showToast === 'function') {
+                        window.showToast('Đơn hàng của bạn vừa được cập nhật trạng thái. Đang tải lại...');
+                    }
+                    setTimeout(function () { window.location.reload(); }, 1500);
+                }
+            })
+            .catch(function () {});
+    }
+
+    setInterval(poll, pollIntervalMs);
+})();
 </script>
 @endsection

@@ -95,6 +95,21 @@
         </div>
     @endif
 
+<<<<<<< HEAD
+=======
+    @if(session('warning'))
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+            {{ session('warning') }}
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert"
+                    aria-label="Đóng"></button>
+        </div>
+    @endif
+
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
     @if($errors->any())
         <div class="alert alert-danger">
             <ul class="mb-0">
@@ -149,8 +164,15 @@
                 <div class="card-body">
                     <h5 class="mb-3">Thông tin khách hàng</h5>
 
+                    @if($order->buyer_type === 'proxy')
+                        <div class="mb-2">
+                            <div class="text-muted small">Người đặt mua <span class="badge bg-info text-dark">Mua hộ</span></div>
+                            <div class="fw-semibold">{{ $order->buyer_name }} — {{ $order->buyer_phone }}</div>
+                        </div>
+                    @endif
+
                     <div class="mb-2">
-                        <div class="text-muted small">Tên khách hàng</div>
+                        <div class="text-muted small">Tên khách hàng{{ $order->buyer_type === 'proxy' ? ' (người nhận)' : '' }}</div>
                         <div class="fw-semibold">
                             {{ $order->customer_name ?? $order->user->name ?? '-' }}
                         </div>
@@ -256,10 +278,90 @@
                         </div>
                     </div>
 
-                    <div>
+                    <div class="mb-2">
                         <div class="text-muted small">Mã giao dịch</div>
                         <div>{{ $order->payment->transaction_code ?? '-' }}</div>
                     </div>
+
+                    <div class="mb-2">
+                        <div class="text-muted small">Người thanh toán</div>
+                        <div>
+                            {{ $order->payment->payer_name ?? '-' }}
+                            @if($order->payment?->payer_note)
+                                <div class="text-muted small">{{ $order->payment->payer_note }}</div>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <div class="text-muted small">Thời điểm thanh toán</div>
+                        <div>{{ $order->payment?->paid_at?->format('d/m/Y H:i') ?? '-' }}</div>
+                    </div>
+
+                    @if($order->payment?->proof_image)
+                        <div class="mb-3">
+                            <div class="text-muted small">Ảnh bằng chứng khách gửi</div>
+                            <a href="{{ \Illuminate\Support\Facades\Storage::url($order->payment->proof_image) }}" target="_blank">
+                                <img src="{{ \Illuminate\Support\Facades\Storage::url($order->payment->proof_image) }}"
+                                     alt="Bằng chứng thanh toán" class="img-fluid rounded border mt-1" style="max-height:280px">
+                            </a>
+                        </div>
+                    @endif
+
+                    @if($order->payment?->confirmed_by)
+                        <div class="mb-2">
+                            <div class="text-muted small">Admin xác nhận</div>
+                            <div>{{ $order->payment->confirmedBy->name ?? '-' }}</div>
+                            @if($order->payment->admin_note)
+                                <div class="text-muted small">Ghi chú: {{ $order->payment->admin_note }}</div>
+                            @endif
+                        </div>
+                    @endif
+
+                    @if($order->payment?->rejected_by)
+                        <div class="mb-2">
+                            <div class="text-muted small">Admin từ chối</div>
+                            <div>{{ $order->payment->rejectedBy->name ?? '-' }}</div>
+                            <div class="text-danger small">Lý do: {{ $order->payment->reject_reason }}</div>
+                        </div>
+                    @endif
+
+                    @if($paymentStatus === 'pending')
+                        <div class="border rounded p-3 mt-3 bg-light">
+                            <div class="fw-semibold small mb-2">Đối soát &amp; xác nhận thanh toán</div>
+
+                            <form action="{{ route('admin.orders.confirmPayment', $order) }}" method="POST" class="mb-3"
+                                  onsubmit="return confirm('Xác nhận đã nhận đủ tiền cho đơn hàng này?');">
+                                @csrf
+                                <div class="mb-2">
+                                    <label class="form-label small">Số tiền thực nhận <span class="text-danger">*</span></label>
+                                    <input type="number" name="confirmed_amount" class="form-control form-control-sm" step="1"
+                                           value="{{ (int) ($order->payment->amount ?? 0) }}" required>
+                                    <div class="form-text">Phải khớp đúng số tiền đơn hàng ({{ number_format($order->payment->amount ?? 0, 0, ',', '.') }} đ).</div>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">Ghi chú (tùy chọn)</label>
+                                    <textarea name="admin_note" class="form-control form-control-sm" rows="2"></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-success btn-sm w-100">
+                                    <i class="bi bi-check2-circle me-1"></i>Xác nhận đã nhận tiền
+                                </button>
+                            </form>
+
+                            <form action="{{ route('admin.orders.rejectPayment', $order) }}" method="POST"
+                                  onsubmit="return confirm('Từ chối yêu cầu thanh toán này?');">
+                                @csrf
+                                <div class="mb-2">
+                                    <label class="form-label small">Lý do từ chối</label>
+                                    <textarea name="reject_reason" class="form-control form-control-sm" rows="2"
+                                              placeholder="VD: Không nhận được tiền, sai số tiền..." required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+                                    <i class="bi bi-x-circle me-1"></i>Từ chối
+                                </button>
+                            </form>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -269,15 +371,31 @@
         <div class="card-body">
             <h5 class="mb-3">Thao tác xử lý</h5>
 
+            @php
+                $isPrepaidOrder = $order->payment && in_array($order->payment->payment_method, ['card', 'bank_transfer', 'momo', 'vnpay'], true);
+                $paymentNotConfirmed = $isPrepaidOrder && $order->payment->payment_status !== 'paid';
+            @endphp
+
             <div class="d-flex flex-wrap gap-2">
                 @if($order->fulfillment_status === 'pending')
-                    <form action="{{ route('admin.orders.confirm', $order) }}" method="POST">
-                        @csrf
-
-                        <button type="submit" class="btn btn-primary">
+                    @if($paymentNotConfirmed)
+                        <button type="button" class="btn btn-primary" disabled
+                                title="Đơn trả trước chưa được xác nhận đã nhận tiền — hãy đối soát thanh toán trước.">
                             Xác nhận đơn
                         </button>
-                    </form>
+                        <div class="text-danger small align-self-center">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            Chưa thể xác nhận đơn: thanh toán trả trước chưa được duyệt.
+                        </div>
+                    @else
+                        <form action="{{ route('admin.orders.confirm', $order) }}" method="POST">
+                            @csrf
+
+                            <button type="submit" class="btn btn-primary">
+                                Xác nhận đơn
+                            </button>
+                        </form>
+                    @endif
                 @endif
 
                 @if($order->fulfillment_status === 'waiting_pack')
@@ -316,6 +434,7 @@
                 @endif
 
                 @if($order->fulfillment_status === 'failed')
+<<<<<<< HEAD
                     <form action="{{ route('admin.orders.retryDelivery', $order) }}"
                           method="POST"
                           onsubmit="return confirm('Bạn có chắc muốn giao lại đơn hàng này không?');">
@@ -325,6 +444,36 @@
                             Giao lại
                         </button>
                     </form>
+=======
+                    @if($order->canRetryDelivery())
+                        <form
+                            action="{{ route('admin.orders.retryDelivery', $order) }}"
+                            method="POST"
+                            onsubmit="return confirm(
+                                'Bạn có chắc muốn giao lại đơn hàng này không? ' +
+                                'Đây là lần giao lại thứ {{ $order->delivery_retry_count + 1 }}/{{ \App\Models\Order::MAX_DELIVERY_RETRIES }}.'
+                            );"
+                        >
+                            @csrf
+
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-arrow-repeat me-1"></i>
+                                Giao lại
+                                (lần {{ $order->delivery_retry_count + 1 }}/{{ \App\Models\Order::MAX_DELIVERY_RETRIES }})
+                            </button>
+                        </form>
+                    @else
+                        <button
+                            type="button"
+                            class="btn btn-secondary"
+                            disabled
+                            aria-disabled="true"
+                        >
+                            <i class="bi bi-ban me-1"></i>
+                            Đã đạt giới hạn giao lại
+                        </button>
+                    @endif
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
                 @endif
 
                 @if(!in_array($order->fulfillment_status, ['completed', 'cancelled'], true))
@@ -339,6 +488,25 @@
 
                 @endif
             </div>
+<<<<<<< HEAD
+=======
+            @if(
+                $order->fulfillment_status === 'failed'
+                && $order->hasReachedDeliveryRetryLimit()
+            )
+                <div class="alert alert-danger mt-3 mb-0">
+                    <div class="fw-semibold">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        Đơn hàng đã đạt giới hạn giao lại
+                    </div>
+
+                    <div class="mt-1">
+                        Đơn này đã đạt 3 lần giao lại và không thể tiếp tục giao lại.
+                        Nếu lần giao cuối không thành công, đơn cần được hủy.
+                    </div>
+                </div>
+            @endif
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
         </div>
     </div>
 
