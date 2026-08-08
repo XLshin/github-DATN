@@ -10,6 +10,20 @@ class Warranty extends Model
     public const STATUS_EXPIRED = 'expired';
     public const STATUS_CLAIMED = 'claimed';
 
+<<<<<<< HEAD
+=======
+    public const FAULT_STORE = 'store';
+    public const FAULT_MANUFACTURER = 'manufacturer';
+    public const FAULT_CUSTOMER = 'customer';
+    public const FAULT_UNKNOWN = 'unknown';
+
+    public const RESOLUTION_REPAIR = 'repair';
+    public const RESOLUTION_REPLACE = 'replace';
+    public const RESOLUTION_REJECT = 'reject';
+
+    public const REPLACEMENT_PERIOD_DAYS = 30;
+
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
     protected $fillable = [
         'imei_id',
         'order_id',
@@ -17,6 +31,13 @@ class Warranty extends Model
         'warranty_end',
         'status',
         'customer_note',
+<<<<<<< HEAD
+=======
+        'fault_source',
+        'resolution_type',
+        'replacement_imei_id',
+        'replaced_at',
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
         'status_update_note',
         'repair_result_note',
         'customer_receipt_note',
@@ -27,11 +48,23 @@ class Warranty extends Model
         'warranty_start' => 'date',
         'warranty_end' => 'date',
         'completed_at' => 'datetime',
+<<<<<<< HEAD
+=======
+        'replaced_at' => 'datetime',
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
     ];
 
     public function imei()
     {
         return $this->belongsTo(Imei::class);
+<<<<<<< HEAD
+=======
+    }
+
+    public function replacementImei()
+    {
+        return $this->belongsTo(Imei::class, 'replacement_imei_id');
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
     }
 
     public function order()
@@ -74,10 +107,15 @@ class Warranty extends Model
     {
         return match ($this->status) {
             self::STATUS_CLAIMED => 'Đang xử lý bảo hành',
+<<<<<<< HEAD
 
             self::STATUS_ACTIVE,
             self::STATUS_EXPIRED => 'Hoàn tất xử lý',
 
+=======
+            self::STATUS_ACTIVE,
+            self::STATUS_EXPIRED => 'Hoàn tất xử lý',
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
             default => (string) $this->status,
         };
     }
@@ -86,6 +124,7 @@ class Warranty extends Model
     {
         return match ($this->status) {
             self::STATUS_CLAIMED => 'warning',
+<<<<<<< HEAD
 
             self::STATUS_ACTIVE,
             self::STATUS_EXPIRED => 'success',
@@ -94,3 +133,32 @@ class Warranty extends Model
         };
     }
 }
+=======
+            self::STATUS_ACTIVE,
+            self::STATUS_EXPIRED => 'success',
+            default => 'light',
+        };
+    }
+
+    public function getFaultSourceLabelAttribute(): string
+    {
+        return match ($this->fault_source) {
+            self::FAULT_STORE => 'Lỗi do cửa hàng',
+            self::FAULT_MANUFACTURER => 'Lỗi do hãng',
+            self::FAULT_CUSTOMER => 'Lỗi do khách hàng',
+            self::FAULT_UNKNOWN => 'Chưa xác định',
+            default => 'Chưa cập nhật',
+        };
+    }
+
+    public function getResolutionTypeLabelAttribute(): string
+    {
+        return match ($this->resolution_type) {
+            self::RESOLUTION_REPAIR => 'Sửa chữa bảo hành',
+            self::RESOLUTION_REPLACE => 'Đổi máy mới',
+            self::RESOLUTION_REJECT => 'Từ chối bảo hành',
+            default => 'Chưa cập nhật',
+        };
+    }
+}
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db

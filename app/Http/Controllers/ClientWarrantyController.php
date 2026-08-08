@@ -68,6 +68,10 @@ class ClientWarrantyController extends Controller
         $warranty->load([
             'order',
             'imei.productVariant.product',
+<<<<<<< HEAD
+=======
+            'replacementImei.productVariant.product',
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
             'receptionMedia',
             'completionMedia',
             'receiptMedia',
@@ -158,6 +162,17 @@ class ClientWarrantyController extends Controller
             ];
         }
 
+<<<<<<< HEAD
+=======
+        if ($warranty->resolution_type === Warranty::RESOLUTION_REPLACE && $warranty->replaced_at) {
+            $histories[] = [
+                'time' => $warranty->replaced_at,
+                'title' => 'Đổi máy mới',
+                'description' => 'Sản phẩm đã được đổi máy mới theo chính sách 30 ngày. IMEI mới: ' . ($warranty->replacementImei?->imei ?? 'Đang cập nhật'),
+            ];
+        }
+
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
         /*
          * Có kết quả sửa chữa.
          */
