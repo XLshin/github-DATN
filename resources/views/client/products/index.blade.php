@@ -76,7 +76,7 @@
 
                 <div class="card border-0 shadow-sm mb-3">
                     <div class="card-body">
-                        <h6 class="fw-semibold mb-2">Khoảng giá</h6>
+                        <h6 class="fw-semibold mb-2">Tầm giá</h6>
                         <div class="d-flex gap-2 align-items-center">
                             <input type="number" name="price_min" value="{{ request('price_min') }}"
                                 class="form-control form-control-sm" placeholder="Từ">
