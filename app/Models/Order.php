@@ -29,6 +29,7 @@ class Order extends Model
         'status',
 
         'fulfillment_status',
+<<<<<<< HEAD
         'confirmed_at',
         'packed_at',
         'handed_over_at',
@@ -88,6 +89,70 @@ class Order extends Model
         return $this->belongsTo(Coupon::class);
     }
 
+=======
+        'delivery_retry_count',
+
+        'confirmed_at',
+        'packed_at',
+        'handed_over_at',
+        'delivered_at',
+        'cancelled_at',
+        'shipping_label_printed_at',
+        'cancel_reason',
+        'cancelled_by',
+    ];
+
+    protected $casts = [
+        'delivery_retry_count' => 'integer',
+        'confirmed_at' => 'datetime',
+        'packed_at' => 'datetime',
+        'handed_over_at' => 'datetime',
+        'delivered_at' => 'datetime',
+        'cancelled_at' => 'datetime',
+        'shipping_label_printed_at' => 'datetime',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function receiver()
+    {
+        return $this->hasOne(OrderReceiver::class);
+    }
+
+    public function items()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    public function shipment()
+    {
+        return $this->hasOne(Shipment::class);
+    }
+
+    public function warranties()
+    {
+        return $this->hasMany(Warranty::class);
+    }
+
+    public function payment()
+    {
+        return $this->hasOne(Payment::class);
+    }
+
+    public function refundRequest()
+    {
+        return $this->hasOne(RefundRequest::class);
+    }
+
+    public function coupon()
+    {
+        return $this->belongsTo(Coupon::class);
+    }
+
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
     public function proofs()
     {
         return $this->hasMany(OrderProof::class);
@@ -125,4 +190,28 @@ class Order extends Model
             default => $this->fulfillment_status ?? 'Không xác định',
         };
     }
+<<<<<<< HEAD
+=======
+
+    public const MAX_DELIVERY_RETRIES = 3;
+
+    public function canRetryDelivery(): bool
+    {
+        return $this->fulfillment_status === 'failed'
+            && $this->delivery_retry_count < self::MAX_DELIVERY_RETRIES;
+    }
+
+    public function hasReachedDeliveryRetryLimit(): bool
+    {
+        return $this->delivery_retry_count >= self::MAX_DELIVERY_RETRIES;
+    }
+
+    public function getRemainingDeliveryRetriesAttribute(): int
+    {
+        return max(
+            0,
+            self::MAX_DELIVERY_RETRIES - (int) $this->delivery_retry_count
+        );
+    }
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
 }
