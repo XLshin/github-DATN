@@ -19,6 +19,7 @@ use Illuminate\Validation\ValidationException;
 class CheckoutService
 {
     /** Phương thức thanh toán trực tuyến có giới hạn thời gian phiên giao dịch. */
+<<<<<<< HEAD
     private const EXPIRING_METHODS = ['vietqr'];
 
     /**
@@ -28,6 +29,9 @@ class CheckoutService
      * chỗ gọi in_array(...) không phải sửa lại nếu sau này thêm phương thức mô phỏng khác.
      */
     public const AUTO_CONFIRM_METHODS = [];
+=======
+    private const EXPIRING_METHODS = ['card', 'momo', 'vnpay'];
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 
     private const PAYMENT_EXPIRY_MINUTES = 15;
 
@@ -209,20 +213,27 @@ class CheckoutService
                 'payment_method'   => $data['payment_method'],
                 'amount'           => $order->total_amount,
                 'payment_status'   => $isWalletPayment ? 'paid' : 'pending',
+<<<<<<< HEAD
                 // Dùng order_code làm mã đối soát: khách ghi mã này vào nội dung chuyển khoản,
                 // webhook ngân hàng (SePay...) sẽ khớp theo mã này để tự động xác nhận.
                 'transaction_code' => $isWalletPayment
                     ? ('WALLET' . strtoupper(Str::random(10)))
                     : (in_array($data['payment_method'], ['bank_transfer', 'vietqr'], true) ? $order->order_code : null),
+=======
+                'transaction_code' => $isWalletPayment ? ('WALLET' . strtoupper(Str::random(10))) : null,
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                 'paid_at'          => $isWalletPayment ? now() : null,
                 'expires_at'       => in_array($data['payment_method'], self::EXPIRING_METHODS, true)
                     ? now()->addMinutes(self::PAYMENT_EXPIRY_MINUTES)
                     : null,
+<<<<<<< HEAD
                 // Danh sách AUTO_CONFIRM_METHODS hiện rỗng — vietqr/bank_transfer xác nhận thật qua
                 // webhook SePay, không cần mô phỏng giờ giả nữa.
                 'simulate_confirm_at' => in_array($data['payment_method'], self::AUTO_CONFIRM_METHODS, true)
                     ? now()->addSeconds(random_int(8, 20))
                     : null,
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             ]);
 
             if ($isWalletPayment) {
@@ -301,8 +312,11 @@ class CheckoutService
 
     /**
      * Đánh dấu giao dịch hết hạn (quá thời gian giữ chỗ) và hoàn lại tồn kho/IMEI đã tạm giữ.
+<<<<<<< HEAD
      * Nếu đây đã là lần thử cuối cùng (đủ Payment::MAX_ATTEMPTS lần thất bại), tự động hủy luôn
      * đơn hàng thay vì chờ khách thử lại — không cấp thêm lượt thử nào nữa.
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
      */
     public function expirePayment(Payment $payment): void
     {
@@ -317,6 +331,7 @@ class CheckoutService
                 'payment_status' => 'failed',
                 'payer_note'     => 'Giao dịch hết hạn do quá thời gian thanh toán.',
             ]);
+<<<<<<< HEAD
 
             if (! $payment->hasRetriesLeft()) {
                 $order = $payment->order;
@@ -328,12 +343,18 @@ class CheckoutService
                     'cancelled_by'       => 'system',
                 ]);
             }
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         });
     }
 
     /**
+<<<<<<< HEAD
      * Thử thanh toán lại: cấp lại tồn kho và mở phiên giao dịch mới. Chỉ cho phép khi chưa dùng
      * hết số lần thử (Payment::MAX_ATTEMPTS) — hết lượt thì đơn đã tự động bị hủy ở expirePayment().
+=======
+     * Thử thanh toán lại: cấp lại tồn kho và mở phiên giao dịch mới.
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
      */
     public function retryPayment(Payment $payment): void
     {
@@ -341,17 +362,21 @@ class CheckoutService
             return;
         }
 
+<<<<<<< HEAD
         if (! $payment->hasRetriesLeft()) {
             throw ValidationException::withMessages([
                 'payment' => 'Đơn hàng đã hết số lần thử thanh toán (' . Payment::MAX_ATTEMPTS . ' lần) và đã bị hủy tự động.',
             ]);
         }
 
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         DB::transaction(function () use ($payment) {
             $this->reallocateInventory($payment->order);
 
             $payment->update([
                 'payment_status'   => 'pending',
+<<<<<<< HEAD
                 'attempt_count'    => $payment->attempt_count + 1,
                 'transaction_code' => in_array($payment->payment_method, ['bank_transfer', 'vietqr'], true) ? $payment->order->order_code : null,
                 'payer_name'       => null,
@@ -360,6 +385,12 @@ class CheckoutService
                 'simulate_confirm_at' => in_array($payment->payment_method, self::AUTO_CONFIRM_METHODS, true)
                     ? now()->addSeconds(random_int(8, 20))
                     : null,
+=======
+                'transaction_code' => null,
+                'payer_name'       => null,
+                'payer_note'       => null,
+                'expires_at'       => now()->addMinutes(self::PAYMENT_EXPIRY_MINUTES),
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             ]);
         });
     }

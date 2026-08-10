@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 <!-- @extends('layouts.app') -->
+=======
+@extends('layouts.app')
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 
 @section('title', 'Trang chủ — Byte Zone Store')
 
@@ -111,15 +115,24 @@
     @endif
 
     {{-- THEO TỪNG DANH MỤC --}}
+<<<<<<< HEAD
     @foreach($productsByCategory as $catName => $catProducts)
     @if($catProducts->isNotEmpty())
+=======
+    @foreach($productsByCategory as $item)
+    @if($item['products']->isNotEmpty())
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     <div class="mb-4">
         <div class="d-flex align-items-center justify-content-between mb-3">
             <h2 class="h6 fw-bold bz-section-title mb-0">{{ $catName }}</h2>
             <a href="#tat-ca-san-pham" class="btn btn-outline-primary btn-sm">Xem thêm</a>
         </div>
         <div class="row g-3">
+<<<<<<< HEAD
             @foreach($catProducts as $product)
+=======
+            @foreach($item['products'] as $product)
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                 @include('client.partials.product_card', ['product' => $product])
             @endforeach
         </div>
@@ -134,7 +147,11 @@
         <div class="row g-2 align-items-center justify-content-center">
             @foreach($brands as $brand)
             <div class="col-4 col-md-2">
+<<<<<<< HEAD
                 <a href="{{ route('brand.products', $brand) }}"
+=======
+                <a href="{{ route('products.index', ['brand_id' => $brand->id]) }}"
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                     class="d-flex flex-column align-items-center justify-content-center p-2 bg-white border rounded-3 text-decoration-none"
                     style="min-height:70px; transition:.2s;"
                     onmouseover="this.style.borderColor='#1565c0';this.style.boxShadow='0 2px 8px rgba(21,101,192,.15)'"

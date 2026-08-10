@@ -194,14 +194,22 @@
     }
 
     .choice-grid {
+<<<<<<< HEAD
         display: flex;
         flex-wrap: wrap;
+=======
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         gap: 10px;
     }
 
     .choice-card {
+<<<<<<< HEAD
         flex: 0 1 200px;
         max-width: 220px;
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         border: 1px solid #dbe3ee;
         border-radius: 8px;
         background: #fff;
@@ -600,6 +608,17 @@
                                 Tạm hết hàng
                             </button>
                         </form>
+<<<<<<< HEAD
+=======
+
+                        {{-- Form mua ngay (ẩn) --}}
+                        <form method="POST" action="{{ route('buy.now') }}" id="buyNowForm" class="d-none">
+                            @csrf
+                            <input type="hidden" name="product_id" value="{{ $product->id }}">
+                            <input type="hidden" name="variant_id" id="buyNowVariantId" value="{{ $selectedVariant?->id }}">
+                            <input type="hidden" name="quantity" value="1">
+                        </form>
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                     @else
                         <a href="{{ route('login') }}" class="btn btn-primary btn-lg w-100">
                             Đăng nhập để mua hàng
@@ -657,6 +676,7 @@
                             <p class="mb-0 small text-muted">{{ $review->comment }}</p>
                         </div>
                     @empty
+<<<<<<< HEAD
                         <div class="text-center py-3">
                             <svg width="120" height="96" viewBox="0 0 120 96" class="mb-2" aria-hidden="true">
                                 <ellipse cx="60" cy="88" rx="40" ry="6" fill="#f1f3f5"/>
@@ -668,6 +688,9 @@
                             </svg>
                             <p class="text-muted mb-0">Chưa có đánh giá.</p>
                         </div>
+=======
+                        <p class="text-muted mb-0">Chưa có đánh giá.</p>
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                     @endforelse
 
                     @error('review')
@@ -819,6 +842,10 @@
 document.addEventListener('DOMContentLoaded', function () {
     const selectedPrice = document.getElementById('selectedPrice');
     const selectedVariantId = document.getElementById('selectedVariantId');
+<<<<<<< HEAD
+=======
+    const buyNowVariantId = document.getElementById('buyNowVariantId');
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     const selectedStock = document.getElementById('selectedStock');
     const purchaseActions = document.getElementById('purchaseActions');
     const outOfStockButton = document.getElementById('outOfStockButton');
@@ -922,6 +949,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 selectedVariantId.value = button.dataset.variantId;
             }
 
+<<<<<<< HEAD
+=======
+            if (buyNowVariantId) {
+                buyNowVariantId.value = button.dataset.variantId;
+            }
+
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             if (selectedPrice && button.dataset.price) {
                 selectedPrice.textContent = button.dataset.price;
             }

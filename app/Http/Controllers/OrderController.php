@@ -107,8 +107,12 @@ class OrderController extends Controller
             'shipment.carrier',
             'payment',
             'receiver',
+<<<<<<< HEAD
             'proofs',
             'refundRequest'
+=======
+            'proofs'
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         ])->findOrFail($id);
 
         // Kiểm tra quyền sở hữu đơn hàng bảo mật
@@ -130,13 +134,18 @@ class OrderController extends Controller
     public function statusCheck(string|int $id)
     {
         $order = Order::select(['id', 'user_id', 'status', 'fulfillment_status', 'updated_at'])
+<<<<<<< HEAD
             ->with(['payment:id,order_id,payment_status', 'refundRequest'])
+=======
+            ->with(['payment:id,order_id,payment_status'])
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             ->findOrFail($id);
 
         if ((int) $order->user_id !== (int) auth()->id()) {
             abort(403);
         }
 
+<<<<<<< HEAD
         // Mô phỏng ngân hàng báo đã hoàn tiền xong: khi đã quá simulate_confirm_at, lần poll kế
         // tiếp sẽ tự xác nhận — hành vi phía người dùng giống hệt ngân hàng xử lý thật (đồ án).
         $refund = $order->refundRequest;
@@ -150,11 +159,16 @@ class OrderController extends Controller
             $refund->refresh();
         }
 
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         return response()->json([
             'status' => $order->status,
             'fulfillment_status' => $order->fulfillment_status,
             'payment_status' => $order->payment?->payment_status,
+<<<<<<< HEAD
             'refund_status' => $refund?->status,
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             'updated_at' => $order->updated_at?->toIso8601String(),
         ]);
     }
@@ -177,22 +191,36 @@ class OrderController extends Controller
             'cancel_reason' => ['required', 'string', 'max:500', 'min:5'],
         ];
 
+<<<<<<< HEAD
         // Khách hủy đơn đã thanh toán luôn được hoàn tự động vào Ví (thật, tức thì, không cần chọn
         // phương thức) — hoàn qua ngân hàng ngoài không còn là lựa chọn ở đây vì cần admin xử lý
         // thủ công (xem RefundController cho luồng hoàn ngân hàng riêng, nếu có).
         if ($needsRefund) {
             $rules['refund_method'] = ['nullable', 'string', 'in:wallet'];
+=======
+        if ($needsRefund) {
+            $rules['refund_method'] = ['required', 'string', 'in:wallet,bank'];
+            $rules['bank_name'] = ['required_if:refund_method,bank', 'nullable', 'string', 'max:255'];
+            $rules['bank_account_number'] = ['required_if:refund_method,bank', 'nullable', 'string', 'max:50'];
+            $rules['bank_account_name'] = ['required_if:refund_method,bank', 'nullable', 'string', 'max:255'];
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         }
 
         $validated = $request->validate($rules, [
             'cancel_reason.required' => 'Vui lòng nhập lý do hủy đơn hàng.',
             'cancel_reason.min' => 'Lý do hủy đơn cần cụ thể hơn (tối thiểu 5 ký tự).',
+<<<<<<< HEAD
         ]);
 
         if ($needsRefund) {
             $validated['refund_method'] = 'wallet';
         }
 
+=======
+            'refund_method.required' => 'Vui lòng chọn phương thức nhận hoàn tiền.',
+        ]);
+
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         // Ràng buộc điều kiện hủy đơn: Chỉ cho phép khi đơn hàng ở trạng thái 'pending' hoặc 'waiting_pack'
         if (!in_array($order->fulfillment_status, ['pending', 'waiting_pack'], true)) {
             return redirect()->back()->with('error', 'Đơn hàng đã được chuyển đi hoặc xử lý, không thể tự hủy.');

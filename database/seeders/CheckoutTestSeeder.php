@@ -312,10 +312,17 @@ class CheckoutTestSeeder extends Seeder
         $this->command->line(' │    Sau CK hội viên: 43,090,600₫ → SALE20 -8,618,120₫ → 34,472,480₫');
         $this->command->line(' │ #5 Gold + VIP2000K + 200 điểm (=20,000₫)');
         $this->command->line(' │    Sau CK 5%: 41,771,500₫ → -2,000,000₫ → -20,000₫ → 39,751,500₫');
+<<<<<<< HEAD
         $this->command->line(' │ #6 Gateway (momo/vietqr)   → Tạo đơn pending, IMEI reserved');
         $this->command->line(' └──────────────────────────────────────────────────────────────────');
         $this->command->line('');
         $this->command->line(' PHƯƠNG THỨC THANH TOÁN HỖ TRỢ: cod, momo, vietqr, bank_transfer, card');
+=======
+        $this->command->line(' │ #6 Gateway (momo/vnpay)   → Tạo đơn pending, IMEI reserved');
+        $this->command->line(' └──────────────────────────────────────────────────────────────────');
+        $this->command->line('');
+        $this->command->line(' PHƯƠNG THỨC THANH TOÁN HỖ TRỢ: cod, momo, vnpay, bank_transfer, card');
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         $this->command->line('════════════════════════════════════════════════════');
     }
 }

@@ -434,10 +434,17 @@ class FullSampleSeeder extends Seeder
             ]);
             $this->insert('payments', [
                 'order_id' => $orderId,
+<<<<<<< HEAD
                 'payment_method' => $key === 'done' ? 'vietqr' : 'cod',
                 'amount' => $order->total_amount,
                 'payment_status' => $key === 'done' ? 'paid' : 'pending',
                 'transaction_code' => $key === 'done' ? 'VietQR_SAMPLE_003' : null,
+=======
+                'payment_method' => $key === 'done' ? 'vnpay' : 'cod',
+                'amount' => $order->total_amount,
+                'payment_status' => $key === 'done' ? 'paid' : 'pending',
+                'transaction_code' => $key === 'done' ? 'VNPAY_SAMPLE_003' : null,
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                 'payer_name' => $order->customer_name,
                 'payer_note' => null,
                 'paid_at' => $key === 'done' ? $this->now->copy()->subDays(2) : null,

@@ -68,7 +68,14 @@ class ClientWarrantyController extends Controller
         $warranty->load([
             'order',
             'imei.productVariant.product',
+<<<<<<< HEAD
             'replacementImei.productVariant.product',
+=======
+<<<<<<< HEAD
+=======
+            'replacementImei.productVariant.product',
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             'receptionMedia',
             'completionMedia',
             'receiptMedia',
@@ -159,6 +166,11 @@ class ClientWarrantyController extends Controller
             ];
         }
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         if ($warranty->resolution_type === Warranty::RESOLUTION_REPLACE && $warranty->replaced_at) {
             $histories[] = [
                 'time' => $warranty->replaced_at,
@@ -167,6 +179,10 @@ class ClientWarrantyController extends Controller
             ];
         }
 
+<<<<<<< HEAD
+=======
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         /*
          * Có kết quả sửa chữa.
          */

@@ -95,6 +95,11 @@
         </div>
     @endif
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     @if(session('warning'))
         <div class="alert alert-warning alert-dismissible fade show" role="alert">
             <i class="bi bi-exclamation-triangle-fill me-1"></i>
@@ -107,6 +112,10 @@
         </div>
     @endif
 
+<<<<<<< HEAD
+=======
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     @if($errors->any())
         <div class="alert alert-danger">
             <ul class="mb-0">
@@ -290,6 +299,7 @@
                         </div>
                     </div>
 
+<<<<<<< HEAD
                     @if(in_array($order->payment->payment_method ?? null, ['bank_transfer', 'vietqr'], true))
                         <div class="mb-2">
                             <div class="text-muted small">Tài khoản nhận</div>
@@ -297,6 +307,8 @@
                         </div>
                     @endif
 
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                     <div class="mb-2">
                         <div class="text-muted small">Thời điểm thanh toán</div>
                         <div>{{ $order->payment?->paid_at?->format('d/m/Y H:i') ?? '-' }}</div>
@@ -304,7 +316,11 @@
 
                     @if($order->payment?->proof_image)
                         <div class="mb-3">
+<<<<<<< HEAD
                             <div class="text-muted small">Hóa đơn / ảnh bằng chứng giao dịch</div>
+=======
+                            <div class="text-muted small">Ảnh bằng chứng khách gửi</div>
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                             <a href="{{ \Illuminate\Support\Facades\Storage::url($order->payment->proof_image) }}" target="_blank">
                                 <img src="{{ \Illuminate\Support\Facades\Storage::url($order->payment->proof_image) }}"
                                      alt="Bằng chứng thanh toán" class="img-fluid rounded border mt-1" style="max-height:280px">
@@ -376,7 +392,11 @@
             <h5 class="mb-3">Thao tác xử lý</h5>
 
             @php
+<<<<<<< HEAD
                 $isPrepaidOrder = $order->payment && in_array($order->payment->payment_method, ['bank_transfer', 'vietqr'], true);
+=======
+                $isPrepaidOrder = $order->payment && in_array($order->payment->payment_method, ['card', 'bank_transfer', 'momo', 'vnpay'], true);
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                 $paymentNotConfirmed = $isPrepaidOrder && $order->payment->payment_status !== 'paid';
             @endphp
 
@@ -438,6 +458,20 @@
                 @endif
 
                 @if($order->fulfillment_status === 'failed')
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+                    <form action="{{ route('admin.orders.retryDelivery', $order) }}"
+                          method="POST"
+                          onsubmit="return confirm('Bạn có chắc muốn giao lại đơn hàng này không?');">
+                        @csrf
+
+                        <button type="submit" class="btn btn-primary">
+                            Giao lại
+                        </button>
+                    </form>
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                     @if($order->canRetryDelivery())
                         <form
                             action="{{ route('admin.orders.retryDelivery', $order) }}"
@@ -466,6 +500,10 @@
                             Đã đạt giới hạn giao lại
                         </button>
                     @endif
+<<<<<<< HEAD
+=======
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                 @endif
 
                 @if(!in_array($order->fulfillment_status, ['completed', 'cancelled'], true))
@@ -480,6 +518,11 @@
 
                 @endif
             </div>
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             @if(
                 $order->fulfillment_status === 'failed'
                 && $order->hasReachedDeliveryRetryLimit()
@@ -496,6 +539,10 @@
                     </div>
                 </div>
             @endif
+<<<<<<< HEAD
+=======
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         </div>
     </div>
 

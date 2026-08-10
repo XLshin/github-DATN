@@ -40,7 +40,13 @@
                         <div class="fw-semibold">
                             @switch($topup->payment_method)
                                 @case('bank_transfer') Chuyển khoản ngân hàng @break
+<<<<<<< HEAD
                                 @case('vietqr') VietQR @break
+=======
+                                @case('momo') Ví MoMo @break
+                                @case('vnpay') VNPAY @break
+                                @case('card') Thẻ tín dụng/ghi nợ @break
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                                 @default {{ $topup->payment_method }}
                             @endswitch
                         </div>
@@ -68,6 +74,7 @@
                         <div class="text-muted small">Tên người chuyển (khách khai báo)</div>
                         <div class="fw-semibold">{{ $topup->payer_name ?? '—' }}</div>
                     </div>
+<<<<<<< HEAD
                     <div class="col-md-6">
                         <div class="text-muted small">Tài khoản nhận</div>
                         <div class="fw-semibold">{{ config('services.sepay.account_name') }} — {{ config('services.sepay.account_number') }}</div>
@@ -76,6 +83,8 @@
                         <div class="text-muted small">Thời điểm cộng tiền</div>
                         <div class="fw-semibold">{{ $topup->paid_at?->format('d/m/Y H:i') ?? '—' }}</div>
                     </div>
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                     <div class="col-12">
                         <div class="text-muted small">Ghi chú từ khách</div>
                         <div>{{ $topup->payer_note ?? '—' }}</div>
@@ -85,7 +94,11 @@
         </div>
 
         <div class="card border-0 shadow-sm mb-4">
+<<<<<<< HEAD
             <div class="card-header bg-white fw-bold">Hóa đơn / ảnh bằng chứng giao dịch</div>
+=======
+            <div class="card-header bg-white fw-bold">Ảnh bằng chứng chuyển khoản</div>
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             <div class="card-body text-center">
                 @if($topup->proof_image)
                     <a href="{{ \Illuminate\Support\Facades\Storage::url($topup->proof_image) }}" target="_blank">

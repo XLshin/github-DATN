@@ -20,11 +20,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\ForceHttps::class,
         ]);
+<<<<<<< HEAD
 
         // Webhook từ dịch vụ bên ngoài (SePay, đơn vị vận chuyển...) không gửi kèm CSRF token.
         $middleware->validateCsrfTokens(except: [
             'webhook/*',
         ]);
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

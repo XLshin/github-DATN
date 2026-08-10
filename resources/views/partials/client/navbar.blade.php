@@ -1,6 +1,7 @@
 @php
     $categories = \App\Models\Category::orderBy('name')->get();
     $brands = \App\Models\Brand::orderBy('name')->get();
+<<<<<<< HEAD
     // Thương hiệu đang có sản phẩm trong từng danh mục, để hiện dropdown lọc nhanh theo danh mục.
     $categoryBrands = $categories->mapWithKeys(fn ($category) => [
         $category->id => \App\Models\Brand::query()
@@ -8,6 +9,8 @@
             ->orderBy('name')
             ->get(),
     ]);
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     $colors = \App\Models\ProductVariant::query()
         ->whereNotNull('color')
         ->where('color', '<>', '')
@@ -133,6 +136,7 @@
 
                     @auth
                         @if($isCustomer)
+<<<<<<< HEAD
                             <div class="notif-dropdown" id="notifDropdown">
                                 <button type="button" class="cart-btn notif-btn" id="notifBellBtn">
                                     <i class="lni lni-alarm"></i>
@@ -150,6 +154,8 @@
                                 </div>
                             </div>
 
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                             <a href="{{ route('cart.index') }}" class="cart-btn">
                                 <i class="lni lni-cart" id="cart-fly-target"></i>
                                 <span class="cart-text">Giỏ hàng</span>
@@ -189,6 +195,7 @@
                             $categoryUrl = route('products.index', ['category_id' => $category->id]);
                             $isCategoryActive = request()->routeIs('products.index')
                                 && (string) request('category_id') === (string) $category->id;
+<<<<<<< HEAD
                             $brandsInCategory = $categoryBrands[$category->id] ?? collect();
                         @endphp
                         <li class="nav-item {{ $brandsInCategory->isNotEmpty() ? 'has-dropdown' : '' }}">
@@ -209,6 +216,11 @@
                                     @endforeach
                                 </ul>
                             @endif
+=======
+                        @endphp
+                        <li class="nav-item">
+                            <a href="{{ $categoryUrl }}" class="{{ $isCategoryActive ? 'active' : '' }}">{{ $category->name }}</a>
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                         </li>
                     @endforeach
 
@@ -273,6 +285,7 @@
 .account-menu .divider { border-top: 1px solid #eee; margin: 4px 0; }
 .cart-btn { position: relative; }
 .cart-badge { position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; border-radius: 999px; background: #e53935; color: #fff; font-size: 12px; line-height: 20px; text-align: center; padding: 0 5px; }
+<<<<<<< HEAD
 .notif-dropdown { position: relative; }
 .notif-btn { padding: 10px 12px; }
 .notif-btn.ringing i { animation: notif-ring .5s ease-in-out 2; }
@@ -293,6 +306,8 @@
 .notif-menu-footer { display: block; text-align: center; padding: 10px; font-size: 13px; font-weight: 600; color: #1565c0; text-decoration: none; border-top: 1px solid #eef2f7; }
 .notif-menu-footer:hover { background: #f5f7ff; color: #1565c0; }
 .notif-empty { padding: 24px 14px; text-align: center; color: #9aa4b2; font-size: 13px; }
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 .header-main { background: #1565c0; }
 .main-nav { display: flex; align-items: center; justify-content: center; min-height: 46px; }
 .main-nav-list { display: flex; align-items: center; list-style: none; margin: 0; padding: 0; gap: 2px; }
@@ -362,7 +377,10 @@
             if (!filterPanel.contains(event.target) && !filterBtn.contains(event.target)) {
                 filterPanel.style.display = 'none';
             }
+<<<<<<< HEAD
         });
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 
         form.addEventListener('submit', function () {
             document.getElementById('hsColor').value = document.getElementById('fsColor').value;
@@ -384,6 +402,7 @@
             form.submit();
         });
     }
+<<<<<<< HEAD
 
     @auth
     @if($isCustomer)
@@ -469,5 +488,7 @@
     })();
     @endif
     @endauth
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 })();
 </script>

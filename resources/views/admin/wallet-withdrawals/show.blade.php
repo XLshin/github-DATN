@@ -146,6 +146,7 @@
                     </form>
                 @endif
 
+<<<<<<< HEAD
                 @if($withdrawal->vietQrPayoutUrl())
                 <div class="alert alert-success text-center mb-4">
                     <div class="fw-bold mb-2"><i class="bi bi-qr-code"></i> Quét QR để chuyển khoản 1 chạm</div>
@@ -163,6 +164,8 @@
                 </div>
                 @endif
 
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                 <form method="POST" action="{{ route('admin.wallet-withdrawals.complete', $withdrawal) }}" enctype="multipart/form-data">
                     @csrf
                     @if($errors->any())
@@ -213,6 +216,7 @@
     </div>
 </div>
 
+<<<<<<< HEAD
 @if(in_array($withdrawal->status, ['pending', 'processing'], true))
 {{-- Hóa đơn tự hiện khi SePay xác nhận đã chuyển khoản xong, không cần tải lại trang --}}
 <div class="modal fade" id="payoutReceiptModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -292,4 +296,6 @@
 @endpush
 @endif
 
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 @endsection

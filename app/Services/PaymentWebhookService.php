@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\Request;
+<<<<<<< HEAD
 use App\Models\BankAccount;
 use App\Models\Payment;
 use App\Models\WalletTopup;
@@ -13,10 +14,19 @@ use App\Services\WalletService;
 use App\Services\WalletWithdrawalService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+=======
+use App\Models\Payment;
+use App\Models\Carrier;
+use App\Services\CarrierSelectorService;
+use App\Services\ImeiReservationService;
+use App\Services\ShippingService;
+use Illuminate\Support\Facades\Log;
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 use Carbon\Carbon;
 
 class PaymentWebhookService
 {
+<<<<<<< HEAD
     public function __construct(
         private ImeiReservationService $imeiService,
         private ShippingService $shippingService,
@@ -25,6 +35,9 @@ class PaymentWebhookService
         private WalletService $walletService,
         private WalletWithdrawalService $walletWithdrawalService,
     ) {}
+=======
+    public function __construct(private ImeiReservationService $imeiService, private ShippingService $shippingService, private CarrierSelectorService $carrierSelector) {}
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 
     /**
      * Verify signature for known gateways. Returns true if valid or no secret configured.
@@ -40,6 +53,11 @@ class PaymentWebhookService
         }
 
         $secretKey = match (strtolower($gateway)) {
+<<<<<<< HEAD
+=======
+            'momo' => env('MOMO_SECRET'),
+            'vnpay' => env('VNPAY_SECRET'),
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             'zalopay' => env('ZALOPAY_SECRET'),
             default => null,
         };
@@ -92,7 +110,37 @@ class PaymentWebhookService
         }
 
         if ($status === 'success') {
+<<<<<<< HEAD
             $this->markPaid($payment, $transaction);
+=======
+            $payment->payment_status = 'paid';
+            $payment->paid_at = Carbon::now();
+            $payment->transaction_code = $transaction ?? $payment->transaction_code;
+            $payment->save();
+
+            $this->imeiService->finalize($payment->order);
+
+            // mark order as processing
+            $order = $payment->order;
+            $order->status = 'processing';
+            $order->save();
+
+            // create shipment using default carrier if available
+            try {
+                $carrier = $this->carrierSelector->selectForOrder($order);
+                if ($carrier) {
+                    $this->shippingService->createShipment($order, $carrier, ['source' => 'auto']);
+                } else {
+                    Log::info('No active carrier found; skipping shipment creation for order ' . $order->id);
+                }
+            } catch (\Exception $e) {
+                if (app()->environment('testing')) {
+                    throw $e;
+                }
+
+                Log::error('Error creating shipment for order ' . $order->id . ': ' . $e->getMessage());
+            }
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 
             return [200, 'OK'];
         }
@@ -106,6 +154,7 @@ class PaymentWebhookService
 
         return [200, 'Failed'];
     }
+<<<<<<< HEAD
 
     /**
      * Webhook biến động số dư ngân hàng kiểu SePay/Casso: mỗi khi có tiền vào tài khoản shop,
@@ -337,4 +386,6 @@ class PaymentWebhookService
             default => ['r' => 0, 'g' => 122, 'b' => 77],
         };
     }
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 }

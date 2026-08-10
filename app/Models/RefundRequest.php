@@ -10,6 +10,7 @@ class RefundRequest extends Model
     /** Số ngày xử lý tối thiểu bắt buộc đối với hoàn tiền qua ngân hàng. */
     public const MIN_BANK_PROCESSING_DAYS = 7;
 
+<<<<<<< HEAD
     /**
      * Ngưỡng số tiền được tự động hoàn qua ngân hàng mà không cần admin duyệt — chỉ áp dụng cho
      * đơn hủy trước khi giao (rủi ro thấp). Trên ngưỡng này bắt buộc admin xác nhận thủ công,
@@ -17,6 +18,8 @@ class RefundRequest extends Model
      */
     public const AUTO_REFUND_MAX_AMOUNT = 5000000;
 
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     protected $fillable = [
         'order_id',
         'user_id',
@@ -28,9 +31,13 @@ class RefundRequest extends Model
         'bank_account_name',
         'requested_at',
         'eligible_at',
+<<<<<<< HEAD
         'simulate_confirm_at',
         'completed_at',
         'notified_at',
+=======
+        'completed_at',
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         'admin_note',
         'proof_image',
     ];
@@ -39,9 +46,13 @@ class RefundRequest extends Model
         'amount' => 'decimal:2',
         'requested_at' => 'datetime',
         'eligible_at' => 'datetime',
+<<<<<<< HEAD
         'simulate_confirm_at' => 'datetime',
         'completed_at' => 'datetime',
         'notified_at' => 'datetime',
+=======
+        'completed_at' => 'datetime',
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     ];
 
     public function order(): BelongsTo
@@ -62,6 +73,7 @@ class RefundRequest extends Model
 
         return $this->eligible_at !== null && ! $this->eligible_at->isFuture();
     }
+<<<<<<< HEAD
 
     /** Che bớt số tài khoản khi hiển thị cho khách, chỉ giữ lại 4 số cuối. */
     public function maskedBankAccountNumber(): ?string
@@ -76,4 +88,6 @@ class RefundRequest extends Model
             ? $number
             : str_repeat('•', strlen($number) - 4) . substr($number, -4);
     }
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 }

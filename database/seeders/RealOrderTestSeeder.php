@@ -228,7 +228,11 @@ class RealOrderTestSeeder extends Seeder
                     'receiver_phone' => '0988111104',
                     'receiver_address' => 'Phòng 104, Chung cư Test, Hà Nội',
                     'receiver_note' => 'Đã thanh toán online.',
+<<<<<<< HEAD
                     'payment_method' => 'vietqr',
+=======
+                    'payment_method' => 'vnpay',
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                     'payment_status' => 'paid',
                     'items' => [
                         [
@@ -306,7 +310,11 @@ class RealOrderTestSeeder extends Seeder
                     'receiver_phone' => '0988111107',
                     'receiver_address' => 'Phòng 107, Chung cư Test, Hà Nội',
                     'receiver_note' => 'Đơn mixed: điện thoại cần IMEI, phụ kiện không cần IMEI.',
+<<<<<<< HEAD
                     'payment_method' => 'vietqr',
+=======
+                    'payment_method' => 'vnpay',
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                     'payment_status' => 'paid',
                     'items' => [
                         [

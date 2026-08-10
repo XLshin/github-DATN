@@ -5,9 +5,13 @@ namespace App\Services;
 use App\Models\BankAccount;
 use App\Models\User;
 use App\Models\WalletWithdrawal;
+<<<<<<< HEAD
 use App\Notifications\WithdrawalCompletedNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+=======
+use Illuminate\Support\Facades\DB;
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -16,7 +20,10 @@ class WalletWithdrawalService
     public function __construct(
         private readonly WalletService $walletService,
         private readonly BankTransactionLogService $logService,
+<<<<<<< HEAD
         private readonly ReceiptImageService $receiptImageService,
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     ) {}
 
     /**
@@ -45,6 +52,7 @@ class WalletWithdrawalService
             ]);
         }
 
+<<<<<<< HEAD
         if ($amount > (float) $user->wallet_balance) {
             throw ValidationException::withMessages([
                 'amount' => 'Số tiền rút vượt quá số dư hiện có trong ví (' . number_format((float) $user->wallet_balance, 0, ',', '.') . ' đ).',
@@ -60,6 +68,11 @@ class WalletWithdrawalService
             // có thể xác nhận thật qua webhook SePay, còn tiền ra luôn cần một người thao tác thật).
             $autoWithdraw = false;
 
+=======
+        return DB::transaction(function () use ($user, $bankAccount, $amount) {
+            $now = now();
+
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             $withdrawal = WalletWithdrawal::create([
                 'user_id' => $user->id,
                 'bank_account_id' => $bankAccount->id,
@@ -70,6 +83,7 @@ class WalletWithdrawalService
                 'status' => 'pending',
                 'requested_at' => $now,
                 'eligible_at' => $now->copy()->addDays(WalletWithdrawal::MIN_PROCESSING_DAYS),
+<<<<<<< HEAD
                 'simulate_confirm_at' => $autoWithdraw ? $now->copy()->addSeconds(random_int(8, 20)) : null,
             ]);
 
@@ -78,6 +92,10 @@ class WalletWithdrawalService
             // "tiền ra" của tài khoản cửa hàng thì tự xác nhận hoàn tất, không cần admin upload ảnh.
             $withdrawal->update(['transaction_code' => 'RUT' . str_pad((string) $withdrawal->id, 6, '0', STR_PAD_LEFT)]);
 
+=======
+            ]);
+
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             // Trừ ví ngay (giữ tiền); ném lỗi + rollback toàn bộ nếu không đủ số dư.
             $this->walletService->debit(
                 $user,
@@ -88,15 +106,20 @@ class WalletWithdrawalService
                 $withdrawal->id
             );
 
+<<<<<<< HEAD
             $note = $autoWithdraw
                 ? 'Khách tạo yêu cầu rút tiền, số tiền dưới ngưỡng — sẽ tự động xử lý.'
                 : 'Khách tạo yêu cầu rút tiền, đã tạm giữ số dư.';
             $this->logService->logWithdrawal($withdrawal, 'pending', null, $note);
+=======
+            $this->logService->logWithdrawal($withdrawal, 'pending', null, 'Khách tạo yêu cầu rút tiền, đã tạm giữ số dư.');
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 
             return $withdrawal;
         });
     }
 
+<<<<<<< HEAD
     /**
      * Mô phỏng ngân hàng báo đã chuyển tiền rút thành công — CHỈ chạy khi request() thực sự có đặt
      * simulate_confirm_at và đã đến hạn (hiện tại luôn null vì rút tiền bắt buộc admin xác nhận
@@ -181,6 +204,8 @@ class WalletWithdrawalService
         $this->sendWithdrawalNotifications($withdrawal->fresh());
     }
 
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     public function markProcessing(WalletWithdrawal $withdrawal): void
     {
         if ($withdrawal->status !== 'pending') {
@@ -213,6 +238,7 @@ class WalletWithdrawalService
         ]);
 
         $this->logService->logWithdrawal($withdrawal->fresh(), 'completed', $admin, $adminNote);
+<<<<<<< HEAD
 
         $this->sendWithdrawalNotifications($withdrawal->fresh());
     }
@@ -241,6 +267,8 @@ class WalletWithdrawalService
         ]);
 
         $user->notify(new WithdrawalCompletedNotification($withdrawal));
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     }
 
     /**
@@ -271,8 +299,11 @@ class WalletWithdrawalService
             );
 
             $this->logService->logWithdrawal($withdrawal->fresh(), 'rejected', $admin, $reason);
+<<<<<<< HEAD
 
             $withdrawal->user->notify(new \App\Notifications\WithdrawalRejectedNotification($withdrawal->fresh(), $reason));
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         });
     }
 

@@ -4,8 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Coupon;
+<<<<<<< HEAD
 use App\Models\User;
 use App\Notifications\NewVoucherNotification;
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
@@ -48,6 +51,7 @@ class CouponController extends Controller
 
         $validated['code'] = Str::upper($validated['code']);
 
+<<<<<<< HEAD
         $coupon = Coupon::create($validated);
 
         // Voucher công khai (không gán riêng cho ai) thì báo ngay cho toàn bộ khách hàng đang hoạt
@@ -58,6 +62,9 @@ class CouponController extends Controller
                 ->get()
                 ->each(fn (User $user) => $user->notify(new NewVoucherNotification($coupon)));
         }
+=======
+        Coupon::create($validated);
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 
         return redirect()->route('admin.coupons.index')->with('success', 'Tạo voucher thành công.');
     }

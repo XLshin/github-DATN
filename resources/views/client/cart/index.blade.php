@@ -46,6 +46,7 @@
     <div class="container">
         @if ($items->isEmpty())
             <div class="empty-cart">
+<<<<<<< HEAD
                 <svg width="180" height="140" viewBox="0 0 180 140" class="mb-3" aria-hidden="true">
                     <ellipse cx="90" cy="126" rx="60" ry="8" fill="#eef2f7"/>
                     <rect x="40" y="46" width="100" height="62" rx="10" fill="#eef5ff"/>
@@ -56,6 +57,9 @@
                     <line x1="80" y1="66" x2="80" y2="80" stroke="#9fc2ff" stroke-width="4" stroke-linecap="round"/>
                     <line x1="100" y1="66" x2="100" y2="80" stroke="#9fc2ff" stroke-width="4" stroke-linecap="round"/>
                 </svg>
+=======
+                <div class="display-6 text-primary mb-3"><i class="bi bi-cart-x"></i></div>
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                 <h2 class="h4 mb-2">Giỏ hàng đang trống</h2>
                 <p class="text-muted mb-4">Chọn thêm vài món ngon lành rồi quay lại thanh toán nhé.</p>
                 <a href="{{ route('home') }}" class="btn btn-primary">

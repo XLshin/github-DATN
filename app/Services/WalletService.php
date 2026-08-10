@@ -6,12 +6,16 @@ use App\Models\User;
 use App\Models\WalletTopup;
 use App\Models\WalletTransaction;
 use Illuminate\Support\Facades\DB;
+<<<<<<< HEAD
 use Illuminate\Support\Facades\Log;
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class WalletService
 {
+<<<<<<< HEAD
     /** Phương thức nạp qua cổng có phiên giao dịch giới hạn thời gian. */
     private const EXPIRING_METHODS = ['vietqr'];
 
@@ -21,12 +25,19 @@ class WalletService
      * (xem PaymentWebhookService::handleBankTransfer).
      */
     public const AUTO_CONFIRM_METHODS = [];
+=======
+    /** Phương thức nạp qua cổng có phiên giao dịch giới hạn thời gian (giống thực tế QR/thẻ hết hạn). */
+    private const EXPIRING_METHODS = ['card', 'momo', 'vnpay'];
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 
     private const TOPUP_EXPIRY_MINUTES = 15;
 
     public function __construct(
         private readonly BankTransactionLogService $logService,
+<<<<<<< HEAD
         private readonly ReceiptImageService $receiptImageService,
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     ) {}
 
     /**
@@ -101,6 +112,7 @@ class WalletService
             'expires_at' => in_array($paymentMethod, self::EXPIRING_METHODS, true)
                 ? now()->addMinutes(self::TOPUP_EXPIRY_MINUTES)
                 : null,
+<<<<<<< HEAD
             // AUTO_CONFIRM_METHODS hiện rỗng — bank_transfer/vietqr xác nhận thật qua webhook SePay
             // (transaction_code bên dưới chính là nội dung CK khách ghi), không cần mô phỏng.
             'simulate_confirm_at' => in_array($paymentMethod, self::AUTO_CONFIRM_METHODS, true)
@@ -117,6 +129,10 @@ class WalletService
             ]);
         }
 
+=======
+        ]);
+
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         $this->logService->logTopup($topup, 'pending', null, 'Khách tạo yêu cầu nạp ví.');
 
         return $topup;
@@ -144,6 +160,7 @@ class WalletService
             ]);
         }
 
+<<<<<<< HEAD
         $this->markPaid($topup, $admin->id, $adminNote);
     }
 
@@ -205,6 +222,15 @@ class WalletService
                         ['Thoi gian', $paidAt->format('H:i:s d/m/Y')],
                     ]
                 ),
+=======
+        DB::transaction(function () use ($topup, $admin, $adminNote) {
+            $topup->update([
+                'payment_status' => 'paid',
+                'transaction_code' => strtoupper($topup->payment_method) . strtoupper(Str::random(10)),
+                'paid_at' => now(),
+                'confirmed_by' => $admin->id,
+                'admin_note' => $adminNote,
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             ]);
 
             $this->credit(
@@ -216,14 +242,19 @@ class WalletService
                 $topup->id
             );
 
+<<<<<<< HEAD
             $admin = $adminId ? User::find($adminId) : null;
             $this->logService->logTopup($topup->fresh(), 'paid', $admin, $note);
 
             $this->sendTopupNotifications($topup->fresh());
+=======
+            $this->logService->logTopup($topup->fresh(), 'paid', $admin, $adminNote);
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         });
     }
 
     /**
+<<<<<<< HEAD
      * Mô phỏng gửi email + SMS báo khách đã nạp ví thành công — không gọi nhà cung cấp thật
      * (đồ án), chỉ ghi log có nội dung đầy đủ, giống hệt cách RefundService/WalletWithdrawalService
      * báo hoàn tiền/rút tiền. Áp dụng cho cả nạp tự động lẫn admin xác nhận thủ công.
@@ -254,6 +285,8 @@ class WalletService
     }
 
     /**
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
      * Admin từ chối yêu cầu nạp ví (không nhận được tiền / sai số tiền / sai nội dung...).
      */
     public function rejectTopup(WalletTopup $topup, User $admin, string $reason): void
@@ -289,6 +322,7 @@ class WalletService
     {
         return match ($method) {
             'bank_transfer' => 'chuyển khoản ngân hàng',
+<<<<<<< HEAD
             'vietqr' => 'VietQR',
             default => $method,
         };
@@ -304,4 +338,12 @@ class WalletService
             default => ['r' => 0, 'g' => 122, 'b' => 77],
         };
     }
+=======
+            'momo' => 'Ví MoMo',
+            'vnpay' => 'VNPAY',
+            'card' => 'thẻ',
+            default => $method,
+        };
+    }
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 }

@@ -7,7 +7,10 @@ use App\Models\Imei;
 use App\Models\InventoryTransaction;
 use App\Models\Order;
 use App\Models\OrderProof;
+<<<<<<< HEAD
 use App\Notifications\OrderStatusUpdatedNotification;
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 use App\Notifications\PaymentFailedNotification;
 use App\Services\BankTransactionLogService;
 use App\Services\CheckoutService;
@@ -22,7 +25,11 @@ use Illuminate\Validation\ValidationException;
 class OrderController extends Controller
 {
     /** Phương thức trả trước — nếu thanh toán thất bại thì đơn chưa có tiền, phải tự động hủy. COD không áp dụng vì thu tiền khi giao hàng. */
+<<<<<<< HEAD
     private const PREPAID_METHODS = ['bank_transfer', 'vietqr'];
+=======
+    private const PREPAID_METHODS = ['card', 'bank_transfer', 'momo', 'vnpay'];
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 
     public function __construct(
         private readonly RefundService $refundService,
@@ -144,14 +151,21 @@ class OrderController extends Controller
             'confirmed_at' => now(),
         ]);
 
+<<<<<<< HEAD
         $order->user?->notify(new OrderStatusUpdatedNotification($order, 'waiting_pack'));
 
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         return back()->with('success', 'Đã xác nhận đơn hàng. Đơn đã chuyển sang chờ đóng gói.');
     }
 
     /**
      * Admin xác nhận đã nhận được tiền thanh toán đơn hàng (mọi phương thức: bank_transfer,
+<<<<<<< HEAD
      * vietqr) — bắt buộc nhập đúng số tiền thực nhận để tránh duyệt nhầm, đơn chỉ
+=======
+     * momo, vnpay, card) — bắt buộc nhập đúng số tiền thực nhận để tránh duyệt nhầm, đơn chỉ
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
      * chuyển sang "processing" sau khi admin xác nhận, không tự động theo lời khai của khách.
      */
     public function confirmPayment(Request $request, Order $order)
@@ -197,7 +211,11 @@ class OrderController extends Controller
      */
     /**
      * Admin từ chối yêu cầu thanh toán (không nhận được tiền / sai số tiền / sai nội dung...).
+<<<<<<< HEAD
      * Với các phương thức trả trước (chuyển khoản/VietQR), đơn coi như CHƯA thanh toán
+=======
+     * Với các phương thức trả trước (chuyển khoản/thẻ/MoMo/VNPAY), đơn coi như CHƯA thanh toán
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
      * nên phải tự động hủy ngay — không cho phép tiếp tục đóng gói/giao hàng một đơn chưa có tiền.
      * Khách hàng được thông báo qua email để kiểm tra lại giao dịch ngân hàng của mình.
      */
@@ -246,7 +264,10 @@ class OrderController extends Controller
 
                 if ($order->user) {
                     $order->user->notify(new PaymentFailedNotification($order));
+<<<<<<< HEAD
                     $order->user->notify(new OrderStatusUpdatedNotification($order, 'cancelled'));
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                 }
             }
         });
@@ -333,8 +354,11 @@ class OrderController extends Controller
                 'fulfillment_status' => 'waiting_handover',
                 'packed_at' => now(),
             ]);
+<<<<<<< HEAD
 
             $order->user?->notify(new OrderStatusUpdatedNotification($order, 'waiting_handover'));
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         });
 
         return back()->with('success', 'Đã xác nhận đóng gói, gán IMEI và chuyển đơn sang chờ bàn giao.');
@@ -360,8 +384,11 @@ class OrderController extends Controller
                     'shipped_at' => now(),
                 ]);
             }
+<<<<<<< HEAD
 
             $order->user?->notify(new OrderStatusUpdatedNotification($order, 'shipping'));
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         });
 
         return back()->with('success', 'Đơn hàng đã chuyển sang trạng thái đang giao.');
@@ -408,6 +435,7 @@ class OrderController extends Controller
                 'delivered_at' => now(),
             ]);
 
+<<<<<<< HEAD
             if ($order->payment) {
                 $order->payment->update([
                     'payment_status' => 'paid',
@@ -450,6 +478,8 @@ class OrderController extends Controller
                 'delivered_at' => now(),
             ]);
 
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             // Cập nhật tổng chi tiêu của khách hàng
             if ($order->user && $order->user->isCustomer()) {
                 $order->user->increment('total_spent', $order->total_amount);
@@ -469,8 +499,11 @@ class OrderController extends Controller
                     'delivered_at' => now(),
                 ]);
             }
+<<<<<<< HEAD
 
             $order->user?->notify(new OrderStatusUpdatedNotification($order, 'completed'));
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         });
 
         return back()->with('success', 'Đã xác nhận giao hàng thành công. Đơn hàng đã hoàn thành.');
@@ -511,8 +544,11 @@ class OrderController extends Controller
                     'status' => 'failed',
                 ]);
             }
+<<<<<<< HEAD
 
             $order->user?->notify(new OrderStatusUpdatedNotification($order, 'failed'));
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         });
 
         return back()->with('success', 'Đã cập nhật đơn hàng giao thất bại.');
@@ -521,6 +557,31 @@ class OrderController extends Controller
     public function retryDelivery(Order $order)
     {
         if ($order->fulfillment_status !== 'failed') {
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+            return back()->with('error', 'Chỉ đơn hàng giao thất bại mới được giao lại.');
+        }
+
+        DB::transaction(function () use ($order) {
+            $order->update([
+                'status' => 'shipping',
+                'fulfillment_status' => 'shipping',
+                'handed_over_at' => now(),
+            ]);
+
+            if ($order->shipment) {
+                $order->shipment->update([
+                    'shipping_status' => 'shipping',
+                    'status' => 'shipping',
+                    'shipped_at' => now(),
+                ]);
+            }
+        });
+
+        return back()->with('success', 'Đơn hàng đã được chuyển sang giao lại.');
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             return back()->with(
                 'error',
                 'Chỉ đơn hàng đang ở trạng thái giao thất bại mới được giao lại.'
@@ -565,8 +626,11 @@ class OrderController extends Controller
                     'handed_over_at' => now(),
                 ]);
 
+<<<<<<< HEAD
                 $lockedOrder->user?->notify(new OrderStatusUpdatedNotification($lockedOrder, 'shipping'));
 
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                 if ($lockedOrder->shipment) {
                     $lockedOrder->shipment->update([
                         'shipping_status' => 'shipping',
@@ -596,6 +660,10 @@ class OrderController extends Controller
             "Đơn hàng đã được chuyển sang giao lại lần {$retryCount}. "
             ."Còn {$remaining} lần giao lại."
         );
+<<<<<<< HEAD
+=======
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     }
 
     public function cancel(Request $request, Order $order)
@@ -733,8 +801,11 @@ class OrderController extends Controller
             $this->refundService->request($order, $order->user, 'wallet');
         }
 
+<<<<<<< HEAD
         $order->user?->notify(new OrderStatusUpdatedNotification($order, 'cancelled'));
 
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     });
 
     return back()->with(

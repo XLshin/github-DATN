@@ -27,7 +27,13 @@
             <select name="method" class="form-select form-select-sm" style="max-width:200px" onchange="this.form.submit()">
                 <option value="">-- Tất cả phương thức --</option>
                 <option value="bank_transfer" {{ request('method') === 'bank_transfer' ? 'selected' : '' }}>Chuyển khoản</option>
+<<<<<<< HEAD
                 <option value="vietqr" {{ request('method') === 'vietqr' ? 'selected' : '' }}>VietQR</option>
+=======
+                <option value="momo" {{ request('method') === 'momo' ? 'selected' : '' }}>MoMo</option>
+                <option value="vnpay" {{ request('method') === 'vnpay' ? 'selected' : '' }}>VNPAY</option>
+                <option value="card" {{ request('method') === 'card' ? 'selected' : '' }}>Thẻ</option>
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             </select>
         </form>
     </div>
@@ -58,7 +64,13 @@
                         <td>
                             @switch($topup->payment_method)
                                 @case('bank_transfer') Chuyển khoản @break
+<<<<<<< HEAD
                                 @case('vietqr') VietQR @break
+=======
+                                @case('momo') MoMo @break
+                                @case('vnpay') VNPAY @break
+                                @case('card') Thẻ @break
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                                 @default {{ $topup->payment_method }}
                             @endswitch
                         </td>

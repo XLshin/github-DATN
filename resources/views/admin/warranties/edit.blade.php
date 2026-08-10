@@ -4,7 +4,15 @@
 @section('page_icon', 'bi-check2-circle')
 @section('page_eyebrow', 'Dịch vụ sau bán')
 @section('page_title', 'Hoàn tất xử lý bảo hành')
+<<<<<<< HEAD
 @section('page_subtitle', 'Xác định nguyên nhân lỗi và lựa chọn sửa chữa hoặc đổi máy mới theo chính sách 30 ngày.')
+=======
+<<<<<<< HEAD
+@section('page_subtitle', 'Nhập kết quả sửa chữa và minh chứng để chuyển trạng thái đơn sang Hoàn tất.')
+=======
+@section('page_subtitle', 'Xác định nguyên nhân lỗi và lựa chọn sửa chữa hoặc đổi máy mới theo chính sách 30 ngày.')
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 
 @section('heading_actions')
 <a href="{{ route('admin.warranties.show', $warranty) }}" class="btn btn-light btn-sm">
@@ -13,13 +21,23 @@
 @endsection
 
 @section('content')
+<<<<<<< HEAD
 @if(session('error'))
     <div class="alert alert-danger">{{ session('error') }}</div>
 @endif
+=======
+<<<<<<< HEAD
+=======
+@if(session('error'))
+    <div class="alert alert-danger">{{ session('error') }}</div>
+@endif
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 
 <div class="row g-3">
     <div class="col-lg-5">
         <section class="panel h-100">
+<<<<<<< HEAD
             <div class="panel-header"><h5 class="mb-1">Thông tin phiếu</h5></div>
             <div class="p-3">
                 <div class="mb-3"><div class="text-muted small">Mã phiếu</div><div class="fw-semibold">{{ $warranty->warranty_code }}</div></div>
@@ -64,6 +82,112 @@
                     </div>
 
                     <div class="mb-3">
+=======
+<<<<<<< HEAD
+            <div class="panel-header">
+                <h5 class="mb-1">Thông tin phiếu</h5>
+            </div>
+            <div class="p-3">
+                <div class="mb-3">
+                    <div class="text-muted small">Mã phiếu</div>
+                    <div class="fw-semibold">{{ $warranty->warranty_code }}</div>
+                </div>
+                <div class="mb-3">
+                    <div class="text-muted small">Lỗi khách báo</div>
+                    <div class="border rounded p-2 bg-light text-danger">
+                        {{ $warranty->customer_note ?? 'Chưa có ghi chú.' }}
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="col-lg-7">
+        <section class="panel h-100">
+            <div class="panel-header">
+                <h5 class="mb-1 text-primary">Cập nhật kết quả sửa chữa</h5>
+            </div>
+            <div class="p-3">
+                <form method="POST" action="{{ route('admin.warranties.update', $warranty) }}" enctype="multipart/form-data">
+                    @csrf
+                    @method('PUT')
+
+                    <input type="hidden" name="status" value="active">
+
+                    <div class="alert alert-warning">
+                        Bạn đang xác nhận <strong>Hoàn tất xử lý</strong> cho phiếu bảo hành này.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Ghi chú cập nhật trạng thái (Nội bộ)</label>
+                        <textarea name="status_update_note" rows="2" class="form-control" placeholder="Ghi chú nhanh về việc hoàn tất...">{{ old('status_update_note', $warranty->status_update_note) }}</textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Kết quả sửa chữa / bộ phận thay thế</label>
+                        <textarea name="repair_result_note" rows="4" class="form-control @error('repair_result_note') is-invalid @enderror" required>{{ old('repair_result_note', $warranty->repair_result_note) }}</textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Ảnh sau khi sửa xong</label>
+                        <input type="file" name="completion_images[]" class="form-control" accept="image/*" multiple>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Video sau khi sửa xong</label>
+                        <input type="file" name="completion_videos[]" class="form-control" accept="video/*" multiple>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-lg"></i> Xác nhận Hoàn tất xử lý
+                        </button>
+=======
+            <div class="panel-header"><h5 class="mb-1">Thông tin phiếu</h5></div>
+            <div class="p-3">
+                <div class="mb-3"><div class="text-muted small">Mã phiếu</div><div class="fw-semibold">{{ $warranty->warranty_code }}</div></div>
+                <div class="mb-3"><div class="text-muted small">IMEI máy đang bảo hành</div><div class="fw-semibold">{{ $warranty->imei?->imei ?? 'N/A' }}</div></div>
+                <div class="mb-3"><div class="text-muted small">Lỗi khách báo</div><div class="border rounded p-2 bg-light text-danger">{{ $warranty->customer_note ?? 'Chưa có ghi chú.' }}</div></div>
+
+                <div class="card border-primary">
+                    <div class="card-body">
+                        <h6 class="fw-bold">Chính sách đổi máy mới trong 30 ngày</h6>
+                        <div class="small">Ngày mua/nhận máy: <strong>{{ $purchaseDate->format('d/m/Y') }}</strong></div>
+                        <div class="small">Hạn đổi máy: <strong>{{ $replacementDeadline->format('d/m/Y') }}</strong></div>
+                        @if($isWithinReplacementPeriod)
+                            <div class="alert alert-success mt-3 mb-0 small">Máy còn trong 30 ngày. Nếu lỗi do cửa hàng hoặc do hãng, khách đủ điều kiện đổi máy mới.</div>
+                        @else
+                            <div class="alert alert-secondary mt-3 mb-0 small">Máy đã quá 30 ngày nên không còn đủ điều kiện đổi máy mới.</div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="col-lg-7">
+        <section class="panel h-100">
+            <div class="panel-header"><h5 class="mb-1 text-primary">Cập nhật kết quả xử lý</h5></div>
+            <div class="p-3">
+                <form method="POST" action="{{ route('admin.warranties.update', $warranty) }}" enctype="multipart/form-data">
+                    @csrf
+                    @method('PUT')
+                    <input type="hidden" name="status" value="active">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nguyên nhân lỗi <span class="text-danger">*</span></label>
+                        <select name="fault_source" id="fault_source" class="form-select @error('fault_source') is-invalid @enderror" required>
+                            <option value="">-- Chọn nguyên nhân lỗi --</option>
+                            <option value="store" @selected(old('fault_source', $warranty->fault_source) === 'store')>Lỗi do cửa hàng</option>
+                            <option value="manufacturer" @selected(old('fault_source', $warranty->fault_source) === 'manufacturer')>Lỗi do hãng</option>
+                            <option value="customer" @selected(old('fault_source', $warranty->fault_source) === 'customer')>Lỗi do khách hàng</option>
+                            <option value="unknown" @selected(old('fault_source', $warranty->fault_source) === 'unknown')>Chưa xác định</option>
+                        </select>
+                        @error('fault_source')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="mb-3">
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                         <label class="form-label fw-semibold">Hình thức xử lý <span class="text-danger">*</span></label>
                         <select name="resolution_type" id="resolution_type" class="form-select @error('resolution_type') is-invalid @enderror" required>
                             <option value="">-- Chọn hình thức xử lý --</option>
@@ -105,6 +229,10 @@
 
                     <div class="d-flex gap-2 mt-4">
                         <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> Xác nhận hoàn tất xử lý</button>
+<<<<<<< HEAD
+=======
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                         <a href="{{ route('admin.warranties.show', $warranty) }}" class="btn btn-light">Hủy</a>
                     </div>
                 </form>
@@ -112,6 +240,12 @@
         </section>
     </div>
 </div>
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+@endsection
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 @endsection
 
 @push('scripts')
@@ -133,3 +267,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
+<<<<<<< HEAD
+=======
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706

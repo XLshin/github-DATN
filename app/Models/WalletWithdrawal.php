@@ -10,11 +10,16 @@ class WalletWithdrawal extends Model
     /** Số ngày làm việc xử lý tối thiểu bắt buộc trước khi admin được phép hoàn tất rút tiền. */
     public const MIN_PROCESSING_DAYS = 1;
 
+<<<<<<< HEAD
     /** Số tiền rút tối thiểu mỗi lần — không giới hạn (chỉ cần > 0). */
     public const MIN_AMOUNT = 1;
 
     /** Rút dưới ngưỡng này được tự động xử lý (mô phỏng), không cần admin duyệt thủ công. */
     public const AUTO_WITHDRAWAL_MAX_AMOUNT = 2000000;
+=======
+    /** Số tiền rút tối thiểu mỗi lần. */
+    public const MIN_AMOUNT = 50000;
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 
     protected $fillable = [
         'user_id',
@@ -26,7 +31,10 @@ class WalletWithdrawal extends Model
         'status',
         'requested_at',
         'eligible_at',
+<<<<<<< HEAD
         'simulate_confirm_at',
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         'completed_at',
         'transaction_code',
         'confirmed_by',
@@ -40,7 +48,10 @@ class WalletWithdrawal extends Model
         'amount' => 'decimal:2',
         'requested_at' => 'datetime',
         'eligible_at' => 'datetime',
+<<<<<<< HEAD
         'simulate_confirm_at' => 'datetime',
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         'completed_at' => 'datetime',
     ];
 
@@ -68,6 +79,7 @@ class WalletWithdrawal extends Model
     {
         return $this->eligible_at !== null && ! $this->eligible_at->isFuture();
     }
+<<<<<<< HEAD
 
     /** Mã ngân hàng chuẩn VietQR/Napas ứng với tên ngân hàng hiển thị (dùng để tạo QR chuyển tiền ra). */
     public const VIETQR_BANK_CODES = [
@@ -122,4 +134,6 @@ class WalletWithdrawal extends Model
 
         return "https://img.vietqr.io/image/{$bankCode}-{$this->account_number}-compact.jpg?amount={$amount}&addInfo={$info}&accountName={$name}";
     }
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 }

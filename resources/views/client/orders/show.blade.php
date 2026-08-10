@@ -488,8 +488,15 @@
                 $payment = $order->payment;
                 $methodLabels = [
                     'cod'           => 'Thanh toán khi nhận hàng (COD)',
+<<<<<<< HEAD
                     'bank_transfer' => 'Chuyển khoản ngân hàng',
                     'vietqr'        => 'VietQR',
+=======
+                    'card'          => 'Thẻ tín dụng/ghi nợ',
+                    'bank_transfer' => 'Chuyển khoản ngân hàng',
+                    'momo'          => 'Ví MoMo',
+                    'vnpay'         => 'VNPAY',
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                 ];
                 $statusLabels = [
                     'pending'   => 'Chờ thanh toán',
@@ -553,6 +560,7 @@
                     </div>
                 </div>
             @endif
+<<<<<<< HEAD
 
             @if($order->refundRequest)
                 @php
@@ -643,6 +651,8 @@
                     </div>
                 </div>
             @endif
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         </div>
     </div>
 
@@ -763,10 +773,73 @@
 
                 @if($order->payment && $order->payment->payment_status === 'paid')
                 <div class="mb-3">
+<<<<<<< HEAD
                     <input type="hidden" name="refund_method" value="wallet">
                     <div class="alert alert-success small mb-0">
                         <i class="bi bi-wallet2 me-1"></i>
                         Đơn hàng đã thanh toán — số tiền sẽ được <strong>tự động hoàn ngay vào Ví ByteZone</strong> của bạn ngay sau khi hủy đơn thành công.
+=======
+                    <label class="form-label fw-bold">
+                        Đơn hàng đã thanh toán — chọn phương thức nhận hoàn tiền <span class="text-danger">*</span>
+                    </label>
+
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="refund_method" id="refundWallet" value="wallet" checked>
+                        <label class="form-check-label" for="refundWallet">
+                            Hoàn vào Ví ByteZone <span class="text-success small">(nhận ngay lập tức)</span>
+                        </label>
+                    </div>
+
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio" name="refund_method" id="refundBank" value="bank">
+                        <label class="form-check-label" for="refundBank">
+                            Hoàn qua tài khoản ngân hàng <span class="text-muted small">(xử lý trong tối đa 7 ngày)</span>
+                        </label>
+                    </div>
+
+                    <div id="refundBankFields" class="d-none border rounded p-3 bg-light mt-2">
+                        @if($bankAccounts->isNotEmpty())
+                            <div class="mb-3">
+                                <label class="form-label small">Chọn nhanh tài khoản đã liên kết</label>
+                                <select id="savedBankAccountSelect" class="form-select form-select-sm">
+                                    <option value="">-- Nhập thủ công --</option>
+                                    @foreach($bankAccounts as $account)
+                                        <option value="{{ $account->id }}"
+                                                data-bank-name="{{ $account->bank_name }}"
+                                                data-account-number="{{ $account->account_number }}"
+                                                data-account-holder-name="{{ $account->account_holder_name }}"
+                                                {{ $account->is_default ? 'selected' : '' }}>
+                                            {{ $account->bank_name }} — {{ $account->account_number }} ({{ $account->account_holder_name }})
+                                            {{ $account->is_verified ? '' : ' — chưa xác minh' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
+                        <div class="mb-2">
+                            <label class="form-label small">Ngân hàng</label>
+                            <select name="bank_name" class="form-select form-select-sm">
+                                <option value="">-- Chọn ngân hàng --</option>
+                                @foreach([
+                                    'Vietcombank', 'VietinBank', 'BIDV', 'Agribank', 'Techcombank',
+                                    'MB Bank', 'ACB', 'VPBank', 'Sacombank', 'TPBank',
+                                    'HDBank', 'SHB', 'VIB', 'Eximbank', 'MSB',
+                                    'OCB', 'SeABank', 'SCB', 'Nam A Bank', 'BacA Bank',
+                                    'PVcomBank', 'Vietbank', 'ABBANK', 'LPBank', 'Kienlongbank',
+                                ] as $bankOption)
+                                    <option value="{{ $bankOption }}">{{ $bankOption }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">Số tài khoản</label>
+                            <input type="text" name="bank_account_number" class="form-control form-control-sm">
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label small">Chủ tài khoản</label>
+                            <input type="text" name="bank_account_name" class="form-control form-control-sm">
+                        </div>
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                     </div>
                 </div>
                 @endif
@@ -846,6 +919,53 @@ document.addEventListener('DOMContentLoaded', function () {
 
         });
 
+<<<<<<< HEAD
+=======
+        const refundBankFields = modal.querySelector('#refundBankFields');
+        const refundRadios = modal.querySelectorAll('input[name="refund_method"]');
+        const bankInputs = refundBankFields ? refundBankFields.querySelectorAll('input, select[name="bank_name"]') : [];
+
+        function toggleRefundBankFields() {
+            const isBank = modal.querySelector('#refundBank')?.checked;
+            refundBankFields?.classList.toggle('d-none', !isBank);
+            bankInputs.forEach(input => input.required = !!isBank);
+        }
+
+        refundRadios.forEach(function (radio) {
+            radio.addEventListener('change', toggleRefundBankFields);
+        });
+
+        toggleRefundBankFields();
+
+        // Chọn nhanh tài khoản ngân hàng đã liên kết -> tự điền 3 ô bên dưới
+        const savedBankSelect = modal.querySelector('#savedBankAccountSelect');
+        const bankNameSelect = modal.querySelector('select[name="bank_name"]');
+        const accountNumberInput = modal.querySelector('input[name="bank_account_number"]');
+        const accountHolderInput = modal.querySelector('input[name="bank_account_name"]');
+
+        function applySavedBankAccount() {
+            const option = savedBankSelect?.selectedOptions[0];
+            if (!option || !option.value) return;
+
+            const bankName = option.dataset.bankName || '';
+
+            if (bankNameSelect) {
+                const hasOption = Array.from(bankNameSelect.options).some(opt => opt.value === bankName);
+                if (!hasOption && bankName) {
+                    const newOpt = document.createElement('option');
+                    newOpt.value = bankName;
+                    newOpt.textContent = bankName;
+                    bankNameSelect.appendChild(newOpt);
+                }
+                bankNameSelect.value = bankName;
+            }
+
+            if (accountNumberInput) accountNumberInput.value = option.dataset.accountNumber || '';
+            if (accountHolderInput) accountHolderInput.value = option.dataset.accountHolderName || '';
+        }
+
+        savedBankSelect?.addEventListener('change', applySavedBankAccount);
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         applySavedBankAccount();
 
     });
@@ -855,6 +975,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // Tự động phát hiện thay đổi trạng thái đơn hàng (xác nhận/đóng gói/hủy...) và cập nhật
 // trang mà khách không cần bấm tải lại thủ công.
 (function () {
+<<<<<<< HEAD
     @php
         $orderInitialState = [
             'status' => $order->status,
@@ -867,6 +988,27 @@ document.addEventListener('DOMContentLoaded', function () {
     var initialState = @json($orderInitialState);
     // Có yêu cầu hoàn tiền ngân hàng đang chờ thì poll nhanh hơn để thấy kết quả mô phỏng sớm.
     var pollIntervalMs = {{ ($order->refundRequest->status ?? null) === 'pending' ? 4000 : 15000 }};
+=======
+<<<<<<< HEAD
+    var statusCheckUrl = @json(route('orders.statusCheck', $order->id));
+    var initialState = @json([
+        'status' => $order->status,
+        'fulfillment_status' => $order->fulfillment_status,
+        'payment_status' => $order->payment->payment_status ?? null,
+    ]);
+=======
+        var statusCheckUrl = {{ Illuminate\Support\Js::from(
+        route('orders.statusCheck', $order->id)
+    ) }};
+
+    var initialState = {{ Illuminate\Support\Js::from([
+        'status' => $order->status,
+        'fulfillment_status' => $order->fulfillment_status,
+        'payment_status' => optional($order->payment)->payment_status,
+    ]) }};
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
+    var pollIntervalMs = 15000;
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     var reloading = false;
 
     function poll() {
@@ -877,8 +1019,12 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(function (data) {
                 var changed = data.status !== initialState.status
                     || data.fulfillment_status !== initialState.fulfillment_status
+<<<<<<< HEAD
                     || data.payment_status !== initialState.payment_status
                     || data.refund_status !== initialState.refund_status;
+=======
+                    || data.payment_status !== initialState.payment_status;
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 
                 if (changed) {
                     reloading = true;

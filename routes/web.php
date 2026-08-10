@@ -6,7 +6,10 @@ use App\Http\Controllers\Admin\BankAccountController as AdminBankAccountControll
 use App\Http\Controllers\Admin\WalletWithdrawalController as AdminWalletWithdrawalController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\AssistantController;
+<<<<<<< HEAD
 use App\Http\Controllers\NotificationController;
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\CouponUserController;
@@ -83,7 +86,10 @@ if (app()->environment('local')) {
 
 // Webhook endpoints
 Route::post('/webhook/payment', [WebhookController::class, 'paymentCallback']);
+<<<<<<< HEAD
 Route::post('/webhook/sepay', [WebhookController::class, 'bankTransferCallback'])->name('webhook.sepay');
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 Route::post('/webhook/carrier/{code}', [CarrierWebhookController::class, 'handle']);
 
 /*
@@ -110,30 +116,42 @@ Route::middleware('guest')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth')->group(function () {
+<<<<<<< HEAD
     // Route::get('/dashboard', fn() => view('client.profile.dashboard'))->name('dashboard');
     // Sửa thành:
     Route::get('/dashboard', [ProfileController::class, 'dashboard'])->name('dashboard');
 
     // Giữ nguyên các route profile khác nếu cần
+=======
+    Route::get('/dashboard', [ProfileController::class, 'dashboard'])->name('dashboard');
+
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
+<<<<<<< HEAD
     // Thêm group quản lý địa chỉ (vẫn trong middleware auth)
     Route::middleware('auth')->group(function () {
         // ... các route khác
 
         // Địa chỉ nhận hàng
+=======
+    Route::middleware('auth')->group(function () {
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         Route::post('/addresses', [AddressController::class, 'store'])->name('addresses.store');
         Route::put('/addresses/{address}', [AddressController::class, 'update'])->name('addresses.update');
         Route::delete('/addresses/{address}', [AddressController::class, 'destroy'])->name('addresses.destroy');
         Route::patch('/addresses/{address}/default', [AddressController::class, 'setDefault'])->name('addresses.default');
     });
 
+<<<<<<< HEAD
     Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     Route::get('/change-password', [PasswordController::class, 'showChangePassword'])->name('password.change');
     Route::put('/change-password', [PasswordController::class, 'changePassword'])->name('password.change.update');
 
@@ -153,7 +171,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/checkout/preview', [CheckoutController::class, 'preview'])->name('checkout.preview');
     Route::get('/checkout/success/{order}', [CheckoutController::class, 'success'])->name('checkout.success');
     Route::get('/checkout/payment/{order}', [CheckoutController::class, 'showPayment'])->name('checkout.payment');
+<<<<<<< HEAD
     Route::get('/checkout/payment/{order}/status', [CheckoutController::class, 'paymentStatus'])->name('checkout.payment.status');
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     Route::post('/checkout/payment/{order}/confirm', [CheckoutController::class, 'confirmPayment'])->name('checkout.payment.confirm');
     Route::post('/checkout/payment/{order}/retry', [CheckoutController::class, 'retryPayment'])->name('checkout.payment.retry');
 
@@ -165,7 +186,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/wallet', [WalletController::class, 'index'])->name('wallet.index');
     Route::post('/wallet/topup', [WalletController::class, 'topup'])->name('wallet.topup');
     Route::get('/wallet/topup/{topup}', [WalletController::class, 'showTopupPayment'])->name('wallet.topup.payment');
+<<<<<<< HEAD
     Route::get('/wallet/topup/{topup}/status', [WalletController::class, 'topupStatus'])->name('wallet.topup.status');
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     Route::post('/wallet/topup/{topup}/confirm', [WalletController::class, 'confirmTopupPayment'])->name('wallet.topup.confirm');
     Route::post('/wallet/topup/{topup}/retry', [WalletController::class, 'retryTopupPayment'])->name('wallet.topup.retry');
     Route::post('/wallet/withdraw', [WalletController::class, 'withdraw'])->name('wallet.withdraw');
@@ -179,11 +203,14 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/assistant/chat', [AssistantController::class, 'chat'])->name('assistant.chat');
     Route::post('/assistant/reset', [AssistantController::class, 'reset'])->name('assistant.reset');
+<<<<<<< HEAD
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifications/recent', [NotificationController::class, 'recent'])->name('notifications.recent');
     Route::match(['GET', 'POST'], '/notifications/{notification}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.readAll');
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 });
 
 /*
@@ -349,8 +376,11 @@ Route::middleware(['auth', 'admin_or_staff'])->group(function () {
             ->name('wallet-withdrawals.index');
         Route::get('wallet-withdrawals/{withdrawal}', [AdminWalletWithdrawalController::class, 'show'])
             ->name('wallet-withdrawals.show');
+<<<<<<< HEAD
         Route::get('wallet-withdrawals/{withdrawal}/status', [AdminWalletWithdrawalController::class, 'status'])
             ->name('wallet-withdrawals.status');
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         Route::post('wallet-withdrawals/{withdrawal}/processing', [AdminWalletWithdrawalController::class, 'markProcessing'])
             ->name('wallet-withdrawals.processing');
         Route::post('wallet-withdrawals/{withdrawal}/complete', [AdminWalletWithdrawalController::class, 'complete'])

@@ -226,6 +226,11 @@
     </div>
 </div>
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 <section class="panel mb-3">
     <div class="panel-header"><h5 class="mb-1">Kết luận chính sách bảo hành</h5></div>
     <div class="p-3">
@@ -241,6 +246,10 @@
     </div>
 </section>
 
+<<<<<<< HEAD
+=======
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 <section class="panel">
     <div class="panel-header">
         <div>

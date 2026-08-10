@@ -266,6 +266,7 @@
 
 @section('content')
     @if ($items->isEmpty())
+<<<<<<< HEAD
         <div class="text-center py-5">
             <svg width="160" height="124" viewBox="0 0 180 140" class="mb-3" aria-hidden="true">
                 <ellipse cx="90" cy="126" rx="60" ry="8" fill="#eef2f7"/>
@@ -279,6 +280,9 @@
             </svg>
             <div class="alert alert-warning d-inline-block">Giỏ hàng trống. <a href="{{ route('home') }}">Tiếp tục mua sắm</a></div>
         </div>
+=======
+        <div class="alert alert-warning">Giỏ hàng trống. <a href="{{ route('home') }}">Tiếp tục mua sắm</a></div>
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     @else
         <div id="checkout-preview-error" class="alert alert-danger d-none">
             <div></div>
@@ -321,19 +325,31 @@
                         <div id="proxy-buyer-fields" class="{{ old('buyer_type') === 'proxy' ? '' : 'd-none' }} border rounded p-3 bg-light">
                             <div class="text-muted small mb-2">
                                 <i class="bi bi-info-circle"></i>
+<<<<<<< HEAD
                                 Lấy theo địa chỉ mặc định của tài khoản bạn. Muốn đổi, hãy thêm địa chỉ mới và đặt làm mặc định.
+=======
+                                Tự động lấy theo thông tin tài khoản của bạn, có thể chỉnh sửa.
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label">Tên người đặt mua <span class="text-danger">*</span></label>
+<<<<<<< HEAD
                                     <input type="text" id="buyer_name" name="buyer_name" class="form-control" value="{{ old('buyer_name', $buyerDefaultName) }}" readonly required>
+=======
+                                    <input type="text" id="buyer_name" name="buyer_name" class="form-control" value="{{ old('buyer_name', $buyerDefaultName) }}" required>
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                                     @error('buyer_name')
                                         <div class="text-danger small mt-1">{{ $message }}</div>
                                     @enderror
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label">SĐT người đặt mua <span class="text-danger">*</span></label>
+<<<<<<< HEAD
                                     <input type="text" id="buyer_phone" name="buyer_phone" class="form-control" value="{{ old('buyer_phone', $buyerDefaultPhone) }}" readonly required>
+=======
+                                    <input type="text" id="buyer_phone" name="buyer_phone" class="form-control" value="{{ old('buyer_phone', $buyerDefaultPhone) }}" required>
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                                     @error('buyer_phone')
                                         <div class="text-danger small mt-1">{{ $message }}</div>
                                     @enderror
@@ -438,6 +454,7 @@
                         </div>
                     </div>
 
+<<<<<<< HEAD
                     {{-- Thông tin người nhận: lấy từ địa chỉ đã chọn ở trên, không cần nhập lại --}}
                     <input type="hidden" id="customer_name" name="customer_name" value="{{ old('customer_name', auth()->user()->name ?? '') }}">
                     <input type="hidden" id="customer_phone" name="customer_phone" value="{{ old('customer_phone', auth()->user()->phone ?? '') }}">
@@ -451,6 +468,39 @@
                     @error('shipping_address')
                         <div class="text-danger small mt-1">{{ $message }}</div>
                     @enderror
+=======
+                    {{-- Thông tin người nhận --}}
+                    <div class="checkout-section" id="receiver-section">
+                        <div class="checkout-section__title">
+                            <span class="checkout-section__badge"><i class="bi bi-box-seam"></i></span>
+                            Thông tin người nhận
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Họ tên người nhận <span class="text-danger">*</span></label>
+                                <input type="text" id="customer_name" name="customer_name" class="form-control" value="{{ old('customer_name', auth()->user()->name ?? '') }}" required>
+                                @error('customer_name')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+                                <input type="text" id="customer_phone" name="customer_phone" class="form-control" value="{{ old('customer_phone', auth()->user()->phone ?? '') }}" required>
+                                @error('customer_phone')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Địa chỉ giao hàng <span class="text-danger">*</span></label>
+                                <textarea id="shipping_address" name="shipping_address" class="form-control" rows="3" required>{{ old('shipping_address', auth()->user()->address ?? '') }}</textarea>
+                                @error('shipping_address')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 
                     {{-- Voucher & điểm --}}
                     <div class="checkout-section">
@@ -546,6 +596,7 @@
                                 <span class="pm-dot"></span>
                             </label>
 
+<<<<<<< HEAD
                             {{-- VietQR --}}
                             <input type="radio" class="pm-radio btn-check" name="payment_method" id="pm_vietqr" value="vietqr">
                             <label class="pm-card" for="pm_vietqr">
@@ -553,6 +604,42 @@
                                 <span class="pm-text">
                                     <span class="pm-title">VietQR</span>
                                     <span class="pm-subtitle">Quét mã QR bằng app ngân hàng bất kỳ để thanh toán</span>
+=======
+                            {{-- MoMo --}}
+                            <input type="radio" class="pm-radio btn-check" name="payment_method" id="pm_momo" value="momo">
+                            <label class="pm-card" for="pm_momo">
+                                <span class="pm-icon pm-icon--brand" style="background:#AE2070">M</span>
+                                <span class="pm-text">
+                                    <span class="pm-title">Ví MoMo</span>
+                                    <span class="pm-subtitle">Quét QR bằng app MoMo để thanh toán</span>
+                                </span>
+                                <span class="pm-dot"></span>
+                            </label>
+
+                            {{-- VNPay --}}
+                            <input type="radio" class="pm-radio btn-check" name="payment_method" id="pm_vnpay" value="vnpay">
+                            <label class="pm-card" for="pm_vnpay">
+                                <span class="pm-icon pm-icon--brand" style="background:#005BAA;font-size:10px;line-height:1.1">VN<br>Pay</span>
+                                <span class="pm-text">
+                                    <span class="pm-title">VNPAY</span>
+                                    <span class="pm-subtitle">Thanh toán qua ví VNPAY hoặc QR ngân hàng</span>
+                                </span>
+                                <span class="pm-dot"></span>
+                            </label>
+
+                            {{-- Card --}}
+                            <input type="radio" class="pm-radio btn-check" name="payment_method" id="pm_card" value="card">
+                            <label class="pm-card" for="pm_card">
+                                <span class="pm-icon pm-icon--card"><i class="bi bi-credit-card-2-front"></i></span>
+                                <span class="pm-text">
+                                    <span class="pm-title">Thẻ tín dụng / ghi nợ</span>
+                                    <span class="pm-subtitle">Visa, Mastercard, JCB</span>
+                                    <span class="pm-networks">
+                                        <span class="pm-network-badge" style="background:#1a1f71">VISA</span>
+                                        <span class="pm-network-badge" style="background:#eb001b">MASTERCARD</span>
+                                        <span class="pm-network-badge" style="background:#0f6937">JCB</span>
+                                    </span>
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                                 </span>
                                 <span class="pm-dot"></span>
                             </label>
@@ -656,6 +743,7 @@
                 // Tự động lấy theo tài khoản đang đăng nhập (nếu người dùng chưa từng chỉnh sửa), vẫn có thể sửa lại.
                 if (buyerNameInput && !buyerNameInput.value.trim()) buyerNameInput.value = accountName;
                 if (buyerPhoneInput && !buyerPhoneInput.value.trim()) buyerPhoneInput.value = accountPhone;
+<<<<<<< HEAD
             }
 
             // Người nhận luôn lấy từ địa chỉ đã chọn ở trên (kể cả khi mua hộ).
@@ -668,6 +756,26 @@
                 receiverNameInput.value = accountName;
                 receiverPhoneInput.value = accountPhone;
                 receiverAddressInput.value = accountAddress;
+=======
+
+                savedAddressSection.classList.add('d-none');
+                document.querySelectorAll('input[name="saved_address_id"]').forEach(r => r.checked = false);
+                receiverNameInput.value = '';
+                receiverPhoneInput.value = '';
+                receiverAddressInput.value = '';
+            } else {
+                savedAddressSection.classList.remove('d-none');
+                const defaultRadio = document.querySelector('input[name="saved_address_id"]:checked')
+                    || document.querySelector('input[name="saved_address_id"]');
+                if (defaultRadio) {
+                    defaultRadio.checked = true;
+                    applySelectedAddress();
+                } else {
+                    receiverNameInput.value = accountName;
+                    receiverPhoneInput.value = accountPhone;
+                    receiverAddressInput.value = accountAddress;
+                }
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             }
         }
 

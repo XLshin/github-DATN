@@ -22,14 +22,20 @@ class WalletTopup extends Model
         'admin_note',
         'paid_at',
         'expires_at',
+<<<<<<< HEAD
         'simulate_confirm_at',
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'paid_at' => 'datetime',
         'expires_at' => 'datetime',
+<<<<<<< HEAD
         'simulate_confirm_at' => 'datetime',
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     ];
 
     /** Mã tham chiếu duy nhất khách phải ghi đúng khi chuyển khoản, dùng để đối soát. */

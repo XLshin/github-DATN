@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Coupon;
 use App\Models\User;
+<<<<<<< HEAD
 use App\Notifications\NewVoucherNotification;
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Validation\Rule;
@@ -39,6 +42,7 @@ class CouponUserController extends Controller
             ],
         ]);
 
+<<<<<<< HEAD
         $previousUserIds = $coupon->users()->pluck('users.id')->all();
 
         // Sync users: chỉ những user được chọn sẽ có quyền dùng voucher này
@@ -53,6 +57,11 @@ class CouponUserController extends Controller
             );
         }
 
+=======
+        // Sync users: chỉ những user được chọn sẽ có quyền dùng voucher này
+        $coupon->users()->sync($request->input('user_ids', []));
+
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         return redirect()->route('admin.coupons.index')->with('success', 'Cập nhật người dùng được cấp voucher thành công!');
     }
 }

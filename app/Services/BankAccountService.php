@@ -11,7 +11,11 @@ class BankAccountService
 {
     /**
      * Liên kết tài khoản ngân hàng mới. Tự động xác minh (is_verified = true) nếu tên chủ TK
+<<<<<<< HEAD
      * khớp tên tài khoản đăng ký — đúng thực tế các ví điện tử (VietQR/ZaloPay) yêu cầu tài khoản
+=======
+     * khớp tên tài khoản đăng ký — đúng thực tế các ví điện tử (Momo/ZaloPay) yêu cầu tài khoản
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
      * ngân hàng nhận tiền phải cùng chủ sở hữu với tài khoản ví để chống rửa tiền/chuyển nhầm.
      * Nếu không khớp, tài khoản vẫn được lưu nhưng ở trạng thái "chưa xác minh" và KHÔNG thể
      * dùng để rút tiền cho tới khi admin xác minh thủ công.

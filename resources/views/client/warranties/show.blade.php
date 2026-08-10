@@ -315,6 +315,11 @@
 
     <a href="{{ route('warranties.lookup') }}" class="btn btn-light">← Quay lại tra cứu</a>
 </div>
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 
 <div class="card mt-3">
     <div class="card-body">
@@ -330,4 +335,8 @@
         @endif
     </div>
 </div>
+<<<<<<< HEAD
+=======
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 @endsection

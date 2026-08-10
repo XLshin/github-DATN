@@ -198,7 +198,11 @@ class CartResetSeeder extends Seeder
         $this->command->line('║  #4 silver.test + WELCOME10 (sau CK 2%)  → 32,035,740₫           ║');
         $this->command->line('║  #5 silver.test + 100 điểm (=10,000₫)   → thêm −10,000₫         ║');
         $this->command->line('║  #6 gold.test + VIP2000K (sau CK 5%)    → 48,331,000₫           ║');
+<<<<<<< HEAD
         $this->command->line('║  #7 gold.test + vietqr/momo (gateway)    → Đơn pending            ║');
+=======
+        $this->command->line('║  #7 gold.test + vnpay/momo (gateway)    → Đơn pending            ║');
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         $this->command->line('╚═══════════════════════════════════════════════════════════════════╝');
         $this->command->newLine();
         $this->command->line('  URL đăng nhập: http://127.0.0.1:8000/login');

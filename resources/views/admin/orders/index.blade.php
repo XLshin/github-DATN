@@ -26,6 +26,11 @@
     <div class="alert alert-danger">{{ session('error') }}</div>
 @endif
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 @if(session('warning'))
     <div class="alert alert-warning alert-dismissible fade show" role="alert">
         <i class="bi bi-exclamation-triangle-fill me-1"></i>
@@ -38,6 +43,10 @@
     </div>
 @endif
 
+<<<<<<< HEAD
+=======
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 @if($errors->any())
     <div class="alert alert-danger">
         <ul class="mb-0">
@@ -417,6 +426,20 @@
 
                                         @if($order->fulfillment_status === 'failed')
                                             <li><hr class="dropdown-divider"></li>
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+                                            <li>
+                                                <form action="{{ route('admin.orders.retryDelivery', $order) }}" method="POST"
+                                                      onsubmit="return confirm('Bạn có chắc muốn giao lại đơn hàng này không?');">
+                                                    @csrf
+                                                    <button type="submit" class="dropdown-item">
+                                                        <i class="bi bi-arrow-repeat me-2"></i>Giao lại
+                                                    </button>
+                                                </form>
+                                            </li>
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 
                                             @if($order->canRetryDelivery())
                                                 <li>
@@ -459,6 +482,10 @@
                                                     </div>
                                                 </li>
                                             @endif
+<<<<<<< HEAD
+=======
+>>>>>>> e3a755cc0ad1d671c82fe41fc2212481154a14db
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                                         @endif
 
                                         @if(!in_array($order->fulfillment_status, ['completed', 'cancelled'], true))

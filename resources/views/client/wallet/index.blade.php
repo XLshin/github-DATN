@@ -143,16 +143,47 @@
                             <span class="pm-dot"></span>
                         </label>
 
+<<<<<<< HEAD
                         <input type="radio" class="pm-radio btn-check" name="payment_method" id="tm_vietqr" value="vietqr">
                         <label class="pm-card" for="tm_vietqr">
                             <span class="pm-icon pm-icon--brand" style="background:#00A0E3;font-size:10px;line-height:1.1">Viet<br>QR</span>
                             <span class="pm-text">
                                 <span class="pm-title">VietQR</span>
                                 <span class="pm-subtitle">Quét mã QR bằng app ngân hàng bất kỳ để thanh toán</span>
+=======
+                        <input type="radio" class="pm-radio btn-check" name="payment_method" id="tm_momo" value="momo">
+                        <label class="pm-card" for="tm_momo">
+                            <span class="pm-icon pm-icon--brand" style="background:#AE2070">M</span>
+                            <span class="pm-text">
+                                <span class="pm-title">Ví MoMo</span>
+                                <span class="pm-subtitle">Quét QR bằng app MoMo</span>
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                             </span>
                             <span class="pm-dot"></span>
                         </label>
 
+<<<<<<< HEAD
+=======
+                        <input type="radio" class="pm-radio btn-check" name="payment_method" id="tm_vnpay" value="vnpay">
+                        <label class="pm-card" for="tm_vnpay">
+                            <span class="pm-icon pm-icon--brand" style="background:#005BAA;font-size:10px;line-height:1.1">VN<br>Pay</span>
+                            <span class="pm-text">
+                                <span class="pm-title">VNPAY</span>
+                                <span class="pm-subtitle">Thanh toán qua ví VNPAY hoặc QR ngân hàng</span>
+                            </span>
+                            <span class="pm-dot"></span>
+                        </label>
+
+                        <input type="radio" class="pm-radio btn-check" name="payment_method" id="tm_card" value="card">
+                        <label class="pm-card" for="tm_card">
+                            <span class="pm-icon pm-icon--card"><i class="bi bi-credit-card-2-front"></i></span>
+                            <span class="pm-text">
+                                <span class="pm-title">Thẻ tín dụng / ghi nợ</span>
+                                <span class="pm-subtitle">Visa, Mastercard, JCB</span>
+                            </span>
+                            <span class="pm-dot"></span>
+                        </label>
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                     </div>
                     @error('payment_method')
                         <div class="text-danger small mt-1">{{ $message }}</div>
@@ -226,6 +257,7 @@
                     </div>
                     <div class="mb-2">
                         <label class="form-label small">Ngân hàng</label>
+<<<<<<< HEAD
                         <select name="bank_name" class="form-select form-select-sm" required>
                             <option value="">-- Chọn ngân hàng --</option>
                             @foreach([
@@ -238,6 +270,9 @@
                                 <option value="{{ $bankOption }}">{{ $bankOption }}</option>
                             @endforeach
                         </select>
+=======
+                        <input type="text" name="bank_name" class="form-control form-control-sm" placeholder="VD: Vietcombank" required>
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                     </div>
                     <div class="mb-2">
                         <label class="form-label small">Số tài khoản</label>
@@ -285,12 +320,19 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label small">Số tiền muốn rút</label>
+<<<<<<< HEAD
                         <input type="number" name="amount" class="form-control" min="{{ \App\Models\WalletWithdrawal::MIN_AMOUNT }}" step="1"
                                max="{{ (int) (auth()->user()->wallet_balance ?? 0) }}" required
                                oninvalid="this.setCustomValidity(this.validity.rangeOverflow ? 'Số tiền rút không được vượt quá số dư hiện có trong ví (' + Number(this.max).toLocaleString('vi-VN') + ' đ).' : (this.validity.rangeUnderflow ? 'Số tiền rút tối thiểu là ' + Number(this.min).toLocaleString('vi-VN') + ' đ.' : ''))"
                                oninput="this.setCustomValidity('')">
                         <div class="form-text">
                             Không giới hạn số tiền rút tối thiểu.
+=======
+                        <input type="number" name="amount" class="form-control" min="{{ \App\Models\WalletWithdrawal::MIN_AMOUNT }}" step="1000"
+                               max="{{ (int) (auth()->user()->wallet_balance ?? 0) }}" required>
+                        <div class="form-text">
+                            Tối thiểu {{ number_format(\App\Models\WalletWithdrawal::MIN_AMOUNT, 0, ',', '.') }} đ.
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                             Thời gian xử lý tối đa {{ \App\Models\WalletWithdrawal::MIN_PROCESSING_DAYS }} ngày làm việc kể từ khi yêu cầu được gửi.
                         </div>
                     </div>

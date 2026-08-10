@@ -54,7 +54,11 @@ class HomeController extends Controller
         $flashSaleProducts = Product::with(['images', 'brand', 'category', 'variants'])
             ->where('status', true)->latest()->take(8)->get();
 
+<<<<<<< HEAD
         // Sản phẩm theo từng danh mục
+=======
+        // Sản phẩm theo từng danh mục — key là category object để view dùng được id/name
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         $productsByCategory = [];
         foreach (Category::all() as $cat) {
             $catProds = Product::with(['images', 'brand', 'category', 'variants'])
@@ -62,7 +66,14 @@ class HomeController extends Controller
                 ->where('category_id', $cat->id)
                 ->latest()->take(8)->get();
             if ($catProds->isNotEmpty()) {
+<<<<<<< HEAD
                 $productsByCategory[$cat->name] = $catProds;
+=======
+                $productsByCategory[] = [
+                    'category' => $cat,
+                    'products' => $catProds,
+                ];
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             }
         }
 

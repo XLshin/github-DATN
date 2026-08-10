@@ -39,6 +39,7 @@ return [
         'api_key' => env('GEMINI_API_KEY'),
     ],
 
+<<<<<<< HEAD
     // SePay (hoặc Casso) — dịch vụ đọc biến động số dư ngân hàng qua webhook để
     // tự động xác nhận thanh toán chuyển khoản, không cần admin đối soát thủ công.
     'sepay' => [
@@ -48,4 +49,6 @@ return [
         'account_name' => env('SEPAY_ACCOUNT_NAME', 'BYTE ZONE STORE'),
     ],
 
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 ];

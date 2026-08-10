@@ -34,6 +34,7 @@ class WalletWithdrawalController extends Controller
         return view('admin.wallet-withdrawals.show', compact('withdrawal'));
     }
 
+<<<<<<< HEAD
     /**
      * Trang chi tiết poll endpoint này để tự phát hiện khi SePay xác nhận đã chuyển khoản xong
      * (sau khi admin quét QR), hiện hóa đơn ngay mà không cần tải lại trang.
@@ -54,6 +55,8 @@ class WalletWithdrawalController extends Controller
         ]);
     }
 
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     public function markProcessing(WalletWithdrawal $withdrawal)
     {
         $this->withdrawalService->markProcessing($withdrawal);

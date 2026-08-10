@@ -22,8 +22,15 @@
 
     $methodLabels = [
         'cod'           => 'Thanh toán khi nhận hàng (COD)',
+<<<<<<< HEAD
         'bank_transfer' => 'Chuyển khoản ngân hàng',
         'vietqr'        => 'VietQR',
+=======
+        'card'          => 'Thẻ tín dụng/ghi nợ',
+        'bank_transfer' => 'Chuyển khoản ngân hàng',
+        'momo'          => 'Ví MoMo',
+        'vnpay'         => 'VNPAY',
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     ];
 @endphp
 

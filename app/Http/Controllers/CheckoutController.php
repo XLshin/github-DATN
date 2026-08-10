@@ -93,7 +93,11 @@ class CheckoutController extends Controller
             'buyer_type' => ['required', 'string', 'in:self,proxy'],
             'buyer_name' => ['required_if:buyer_type,proxy', 'nullable', 'string', 'max:255'],
             'buyer_phone' => ['required_if:buyer_type,proxy', 'nullable', 'string', 'max:20'],
+<<<<<<< HEAD
             'payment_method' => ['required', 'string', 'in:cod,bank_transfer,vietqr,wallet'],
+=======
+            'payment_method' => ['required', 'string', 'in:cod,card,bank_transfer,momo,vnpay,wallet'],
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             'coupon_id' => ['nullable', 'integer', 'exists:coupons,id'],
             'coupon_code' => ['nullable', 'string', 'max:50'],
             'points_to_use' => ['nullable', 'integer', 'min:0'],
@@ -148,13 +152,23 @@ class CheckoutController extends Controller
             'wallet'        => redirect()->route('checkout.success', $order)
                 ->with('success', 'Đặt hàng thành công! Đã thanh toán bằng số dư ví.'),
             'bank_transfer' => redirect()->route('checkout.payment', $order),
+<<<<<<< HEAD
             'vietqr'        => redirect()->route('checkout.payment', $order),
+=======
+            'momo'          => redirect()->route('checkout.payment', $order),
+            'vnpay'         => redirect()->route('checkout.payment', $order),
+            'card'          => redirect()->route('checkout.payment', $order),
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             default         => redirect()->route('checkout.success', $order),
         };
     }
 
     /**
+<<<<<<< HEAD
      * Trang thanh toán theo phương thức (bank_transfer / vietqr).
+=======
+     * Trang thanh toán theo phương thức (bank_transfer / momo / vnpay / card).
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
      */
     public function showPayment(Request $request, Order $order)
     {
@@ -178,6 +192,7 @@ class CheckoutController extends Controller
         return view('client.checkout.payment', compact('order'));
     }
 
+<<<<<<< HEAD
     
     public function paymentStatus(Request $request, Order $order, \App\Services\PaymentWebhookService $webhookService)
     {
@@ -218,6 +233,8 @@ class CheckoutController extends Controller
         ]);
     }
 
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     /**
      * Thử lại giao dịch đã hết hạn: cấp lại tồn kho/IMEI và mở phiên thanh toán mới.
      */
@@ -247,9 +264,15 @@ class CheckoutController extends Controller
     }
 
     /**
+<<<<<<< HEAD
      * Khách xác nhận thanh toán thủ công — dùng làm lối dự phòng khi việc tự động xác nhận
      * (simulate_confirm_at, xem paymentStatus()) chưa kịp chạy. vietqr/bank_transfer chỉ có ảnh
      * chụp màn hình nên vẫn cần admin đối soát.
+=======
+     * Khách xác nhận đã thanh toán (momo / vnpay / card / bank_transfer). Áp dụng cho MỌI phương
+     * thức: bắt buộc ảnh bằng chứng, KHÔNG tự động cộng/paid ngay — luôn chờ admin đối soát và
+     * xác nhận đúng số tiền trước khi đơn được coi là đã thanh toán (đồng bộ với luồng nạp ví).
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
      */
     public function confirmPayment(Request $request, Order $order)
     {
@@ -272,6 +295,7 @@ class CheckoutController extends Controller
 
         $method = $payment->payment_method;
 
+<<<<<<< HEAD
         $validated = $request->validate([
             'proof_image' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:4096'],
         ], [
@@ -285,11 +309,76 @@ class CheckoutController extends Controller
             default => 'Khách báo đã thanh toán — chờ đối soát.',
         };
 
+=======
+        $rules = [
+            'proof_image' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:4096'],
+        ];
+        $messages = [
+            'proof_image.required' => 'Vui lòng tải lên ảnh chụp màn hình xác nhận giao dịch.',
+            'proof_image.image' => 'File tải lên phải là hình ảnh.',
+        ];
+
+        $payerName = $order->customer_name;
+        $payerNote = match ($method) {
+            'bank_transfer' => 'Khách báo đã chuyển khoản lúc ' . now()->format('H:i d/m/Y') . ' — chờ đối soát.',
+            'momo' => 'Khách báo đã thanh toán qua Ví MoMo — chờ đối soát.',
+            'vnpay' => 'Khách báo đã thanh toán qua VNPAY — chờ đối soát.',
+            'card' => 'Khách báo đã thanh toán bằng thẻ — chờ đối soát.',
+            default => 'Khách báo đã thanh toán — chờ đối soát.',
+        };
+
+        if ($method === 'card') {
+            $rules = array_merge($rules, [
+                'card_number' => ['required', 'string'],
+                'card_expiry' => ['required', 'string', 'regex:/^\d{2}\/\d{2}$/'],
+                'card_cvv'    => ['required', 'string', 'min:3', 'max:4'],
+                'card_name'   => ['required', 'string', 'max:255'],
+            ]);
+        }
+
+        $validated = $request->validate($rules, $messages);
+
+        if ($method === 'card') {
+            $digits = preg_replace('/\D/', '', $validated['card_number']);
+
+            if (! $this->isValidCardNumber($digits)) {
+                throw ValidationException::withMessages([
+                    'card_number' => 'Số thẻ không hợp lệ. Vui lòng kiểm tra lại.',
+                ]);
+            }
+
+            $expMonth = (int) substr($validated['card_expiry'], 0, 2);
+            $expYear  = 2000 + (int) substr($validated['card_expiry'], 3, 2);
+            $now      = now();
+            $expired  = $expYear < $now->year || ($expYear === $now->year && $expMonth < $now->month);
+
+            if ($expMonth < 1 || $expMonth > 12 || $expired) {
+                throw ValidationException::withMessages([
+                    'card_expiry' => 'Thẻ đã hết hạn hoặc ngày hết hạn không hợp lệ.',
+                ]);
+            }
+
+            // Mô phỏng ngân hàng phát hành từ chối giao dịch với thẻ test kết thúc bằng 0000
+            if (str_ends_with($digits, '0000')) {
+                throw ValidationException::withMessages([
+                    'card_number' => 'Giao dịch bị từ chối bởi ngân hàng phát hành thẻ (số dư không đủ).',
+                ]);
+            }
+
+            $payerName = Str::upper($validated['card_name']);
+            $payerNote = 'Thẻ **** **** **** ' . substr($digits, -4) . ' — chờ đối soát.';
+        }
+
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
         $path = $request->file('proof_image')->store('order-payment-proofs', 'public');
 
         $payment->update([
             'payment_status' => 'pending',
+<<<<<<< HEAD
             'payer_name'     => $order->customer_name,
+=======
+            'payer_name'     => $payerName,
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             'payer_note'     => $payerNote,
             'proof_image'    => $path,
         ]);
@@ -300,6 +389,38 @@ class CheckoutController extends Controller
             ->with('info', 'Chúng tôi đã ghi nhận yêu cầu thanh toán. Đơn sẽ được xác nhận sau khi đối soát (thường trong 30 phút).');
     }
 
+<<<<<<< HEAD
+=======
+    /**
+     * Kiểm tra số thẻ hợp lệ theo thuật toán Luhn (chuẩn dùng bởi Visa/Mastercard/JCB).
+     */
+    private function isValidCardNumber(string $digits): bool
+    {
+        if (! ctype_digit($digits) || strlen($digits) < 13 || strlen($digits) > 19) {
+            return false;
+        }
+
+        $sum = 0;
+        $alternate = false;
+
+        for ($i = strlen($digits) - 1; $i >= 0; $i--) {
+            $n = (int) $digits[$i];
+
+            if ($alternate) {
+                $n *= 2;
+                if ($n > 9) {
+                    $n -= 9;
+                }
+            }
+
+            $sum += $n;
+            $alternate = ! $alternate;
+        }
+
+        return $sum % 10 === 0;
+    }
+
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     public function preview(Request $request)
     {
         $data = $request->validate([

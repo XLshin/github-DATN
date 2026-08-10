@@ -5,10 +5,14 @@ namespace App\Services;
 use App\Models\Order;
 use App\Models\RefundRequest;
 use App\Models\User;
+<<<<<<< HEAD
 use App\Notifications\RefundCompletedNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+=======
+use Illuminate\Support\Facades\DB;
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 use Illuminate\Validation\ValidationException;
 
 class RefundService
@@ -16,7 +20,10 @@ class RefundService
     public function __construct(
         private readonly WalletService $walletService,
         private readonly BankTransactionLogService $logService,
+<<<<<<< HEAD
         private readonly ReceiptImageService $receiptImageService,
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     ) {}
 
     /**
@@ -60,11 +67,14 @@ class RefundService
             $amount = (float) $payment->amount;
             $now = now();
 
+<<<<<<< HEAD
             // Hoàn qua ngân hàng LUÔN cần admin tự tay chuyển khoản thật + đính kèm ảnh minh chứng
             // (completeBankRefund) — không còn tự động giả lập dưới ngưỡng, vì hệ thống không có
             // API chuyển tiền ra ngân hàng thật, "tự động xác nhận" trước đây chỉ là giả lập demo.
             $autoRefund = false;
 
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
             $refund = RefundRequest::create([
                 'order_id' => $order->id,
                 'user_id' => $user->id,
@@ -78,9 +88,12 @@ class RefundService
                 'eligible_at' => $method === 'bank'
                     ? $now->copy()->addDays(RefundRequest::MIN_BANK_PROCESSING_DAYS)
                     : null,
+<<<<<<< HEAD
                 // Mô phỏng ngân hàng xử lý xong lệnh chuyển tiền sau một khoảng trễ ngẫu nhiên,
                 // giống cảm giác chờ xử lý thật (đồ án — không gọi ngân hàng thật).
                 'simulate_confirm_at' => $autoRefund ? $now->copy()->addSeconds(random_int(8, 20)) : null,
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
                 'completed_at' => $method === 'wallet' ? $now : null,
             ]);
 
@@ -97,6 +110,7 @@ class RefundService
 
             $payment->update(['payment_status' => 'refunded']);
 
+<<<<<<< HEAD
             $note = $method === 'wallet'
                 ? 'Hoàn tự động vào ví.'
                 : 'Khách tạo yêu cầu hoàn qua ngân hàng, chờ admin chuyển khoản thật và xác nhận.';
@@ -107,12 +121,16 @@ class RefundService
             if ($refund->status === 'completed') {
                 $this->sendRefundNotifications($refund);
             }
+=======
+            $this->logService->logRefund($refund, $refund->status, null, $method === 'wallet' ? 'Hoàn tự động vào ví.' : 'Khách tạo yêu cầu hoàn qua ngân hàng.');
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 
             return $refund;
         });
     }
 
     /**
+<<<<<<< HEAD
      * Mô phỏng gửi email + SMS báo khách đã nhận được tiền hoàn — không gọi nhà cung cấp thật
      * (đồ án), chỉ ghi log có nội dung đầy đủ và đánh dấu notified_at để hiển thị trên trang chi
      * tiết đơn hàng, mô phỏng đúng trải nghiệm nhận được thông báo hoàn tiền ngoài đời thực.
@@ -188,6 +206,8 @@ class RefundService
     }
 
     /**
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
      * Admin xác nhận đã chuyển khoản hoàn tiền cho khách — bắt buộc đính kèm ảnh minh chứng đã
      * chuyển khoản thực tế (không xác nhận mù). Không còn ép chờ đủ thời gian xử lý tối thiểu:
      * admin có thể xác nhận ngay khi đã đủ căn cứ (ảnh bằng chứng hợp lệ).
@@ -210,8 +230,11 @@ class RefundService
         ]);
 
         $this->logService->logRefund($refund->fresh(), 'completed', $admin, $adminNote);
+<<<<<<< HEAD
 
         $this->sendRefundNotifications($refund->fresh());
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
     }
 
     public function markProcessing(RefundRequest $refund): void
@@ -222,6 +245,7 @@ class RefundService
 
         $refund->update(['status' => 'processing']);
     }
+<<<<<<< HEAD
 
     private function maskAccountNumber(string $accountNumber): string
     {
@@ -233,4 +257,6 @@ class RefundService
 
         return str_repeat('*', $length - 4) . substr($accountNumber, -4);
     }
+=======
+>>>>>>> 204f2abead4a1d35f4d5df9f5cb75a9805df8706
 }
